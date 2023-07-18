@@ -26,9 +26,7 @@ contract Proxy {
         require(
             msg.sender == owner
                 || authority != address(0)
-                    && IAuthority(authority).canCall(
-                        msg.sender, address(this), msg.sig
-                    ),
+                    && IAuthority(authority).canCall(msg.sender, address(this), msg.sig),
             "not authorized"
         );
         _;
