@@ -14,6 +14,9 @@
                 -   `open`
                     -   `SafeHandler`
                         -   `Vat.hope`
+                    -   doubly linked list (insert)
+        -   `lockGemAndDraw`
+            -   `GemJoin.join`
 
 `gem` - Collateral tokens
 

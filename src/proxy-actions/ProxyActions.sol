@@ -2,8 +2,8 @@
 pragma solidity 0.8.19;
 
 import {IDaiJoin} from "../interfaces/IDaiJoin.sol";
+import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {ICdpManager} from "../interfaces/ICdpManager.sol";
-
 
 contract Common {
     function daiJoin_join(address adapter, address account, uint256 wad)
@@ -23,6 +23,43 @@ contract ProxyActions is Common {
         cdp = ICdpManager(manager).open(collateralType, user);
     }
 
+    function gemJoin_join(
+        address adapter,
+        address safe,
+        uint256 amount,
+        bool isTransferFrom
+    ) public {
+        if (isTransferFrom) {
+            IGemJoin(adapter).gem().transferFrom(
+                msg.sender, address(this), amount
+            );
+            IGemJoin(adapter).gem().approve(adapter, amount);
+        }
+        IGemJoin(adapter).join(safe, amount);
+    }
+
+    function lockGemAndDraw(
+        address manager,
+        address feeCollector,
+        address gemJoin,
+        address daiJoin,
+        uint256 cdp,
+        uint256 amount,
+        uint256 wad,
+        bool isTransferFrom
+    ) public {
+        address safe = IManager(manager).safes(cdp);
+        address vat = IManager(manager).vat();
+        bytes32 collateralType = IManager(manager).collateralTypes(cdp);
+
+        gemJoin_join(gemJoin, safe, amount, isTransferFrom);
+        // frob
+        // move
+        // hope
+        // exit
+
+    }
+
     function openLockGemAndDraw(
         address manager,
         address feeCollector,
@@ -34,7 +71,16 @@ contract ProxyActions is Common {
         bool isTransferFrom
     ) public returns (uint256 cdp) {
         cdp = open(manager, collateralType, address(this));
-        // lockGemAndDraw();
+        lockGemAndDraw(
+            manager,
+            feeCollector,
+            gemJoin,
+            daiJoin,
+            cdp,
+            amount,
+            wad,
+            isTransferFrom
+        );
     }
 
     function openLockETHAndDraw(
