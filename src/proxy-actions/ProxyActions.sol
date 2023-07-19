@@ -48,16 +48,15 @@ contract ProxyActions is Common {
         uint256 wad,
         bool isTransferFrom
     ) public {
-        address safe = IManager(manager).safes(cdp);
-        address vat = IManager(manager).vat();
-        bytes32 collateralType = IManager(manager).collateralTypes(cdp);
+        address safe = ICdpManager(manager).safes(cdp);
+        address vat = ICdpManager(manager).vat();
+        bytes32 collateralType = ICdpManager(manager).collateralTypes(cdp);
 
         gemJoin_join(gemJoin, safe, amount, isTransferFrom);
         // frob
         // move
         // hope
         // exit
-
     }
 
     function openLockGemAndDraw(

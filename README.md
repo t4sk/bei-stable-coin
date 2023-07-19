@@ -5,6 +5,9 @@
     -   `Common`
         -   `DaiJoin`
             -   `Gem`, `Vat`
+    -   `GemJoin`
+        -   `join`
+            -   `vat.slip`
     -   `openLockETHAndDraw` TODO: or `openLockGemAndDraw`
         -   `jug`
         -   `ilk`
