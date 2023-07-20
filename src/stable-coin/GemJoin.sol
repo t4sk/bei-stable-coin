@@ -7,9 +7,9 @@ import {IGem} from "../interfaces/IGem.sol";
 contract GemJoin {
     event AddAuthorization(address indexed user);
     event RemoveAuthorization(address indexed user);
-    event Stop();
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
+    event Stop();
 
     IVat public immutable vat;
     // ilk
@@ -57,7 +57,7 @@ contract GemJoin {
 
     function join(address user, uint256 wad) external {
         require(live, "not live");
-        // TODO: what?
+        // wad <= 2**255 - 1
         require(int256(wad) >= 0, "overflow");
         vat.slip(collateralType, user, int256(wad));
         require(

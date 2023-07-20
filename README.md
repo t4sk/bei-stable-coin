@@ -8,6 +8,8 @@
     -   `GemJoin`
         -   `join`
             -   `vat.slip`
+    -   `DaiJoin`
+        -   `vat.move`
     -   `openLockETHAndDraw` TODO: or `openLockGemAndDraw`
         -   `jug`
         -   `ilk`

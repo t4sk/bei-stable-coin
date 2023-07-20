@@ -13,8 +13,9 @@ interface IVat {
     function removeAuthorization(address user) external;
 
     // TODO: rename
-    // modify a user's collateral balance.
+    // modify a user's collateral balance
     function slip(bytes32, address, int256) external;
-    // transfer stablecoin between users.
+    // TODO: rename
+    // transfer stablecoin between users
     function move(address, address, uint256) external;
 }
