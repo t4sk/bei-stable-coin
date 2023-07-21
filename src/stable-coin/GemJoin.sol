@@ -59,7 +59,7 @@ contract GemJoin {
         require(live, "not live");
         // wad <= 2**255 - 1
         require(int256(wad) >= 0, "overflow");
-        vat.slip(collateralType, user, int256(wad));
+        vat.modifyCollateralBalance(collateralType, user, int256(wad));
         require(
             gem.transferFrom(msg.sender, address(this), wad), "transfer failed"
         );
@@ -68,7 +68,7 @@ contract GemJoin {
 
     function exit(address user, uint256 wad) external {
         require(wad <= 2 ** 255, "overflow");
-        vat.slip(collateralType, msg.sender, -int256(wad));
+        vat.modifyCollateralBalance(collateralType, msg.sender, -int256(wad));
         require(gem.transfer(user, wad), "transfer failed");
         emit Exit(user, wad);
     }

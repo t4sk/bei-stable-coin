@@ -11,11 +11,13 @@ interface IVat {
     function addAuthorization(address user) external;
     // nope
     function removeAuthorization(address user) external;
-
-    // TODO: rename
-    // modify a user's collateral balance
-    function slip(bytes32, address, int256) external;
-    // TODO: rename
-    // transfer stablecoin between users
-    function move(address, address, uint256) external;
+    // slip
+    function modifyCollateralBalance(
+        bytes32 collateralType,
+        address user,
+        int256 wad
+    ) external;
+    // move - transfer stable coins
+    function transferInternalCoins(address src, address dst, uint256 rad)
+        external;
 }

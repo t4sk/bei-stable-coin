@@ -51,14 +51,14 @@ contract DaiJoin {
     }
 
     function join(address user, uint256 wad) external {
-        vat.move(address(this), user, wad * RAY);
+        vat.transferInternalCoins(address(this), user, wad * RAY);
         dai.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external {
         require(live, "not live");
-        vat.move(msg.sender, address(this), wad * RAY);
+        vat.transferInternalCoins(msg.sender, address(this), wad * RAY);
         dai.mint(user, wad);
         emit Exit(user, wad);
     }

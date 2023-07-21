@@ -1,5 +1,6 @@
 ## Topics
 
+-   `wad`, `ray`, `rad`
 -   proxy
 -   proxy action
     -   `Common`
@@ -10,6 +11,10 @@
             -   `vat.slip`
     -   `DaiJoin`
         -   `vat.move`
+    -   `Vat`
+        -   `slip`
+        -   `move`
+            -   `wish`
     -   `openLockETHAndDraw` TODO: or `openLockGemAndDraw`
         -   `jug`
         -   `ilk`
