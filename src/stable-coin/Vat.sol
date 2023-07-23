@@ -16,7 +16,7 @@ contract Vat {
     // account => dai balance (rad)
     mapping(address => uint256) public dai;
 
-    // account => account => can modify account
+    // account => caller => can modify account
     mapping(address => mapping(address => bool)) public can;
 
     modifier auth() {
@@ -48,10 +48,23 @@ contract Vat {
     }
 
     // hope
+    function approveAccountModification(address user) external {
+        can[msg.sender][user] = true;
+    }
+
     // nope
+    function denyAccountModification(address user) external {
+        can[msg.sender][user] = false;
+    }
 
     // wish
-    // function canModifyAccount(address user)
+    function canModifyAccount(address account, address user)
+        internal
+        view
+        returns (bool)
+    {
+        return account == user || can[account][user];
+    }
 
     // slip
     function modifyCollateralBalance(
@@ -66,6 +79,7 @@ contract Vat {
     function transferInternalCoins(address src, address dst, uint256 rad)
         external
     {
+        require(canModifyAccount(src, msg.sender), "not authorized");
         dai[src] -= rad;
         dai[dst] += rad;
     }

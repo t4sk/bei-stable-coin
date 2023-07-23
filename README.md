@@ -1,6 +1,7 @@
 ## Topics
 
 -   `wad`, `ray`, `rad`
+-   `DAI`, `wards`, `rely`, `deny`
 -   proxy
 -   proxy action
     -   `Common`
@@ -41,3 +42,7 @@
 `cdp` - Collateralized debt position
 
 `wad` - 1e18
+
+### Omit
+
+-   dai permit
