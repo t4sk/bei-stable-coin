@@ -10,4 +10,8 @@ library Math {
     function add(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = y >= 0 ? x + uint256(y) : x - uint256(-y);
     }
+
+    function sub(uint256 x, int256 y) internal pure returns (uint256 z) {
+        z = y >= 0 ? x - uint256(y) : x + uint256(-y);
+    }
 }
