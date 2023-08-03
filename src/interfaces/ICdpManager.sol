@@ -6,4 +6,7 @@ interface ICdpManager {
     function safes(uint256) external view returns (address);
     function collateralTypes(uint256) external view returns (bytes32);
     function open(bytes32, address) external returns (uint256);
+    // frob
+    function modifySafe(uint256 safe, int256 deltaCollateral, int256 deltaDebt)
+        external;
 }

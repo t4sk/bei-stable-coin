@@ -14,4 +14,10 @@ library Math {
     function sub(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = y >= 0 ? x - uint256(y) : x + uint256(-y);
     }
+
+    function mul(uint256 x, int256 y) internal pure returns (int256 z) {
+        // x < 2 ** 255
+        require(int256(x) >= 0, "x > max int256");
+        z = int256(x) * y;
+    }
 }

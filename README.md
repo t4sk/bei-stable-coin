@@ -1,5 +1,8 @@
 ## Topics
 
+TODO: rename cdp and vault to safe
+
+-   overview
 -   `wad`, `ray`, `rad`
 -   `DAI`, `wards`, `rely`, `deny`
 -   proxy
@@ -28,6 +31,11 @@
                     -   doubly linked list (insert)
         -   `lockGemAndDraw`
             -   `GemJoin.join`
+            -   `frob`
+                -   `Ilk`
+                -   `Urn`
+                    -   `ink` Collateral balance
+                    -   `art` Normalized outstanding stable coin debt
 
 `gem` - Collateral tokens
 
@@ -42,6 +50,12 @@
 `cdp` - Collateralized debt position
 
 `wad` - 1e18
+
+`frob(i, u, v, w, dink, dart)`
+
+-   Modifies the Vault of user `u`, using gem `i` from user `v` and creating dai for user `w`.
+-   `dink` - change in collateral
+-   `dart` - change in debt
 
 ### Omit
 
