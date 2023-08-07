@@ -23,7 +23,7 @@ contract Vat {
     }
     // Urn
 
-    struct Safe {
+    struct Vault {
         // ink
         uint256 collateral; // wad
         // art
@@ -41,9 +41,9 @@ contract Vat {
     // account => caller => can modify account
     mapping(address => mapping(address => bool)) public can;
 
-    mapping(bytes32 => CollateralType) public collateralTypes;
-    // collateral type => account => Safe
-    mapping(bytes32 => mapping(address => Safe)) public safes;
+    mapping(bytes32 => CollateralType) public colTypes;
+    // collateral type => account => Vault
+    mapping(bytes32 => mapping(address => Vault)) public vaults;
 
     // Total DAI issued
     uint256 public debt;
@@ -115,30 +115,36 @@ contract Vat {
 
     // frob
     function modifySafe(
-        bytes32 collateralType,
+        bytes32 colType,
         address safeAddr,
-        address collateralSource,
-        address debtDestination,
-        int256 deltaCollateral,
+        address src,
+        address dst,
+        int256 deltaCol,
         int256 deltaDebt
     ) external {
         require(live, "not live");
 
-        Safe memory safe = safes[collateralType][safeAddr];
-        CollateralType memory col = collateralTypes[collateralType];
+        Vault memory vault = vaults[colType][safeAddr];
+        CollateralType memory col = colTypes[colType];
         require(col.rate != 0, "collateral not initialized");
 
-        safe.collateral = Math.add(safe.collateral, deltaCollateral);
-        safe.debt = Math.add(safe.debt, deltaDebt);
+        vault.collateral = Math.add(vault.collateral, deltaCol);
+        vault.debt = Math.add(vault.debt, deltaDebt);
         col.debt = Math.add(col.debt, deltaDebt);
 
         int256 dRate = Math.mul(col.rate, deltaDebt);
-        uint256 userDebt = col.rate * safe.debt;
+        uint256 safeDebt = col.rate * vault.debt;
         // TODO: why?
         debt = Math.add(debt, dRate);
 
         // int dtab = _mul(ilk.rate, dart);
         // uint tab = _mul(ilk.rate, urn.art);
         // debt     = _add(debt, dtab);
+
+        gem[colType][src] = Math.sub(gem[colType][src], deltaCol);
+        dai[dst] = Math.add(dai[dst], dRate);
+
+        vaults[colType][safeAddr] = vault;
+        colTypes[colType] = col;
     }
 }
