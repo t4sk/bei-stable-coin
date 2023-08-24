@@ -25,7 +25,7 @@ contract ProxyActions is Common {
 
     function gemJoin_join(
         address adapter,
-        address safe,
+        address vault,
         uint256 amount,
         bool isTransferFrom
     ) public {
@@ -35,7 +35,7 @@ contract ProxyActions is Common {
             );
             IGemJoin(adapter).gem().approve(adapter, amount);
         }
-        IGemJoin(adapter).join(safe, amount);
+        IGemJoin(adapter).join(vault, amount);
     }
 
     function frob(
@@ -44,7 +44,7 @@ contract ProxyActions is Common {
         int256 deltaCollateral,
         int256 deltaDebt
     ) public {
-        ICdpManager(manager).modifySafe(cdp, deltaCollateral, deltaDebt);
+        ICdpManager(manager).modifyVault(cdp, deltaCollateral, deltaDebt);
     }
 
     function lockGemAndDraw(
@@ -57,11 +57,11 @@ contract ProxyActions is Common {
         uint256 wad,
         bool isTransferFrom
     ) public {
-        address safe = ICdpManager(manager).safes(cdp);
+        address vault = ICdpManager(manager).vaults(cdp);
         address vat = ICdpManager(manager).vat();
         bytes32 collateralType = ICdpManager(manager).collateralTypes(cdp);
 
-        gemJoin_join(gemJoin, safe, amount, isTransferFrom);
+        gemJoin_join(gemJoin, vault, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
         // frob(manager, cdp, toInt(convertTo18(gemJoin, amtC)), _getDrawDart(vat, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the vat in rad) to proxy's address
@@ -95,17 +95,5 @@ contract ProxyActions is Common {
             wad,
             isTransferFrom
         );
-    }
-
-    function openLockETHAndDraw(
-        address manager,
-        address feeCollector,
-        address ethJoin,
-        address daiJoin,
-        bytes32 collateralType,
-        uint256 wad
-    ) public payable returns (uint256 cdp) {
-        // cdp = open(manager, collateralType, address(this));
-        // lockGemAndDraw(manager, feeCollector, )
     }
 }

@@ -114,9 +114,9 @@ contract Vat {
     }
 
     // frob
-    function modifySafe(
+    function modifyVault(
         bytes32 colType,
-        address safeAddr,
+        address vaultAddr,
         address src,
         address dst,
         int256 deltaCol,
@@ -124,7 +124,7 @@ contract Vat {
     ) external {
         require(live, "not live");
 
-        Vault memory vault = vaults[colType][safeAddr];
+        Vault memory vault = vaults[colType][vaultAddr];
         CollateralType memory col = colTypes[colType];
         require(col.rate != 0, "collateral not initialized");
 
@@ -133,7 +133,7 @@ contract Vat {
         col.debt = Math.add(col.debt, deltaDebt);
 
         int256 dRate = Math.mul(col.rate, deltaDebt);
-        uint256 safeDebt = col.rate * vault.debt;
+        uint256 vaultDebt = col.rate * vault.debt;
         // TODO: why?
         debt = Math.add(debt, dRate);
 
@@ -144,7 +144,7 @@ contract Vat {
         gem[colType][src] = Math.sub(gem[colType][src], deltaCol);
         dai[dst] = Math.add(dai[dst], dRate);
 
-        vaults[colType][safeAddr] = vault;
+        vaults[colType][vaultAddr] = vault;
         colTypes[colType] = col;
     }
 }

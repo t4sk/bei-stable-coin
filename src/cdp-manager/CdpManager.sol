@@ -12,8 +12,8 @@ contract CdpManager {
         uint256 next;
     }
 
-    // CDP id => safe handler
-    mapping(uint256 => address) public safes;
+    // CDP id => vault handler
+    mapping(uint256 => address) public vaults;
     // CDP id => owner
     mapping(uint256 => address) public owners;
     // CDP id => collateral type
@@ -41,7 +41,7 @@ contract CdpManager {
         uint256 id = cdpId + 1;
         cdpId = id;
 
-        safes[id] = address(new SafeHandler(vat));
+        vaults[id] = address(new SafeHandler(vat));
         owners[id] = user;
         collateralTypes[id] = collateralType;
 
