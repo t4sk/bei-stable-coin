@@ -6,7 +6,6 @@ uint256 constant RAY = 10 ** 27;
 uint256 constant RAD = 10 ** 45;
 
 library Math {
-    // TODO: test
     function add(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = y >= 0 ? x + uint256(y) : x - uint256(-y);
     }
@@ -19,5 +18,13 @@ library Math {
         // x < 2 ** 255
         require(int256(x) >= 0, "x > max int256");
         z = int256(x) * y;
+    }
+
+    function toInt(uint256 x) internal pure returns (int256 y) {
+        y = int256(x);
+    }
+
+    function toRad(uint256 wad) internal pure returns (uint256 rad) {
+        rad = wad * RAY;
     }
 }

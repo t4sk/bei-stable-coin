@@ -12,4 +12,5 @@ interface ICdpManager {
         int256 deltaCollateral,
         int256 deltaDebt
     ) external;
+    function move(uint256 cdp, address dst, uint256 rad) external;
 }

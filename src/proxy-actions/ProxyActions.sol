@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {IDaiJoin} from "../interfaces/IDaiJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {ICdpManager} from "../interfaces/ICdpManager.sol";
+import {Math} from "../lib/Math.sol";
 
 contract Common {
     function daiJoin_join(address adapter, address account, uint256 wad)
@@ -38,6 +39,13 @@ contract ProxyActions is Common {
         IGemJoin(adapter).join(vault, amount);
     }
 
+    // Transfer rad amount of DAI from cdp to dst
+    function move(address manager, uint256 cdp, address dst, uint256 rad)
+        public
+    {
+        IManager(manager).move(cdp, dst, rad);
+    }
+
     function frob(
         address manager,
         uint256 cdp,
@@ -47,6 +55,7 @@ contract ProxyActions is Common {
         ICdpManager(manager).modifyVault(cdp, deltaCollateral, deltaDebt);
     }
 
+    // Lock collateral, generate debt and send DAI to msg.sender
     function lockGemAndDraw(
         address manager,
         address feeCollector,
@@ -65,13 +74,13 @@ contract ProxyActions is Common {
         // Locks token amount into the CDP and generates debt
         // frob(manager, cdp, toInt(convertTo18(gemJoin, amtC)), _getDrawDart(vat, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the vat in rad) to proxy's address
-        // move(manager, cdp, address(this), toRad(wadD));
+        move(manager, cdp, address(this), Math.toRad(wad));
         // // Allows adapter to access to proxy's DAI balance in the vat
         // if (VatLike(vat).can(address(this), address(daiJoin)) == 0) {
         //     VatLike(vat).hope(daiJoin);
         // }
-        // // Exits DAI to the user's wallet as a token
-        // DaiJoinLike(daiJoin).exit(msg.sender, wadD);
+        // Exits DAI to the user's wallet as a token
+        IDaiJoin(daiJoin).exit(msg.sender, wad);
     }
 
     function openLockGemAndDraw(
