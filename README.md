@@ -41,7 +41,7 @@ TODO: rename cdp and vault to safe
 
 `vat` - Core vault engine of dss. Stores vaults and tracks all the associated Dai and collateral balances
 
-`jug` - Smart contract to accumulate stability fees (renamed `feeCollector`)
+`jug` - Smart contract to accumulate stability fees
 
 `urn` - CDP state, a vault (rename `safe`)
 
