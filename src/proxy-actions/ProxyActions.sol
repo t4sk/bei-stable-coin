@@ -4,7 +4,9 @@ pragma solidity 0.8.19;
 import {IDaiJoin} from "../interfaces/IDaiJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {ICdpManager} from "../interfaces/ICdpManager.sol";
-import {Math} from "../lib/Math.sol";
+import {IVat} from "../interfaces/IVat.sol";
+import {IJug} from "../interfaces/IJug.sol";
+import {Math, WAD, RAY, RAD} from "../lib/Math.sol";
 
 contract Common {
     function daiJoin_join(address adapter, address account, uint256 wad)
@@ -39,11 +41,49 @@ contract ProxyActions is Common {
         IGemJoin(adapter).join(vault, amount);
     }
 
+    function to18Decimals(address gemJoin, uint256 amount)
+        internal
+        returns (uint256 wad)
+    {
+        // For those collaterals that have less than 18 decimals precision we need to do the conversion before passing to frob function
+        // Adapters will automatically handle the difference of precision
+        wad = amount * 10 ** (18 - IGemJoin(gemJoin).dec());
+    }
+
+    // _getDrawDart
+    function getDeltaDebt(
+        address vat,
+        address jug,
+        address vault,
+        bytes32 collateralType,
+        uint256 wad
+    ) internal returns (int256 deltaDebt) {
+        // Updates stability fee rate
+        uint256 rate = IJug(jug).drip(collateralType);
+
+        // Gets DAI balance of the vault in the vat
+        uint256 dai = IVat(vat).dai(vault);
+
+        // TODO:?
+        // If there was already enough DAI in the vat balance,
+        // just exits it without adding more debt
+        if (dai < wad * RAY) {
+            // Calculates the needed delta debt so together with the existing dai
+            // in the vat is enough to exit wad amount of DAI tokens
+            deltaDebt = Math.toInt((wad * RAY - dai) / rate);
+            // This is neeeded due lack of precision.
+            // It might need to sum an extra delta debt wei (for the given DAI wad amount)
+            deltaDebt = uint256(deltaDebt) * rate < wad * RAY
+                ? deltaDebt - 1
+                : deltaDebt;
+        }
+    }
+
     // Transfer rad amount of DAI from cdp to dst
     function move(address manager, uint256 cdp, address dst, uint256 rad)
         public
     {
-        IManager(manager).move(cdp, dst, rad);
+        ICdpManager(manager).move(cdp, dst, rad);
     }
 
     function frob(
@@ -58,7 +98,7 @@ contract ProxyActions is Common {
     // Lock collateral, generate debt and send DAI to msg.sender
     function lockGemAndDraw(
         address manager,
-        address feeCollector,
+        address jug,
         address gemJoin,
         address daiJoin,
         uint256 cdp,
@@ -72,7 +112,7 @@ contract ProxyActions is Common {
 
         gemJoin_join(gemJoin, vault, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
-        // frob(manager, cdp, toInt(convertTo18(gemJoin, amtC)), _getDrawDart(vat, jug, urn, ilk, wadD));
+        // frob(manager, cdp, toInt(to18Decimals(gemJoin, amount)), _getDrawDart(vat, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the vat in rad) to proxy's address
         move(manager, cdp, address(this), Math.toRad(wad));
         // // Allows adapter to access to proxy's DAI balance in the vat
@@ -85,7 +125,7 @@ contract ProxyActions is Common {
 
     function openLockGemAndDraw(
         address manager,
-        address feeCollector,
+        address jug,
         address gemJoin,
         address daiJoin,
         bytes32 collateralType,
@@ -95,14 +135,7 @@ contract ProxyActions is Common {
     ) public returns (uint256 cdp) {
         cdp = open(manager, collateralType, address(this));
         lockGemAndDraw(
-            manager,
-            feeCollector,
-            gemJoin,
-            daiJoin,
-            cdp,
-            amount,
-            wad,
-            isTransferFrom
+            manager, jug, gemJoin, daiJoin, cdp, amount, wad, isTransferFrom
         );
     }
 }
