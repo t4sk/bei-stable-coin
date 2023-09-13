@@ -3,9 +3,9 @@ pragma solidity 0.8.19;
 
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
-import "../lib/Pause.sol";
+import "../lib/Stop.sol";
 
-contract Vat is Auth, Pause {
+contract Vat is Auth, Stop {
     // Ilk
     struct CollateralType {
         // Art - Total debt issued for this collateral
@@ -15,12 +15,11 @@ contract Vat is Auth, Pause {
         // spot - Price with safety margin
         uint256 spot; // ray
         // line - Debt ceiling
-        uint256 line; // rad
+        uint256 ceil; // rad
         // dust - Debt floor
-        uint256 dust; // rad
+        uint256 floor; // rad
     }
     // Urn
-
     struct Vault {
         // ink
         uint256 collateral; // wad
@@ -28,17 +27,20 @@ contract Vat is Auth, Pause {
         uint256 debt; // wad
     }
 
+    // account => caller => can modify account
+    mapping(address => mapping(address => bool)) public can;
+
+    // ilks
+    mapping(bytes32 => CollateralType) public colTypes;
+    // urns - collateral type => account => Vault
+    mapping(bytes32 => mapping(address => Vault)) public vaults;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // account => dai balance (rad)
     mapping(address => uint256) public dai;
+    // sin - account => debt balance (rad)
+    mapping(address => uint256) public debts;
 
-    // account => caller => can modify account
-    mapping(address => mapping(address => bool)) public can;
-
-    mapping(bytes32 => CollateralType) public colTypes;
-    // collateral type => account => Vault
-    mapping(bytes32 => mapping(address => Vault)) public vaults;
 
     // Total DAI issued
     uint256 public debt;

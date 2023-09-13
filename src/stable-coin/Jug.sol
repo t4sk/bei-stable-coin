@@ -34,7 +34,41 @@ contract Jug is Auth {
         col.updatedAt = block.timestamp;
     }
 
-    // Update stability fee
+    // file
+    function modifyParams(bytes32 colType, bytes32 name, uint256 data)
+        external
+        auth
+    {
+        require(
+            block.timestamp == collateralTypes[colType].updatedAt,
+            "update time != now"
+        );
+        if (name == "fee") {
+            collateralTypes[colType].fee = data;
+        } else {
+            revert("Unrecognized name");
+        }
+    }
+
+    function modifyParams(bytes32 name, uint256 data) external auth {
+        if (name == "base") {
+            base = data;
+        } else {
+            revert("Unrecognized name");
+        }
+    }
+
+    function modifyParams(bytes32 name, address data) external auth {
+        if (name == "vow") {
+            vow = data;
+        } else {
+            revert("Unrecognized name");
+        }
+    }
+
+    // TODO: fee
+
+    // drip
     function drip(bytes32 colType) external returns (uint256 rate) {
         CollateralType storage col = collateralTypes[colType];
 
@@ -44,6 +78,7 @@ contract Jug is Auth {
         (, uint256 prev) = vat.collateralTypes(colType);
         rate = Math.rpow(base + col.fee, block.timestamp - col.updatedAt, RAY)
             * prev / RAY;
+        // TODO: ?
         vat.updateAccumulatedRate(colType, vow, _diff(rate, prev));
         col.updatedAt = block.timestamp;
     }
