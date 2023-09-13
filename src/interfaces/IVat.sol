@@ -33,4 +33,7 @@ interface IVat {
         external
         view
         returns (uint256 debtAmount, uint256 accumulatedRate);
+
+    // file
+    function modifyParam(bytes32, bytes32, uint256) external;
 }

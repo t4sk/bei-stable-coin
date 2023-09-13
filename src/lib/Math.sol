@@ -28,6 +28,10 @@ library Math {
         rad = wad * RAY;
     }
 
+    function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = x * RAY / y;
+    }
+
     function rpow(uint256 x, uint256 n, uint256 b)
         internal
         pure
