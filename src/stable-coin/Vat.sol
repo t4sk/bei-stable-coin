@@ -3,9 +3,10 @@ pragma solidity 0.8.19;
 
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
-import "../lib/Stop.sol";
+import "../lib/Pause.sol";
+import "../lib/AccountApprovals.sol";
 
-contract Vat is Auth, Stop {
+contract Vat is Auth, Pause, AccountApprovals {
     // Ilk
     struct CollateralType {
         // Art - Total debt issued for this collateral
@@ -15,10 +16,11 @@ contract Vat is Auth, Stop {
         // spot - Price with safety margin
         uint256 spot; // ray
         // line - Debt ceiling
-        uint256 ceil; // rad
+        uint256 ceiling; // rad
         // dust - Debt floor
         uint256 floor; // rad
     }
+
     // Urn
     struct Vault {
         // ink
@@ -27,11 +29,8 @@ contract Vat is Auth, Stop {
         uint256 debt; // wad
     }
 
-    // account => caller => can modify account
-    mapping(address => mapping(address => bool)) public can;
-
     // ilks
-    mapping(bytes32 => CollateralType) public colTypes;
+    mapping(bytes32 => CollateralType) public cols;
     // urns - collateral type => account => Vault
     mapping(bytes32 => mapping(address => Vault)) public vaults;
     // collateral type => account => balance (wad)
@@ -41,12 +40,46 @@ contract Vat is Auth, Stop {
     // sin - account => debt balance (rad)
     mapping(address => uint256) public debts;
 
-
-    // Total DAI issued
-    uint256 public debt;
+    // Total DAI issued (rad)
+    uint256 public globalDebt;
+    // Total Unbacked Dai (rad)
+    uint256 public globalUnbackedDebt;
+    // Total Debt Ceiling (rad)
+    uint256 public globalDebtCeiling;
 
     constructor() {
         live = true;
+    }
+
+    // --- Administration ---
+    function init(bytes32 colType) external auth {
+        require(cols[colType].rate == 0, "already init");
+        cols[colType].rate = RAY;
+    }
+
+    // file
+    function set(bytes32 name, uint256 data) external auth notStopped {
+        if (name == "globalDebtCeiling") {
+            globalDebtCeiling = data;
+        } else {
+            revert("unrecognized param");
+        }
+    }
+
+    function set(bytes32 colType, bytes32 name, uint256 data)
+        external
+        auth
+        notStopped
+    {
+        if (name == "spot") {
+            cols[colType].spot = data;
+        } else if (name == "ceiling") {
+            cols[colType].ceiling = data;
+        } else if (name == "floor") {
+            cols[colType].floor = data;
+        } else {
+            revert("unrecognized param");
+        }
     }
 
     // cage
@@ -54,42 +87,36 @@ contract Vat is Auth, Stop {
         _stop();
     }
 
-    // hope
-    function approveAccountModification(address user) external {
-        can[msg.sender][user] = true;
-    }
-
-    // nope
-    function denyAccountModification(address user) external {
-        can[msg.sender][user] = false;
-    }
-
-    // wish
-    function canModifyAccount(address account, address user)
-        internal
-        view
-        returns (bool)
-    {
-        return account == user || can[account][user];
-    }
-
+    // --- Fungibility ---
     // slip
-    function modifyCollateralBalance(
-        bytes32 collateralType,
-        address user,
-        int256 wad
+    function modifyCollateralBalance(bytes32 colType, address user, int256 wad)
+        external
+    {
+        gem[colType][user] = Math.add(gem[colType][user], wad);
+    }
+
+    // flux
+    function transferCollateral(
+        bytes32 colType,
+        address src,
+        address dst,
+        uint256 wad
     ) external {
-        gem[collateralType][user] = Math.add(gem[collateralType][user], wad);
+        require(canModifyAccount(src, msg.sender), "not authorized");
+        gem[colType][src] -= wad;
+        gem[colType][dst] += wad;
     }
 
     // move
-    function transferInternalCoins(address src, address dst, uint256 rad)
-        external
-    {
+    function transferDai(address src, address dst, uint256 rad) external {
         require(canModifyAccount(src, msg.sender), "not authorized");
         dai[src] -= rad;
         dai[dst] += rad;
     }
+    // --- CDP Manipulation ---
+    // --- CDP Fungibility ---
+    // --- Settlement ---
+    // --- Rates ---
 
     // frob
     function modifyVault(
@@ -103,7 +130,7 @@ contract Vat is Auth, Stop {
         require(live, "not live");
 
         Vault memory vault = vaults[colType][vaultAddr];
-        CollateralType memory col = colTypes[colType];
+        CollateralType memory col = cols[colType];
         require(col.rate != 0, "collateral not initialized");
 
         vault.collateral = Math.add(vault.collateral, deltaCol);
@@ -113,7 +140,7 @@ contract Vat is Auth, Stop {
         int256 dRate = Math.mul(col.rate, deltaDebt);
         uint256 vaultDebt = col.rate * vault.debt;
         // TODO: why?
-        debt = Math.add(debt, dRate);
+        globalDebt = Math.add(globalDebt, dRate);
 
         // int dtab = _mul(ilk.rate, dart);
         // uint tab = _mul(ilk.rate, urn.art);
@@ -123,6 +150,6 @@ contract Vat is Auth, Stop {
         dai[dst] = Math.add(dai[dst], dRate);
 
         vaults[colType][vaultAddr] = vault;
-        colTypes[colType] = col;
+        cols[colType] = col;
     }
 }

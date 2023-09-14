@@ -18,9 +18,15 @@ interface IVat {
         address user,
         int256 wad
     ) external;
-    // move - transfer stable coins
-    function transferInternalCoins(address src, address dst, uint256 rad)
-        external;
+    // flux
+    function transferCollateral(
+        bytes32 colType,
+        address src,
+        address dst,
+        uint256 wad
+    ) external;
+    // move
+    function transferDai(address src, address dst, uint256 rad) external;
     // fold
     // TODO: what is vow?, rate?
     function updateAccumulatedRate(

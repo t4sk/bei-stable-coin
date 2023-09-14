@@ -3,13 +3,12 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import {IGem} from "../interfaces/IGem.sol";
+import "../lib/Auth.sol";
+import "../lib/Pause.sol";
 
-contract GemJoin {
-    event AddAuthorization(address indexed user);
-    event RemoveAuthorization(address indexed user);
+contract GemJoin is Auth, Pause {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
-    event Stop();
 
     IVat public immutable vat;
     // ilk
@@ -17,42 +16,17 @@ contract GemJoin {
     IGem public immutable gem;
     // decimals
     uint256 public immutable dec;
-    bool public live;
-
-    // wards
-    mapping(address => bool) public authorized;
-
-    modifier auth() {
-        require(authorized[msg.sender], "not authorized");
-        _;
-    }
 
     constructor(address _vat, bytes32 _collateralType, address _gem) {
-        authorized[msg.sender] = true;
-        live = true;
         vat = IVat(_vat);
         collateralType = _collateralType;
         gem = IGem(_gem);
         dec = gem.decimals();
-        emit AddAuthorization(msg.sender);
-    }
-
-    // rely
-    function addAuthorization(address user) external auth {
-        authorized[user] = true;
-        emit AddAuthorization(user);
-    }
-
-    // deny
-    function remoteAuthorization(address user) external auth {
-        authorized[user] = false;
-        emit RemoveAuthorization(user);
     }
 
     // cage
     function stop() external auth {
-        live = false;
-        emit Stop();
+        _stop();
     }
 
     function join(address user, uint256 wad) external {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-abstract contract Stop {
+abstract contract Pause {
     event Stop();
 
     bool public live;

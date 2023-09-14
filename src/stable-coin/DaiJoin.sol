@@ -10,7 +10,7 @@ contract DaiJoin {
     event RemoveAuthorization(address indexed user);
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
-    event Stop();
+    event Pause();
 
     IVat public immutable vat;
     IDai public immutable dai;
@@ -47,18 +47,18 @@ contract DaiJoin {
     // cage
     function stop() external auth {
         live = false;
-        emit Stop();
+        emit Pause();
     }
 
     function join(address user, uint256 wad) external {
-        vat.transferInternalCoins(address(this), user, wad * RAY);
+        vat.transferDai(address(this), user, wad * RAY);
         dai.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external {
         require(live, "not live");
-        vat.transferInternalCoins(msg.sender, address(this), wad * RAY);
+        vat.transferDai(msg.sender, address(this), wad * RAY);
         dai.mint(user, wad);
         emit Exit(user, wad);
     }

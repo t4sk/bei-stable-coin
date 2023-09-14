@@ -5,7 +5,7 @@ import "../interfaces/IVat.sol";
 import "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
-import "../lib/Stop.sol";
+import "../lib/Pause.sol";
 
 struct CollateralType {
     IPriceFeed priceFeed;
@@ -14,7 +14,7 @@ struct CollateralType {
     uint256 liquidationRatio;
 }
 
-contract Spot is Auth, Stop {
+contract Spot is Auth, Pause {
     event Poke( // [wad]
         // [ray]
     bytes32 colType, uint256 val, uint256 spot);
