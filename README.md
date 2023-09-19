@@ -1,41 +1,39 @@
 ## Topics
 
-TODO: rename cdp and vault to safe
-
--   overview
--   `wad`, `ray`, `rad`
--   `DAI`, `wards`, `rely`, `deny`
--   proxy
--   proxy action
-    -   `Common`
-        -   `DaiJoin`
-            -   `Gem`, `Vat`
-    -   `GemJoin`
-        -   `join`
-            -   `vat.slip`
-    -   `DaiJoin`
-        -   `vat.move`
-    -   `Vat`
-        -   `slip`
-        -   `move`
-            -   `wish`
-    -   `openLockETHAndDraw` TODO: or `openLockGemAndDraw`
-        -   `jug`
-        -   `ilk`
-        -   `cdp`
-        -   `open`
-            -   `CdpManager`
-                -   `open`
-                    -   `SafeHandler`
-                        -   `Vat.hope`
-                    -   doubly linked list (insert)
-        -   `lockGemAndDraw`
-            -   `GemJoin.join`
-            -   `frob`
-                -   `Ilk`
-                -   `Urn`
-                    -   `ink` Collateral balance
-                    -   `art` Normalized outstanding stable coin debt
+- overview
+- `wad`, `ray`, `rad`
+- `DAI`, `wards`, `rely`, `deny`
+- proxy
+- proxy action
+  - `Common`
+    - `DaiJoin`
+      - `Gem`, `Vat`
+  - `GemJoin`
+    - `join`
+      - `vat.slip`
+  - `DaiJoin`
+    - `vat.move`
+  - `Vat`
+    - `slip`
+    - `move`
+      - `wish`
+  - `openLockETHAndDraw` TODO: or `openLockGemAndDraw`
+    - `jug`
+    - `ilk`
+    - `cdp`
+    - `open`
+      - `CdpManager`
+        - `open`
+          - `SafeHandler`
+            - `Vat.hope`
+          - doubly linked list (insert)
+    - `lockGemAndDraw`
+      - `GemJoin.join`
+      - `frob`
+        - `Ilk`
+        - `Urn`
+          - `ink` Collateral balance
+          - `art` Normalized outstanding stable coin debt
 
 `gem` - Collateral tokens
 
@@ -53,10 +51,10 @@ TODO: rename cdp and vault to safe
 
 `frob(i, u, v, w, dink, dart)`
 
--   Modifies the Vault of user `u`, using gem `i` from user `v` and creating dai for user `w`.
--   `dink` - change in collateral
--   `dart` - change in debt
+- Modifies the Vault of user `u`, using gem `i` from user `v` and creating dai for user `w`.
+- `dink` - change in collateral
+- `dart` - change in debt
 
 ### Omit
 
--   dai permit
+- dai permit
