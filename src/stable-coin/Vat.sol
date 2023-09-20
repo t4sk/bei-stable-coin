@@ -6,8 +6,13 @@ import "../lib/Auth.sol";
 import "../lib/Pause.sol";
 import "../lib/AccountApprovals.sol";
 
+/*
+dink: change in collateral.
+dart: change in debt.
+*/
+
 contract Vat is Auth, Pause, AccountApprovals {
-    // Ilk
+    // Ilk: a collateral type.
     struct CollateralType {
         // Art: total normalized stablecoin debt.
         uint256 debt; // wad
@@ -21,7 +26,7 @@ contract Vat is Auth, Pause, AccountApprovals {
         uint256 floor; // rad
     }
 
-    // Urn
+    // Urn: a specific Vault.
     struct Vault {
         // ink: collateral balance.
         uint256 collateral; // wad
@@ -123,6 +128,10 @@ contract Vat is Auth, Pause, AccountApprovals {
     //     wipe: decrease Vault debt, destroying Dai.
     //     dink: change in collateral.
     //     dart: change in debt.
+    // frob(i, u, v, w, dink, dart)
+    // - modify the Vault of user u
+    // - using gem from user v
+    // - and creating dai for user w
     function modifyVault(
         bytes32 colType,
         address vaultAddr,
@@ -156,11 +165,77 @@ contract Vat is Auth, Pause, AccountApprovals {
     }
 
     // --- CDP Fungibility ---
-    //fork: to split a Vault - binary approval or splitting/merging Vaults.
+    // fork: to split a Vault - binary approval or splitting/merging Vaults.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
+    function fork(
+        bytes32 colType,
+        address src,
+        address dst,
+        int256 deltaCol,
+        int256 deltaDebt
+    ) external {
+        Vault storage u = vaults[colType][src];
+        Vault storage v = vaults[colType][dst];
+        CollateralType storage col = cols[colType];
+
+        u.collateral = Math.sub(u.collateral, deltaCol);
+        u.debt = Math.sub(u.debt, deltaDebt);
+        v.collateral = Math.add(v.collateral, deltaCol);
+        v.debt = Math.add(v.debt, deltaDebt);
+
+        // TODO: what's going on here?
+        uint256 utab = u.debt * col.rate;
+        uint256 vtab = v.debt * col.rate;
+
+        // both sides consent
+        require(
+            canModifyAccount(src, msg.sender)
+                && canModifyAccount(dst, msg.sender),
+            "not allowed"
+        );
+
+        // both sides safe
+        require(utab <= u.collateral * col.spot, "not safe src");
+        require(vtab <= v.collateral * col.spot, "not safe dst");
+
+        // both sides non-dusty
+        require(utab >= col.floor || u.debt == 0, "dust src");
+        require(vtab >= col.floor || v.debt == 0, "dust dst");
+    }
+
     // --- CDP Confiscation ---
     // grab: liquidate a Vault.
+    // grab(i, u, v, w, dink, dart)
+    // - modify the Vault of user u
+    // - give gem to user v
+    // - create sin for user w
+    // grab is the means by which Vaults are liquidated,
+    // transferring debt from the Vault to a users sin balance.
+    function grab(
+        bytes32 colType,
+        address src,
+        address dst,
+        address debtDst,
+        int256 deltaCol,
+        int256 deltaDebt
+    ) external auth {
+        Vault storage vault = vaults[colType][src];
+        CollateralType storage col = cols[colType];
+
+        vault.collateral = Math.add(vault.collateral, deltaCol);
+        vault.debt = Math.add(vault.debt, deltaDebt);
+        col.debt = Math.add(col.debt, deltaDebt);
+
+        // TODO: what is dtab and why mul?
+        int256 dtab = Math.mul(col.rate, deltaDebt);
+
+        // TODO: delta col is negative?
+        // TODO: why debt dst != col dst
+        gem[colType][dst] = Math.sub(gem[colType][dst], deltaCol);
+        debts[debtDst] = Math.sub(debts[debtDst], dtab);
+        globalUnbackedDebt = Math.sub(globalUnbackedDebt, dtab);
+    }
 
     // --- Settlement ---
     // heal: create / destroy equal quantities of stablecoin and system debt (vice).
@@ -190,6 +265,7 @@ contract Vat is Auth, Pause, AccountApprovals {
         auth
         notStopped
     {
+        // TODO: what is this doing?
         CollateralType storage col = cols[colType];
         col.rate = Math.add(col.rate, rate);
         int256 delta = Math.mul(col.debt, rate);
