@@ -126,21 +126,21 @@ contract Vat is Auth, Pause, AccountApprovals {
     //     free: transfer collateral from a Vault.
     //     draw: increase Vault debt, creating Dai.
     //     wipe: decrease Vault debt, destroying Dai.
-    //     dink: change in collateral.
-    //     dart: change in debt.
-    // frob(i, u, v, w, dink, dart)
+    // frob(i, u, v, w, dink, dart) - modify a Vault
     // - modify the Vault of user u
     // - using gem from user v
     // - and creating dai for user w
+    // dink: change in collateral.
+    // dart: change in debt.
     function modifyVault(
         bytes32 colType,
-        address u,
-        address v,
-        address w,
+        address vaultAddr,
+        address colSrc,
+        address debtDst,
         int256 deltaCol,
         int256 deltaDebt
     ) external notStopped {
-        Vault memory vault = vaults[colType][u];
+        Vault memory vault = vaults[colType][vaultAddr];
         CollateralType memory col = cols[colType];
         require(col.rate != 0, "collateral not init");
 
@@ -148,6 +148,7 @@ contract Vat is Auth, Pause, AccountApprovals {
         vault.debt = Math.add(vault.debt, deltaDebt);
         col.debt = Math.add(col.debt, deltaDebt);
 
+        // TODO: what?
         int256 dtab = Math.mul(col.rate, deltaDebt);
         uint256 tab = col.rate * vault.debt;
         globalDebt = Math.add(globalDebt, dtab);
@@ -170,25 +171,25 @@ contract Vat is Auth, Pause, AccountApprovals {
 
         // vault is either more safe, or the owner consents
         require(
-            (deltaDebt <= 0 && deltaCol >= 0) || canModifyAccount(u, msg.sender),
-            "not allowed u"
+            (deltaDebt <= 0 && deltaCol >= 0) || canModifyAccount(vaultAddr, msg.sender),
+            "not allowed vault addr"
         );
         // collateral src consents
         require(
-            deltaCol <= 0 || canModifyAccount(v, msg.sender), "not allowed v"
+            deltaCol <= 0 || canModifyAccount(colSrc, msg.sender), "not allowed collateral src"
         );
         // debt dst consents
         require(
-            deltaDebt >= 0 || canModifyAccount(w, msg.sender), "not allowed w"
+            deltaDebt >= 0 || canModifyAccount(debtDst, msg.sender), "not allowed debt dst"
         );
 
         // vault has no debt, or a non-dusty amount
         require(vault.debt == 0 || tab >= col.floor, "Vat/dust");
 
-        gem[colType][v] = Math.sub(gem[colType][v], deltaCol);
-        dai[w] = Math.add(dai[w], dtab);
+        gem[colType][colSrc] = Math.sub(gem[colType][colSrc], deltaCol);
+        dai[debtDst] = Math.add(dai[debtDst], dtab);
 
-        vaults[colType][u] = vault;
+        vaults[colType][vaultAddr] = vault;
         cols[colType] = col;
     }
 
