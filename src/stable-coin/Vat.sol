@@ -47,9 +47,9 @@ contract Vat is Auth, Pause, AccountApprovals {
 
     // debt- Total DAI issued (rad)
     uint256 public globalDebt;
-    // vice -Total Unbacked Dai (rad)
+    // vice -Total unbacked Dai (rad)
     uint256 public globalUnbackedDebt;
-    // line - Total Debt Ceiling (rad)
+    // Line - Total debt ceiling (rad)
     uint256 public globalDebtCeiling;
 
     constructor() {
@@ -134,33 +134,61 @@ contract Vat is Auth, Pause, AccountApprovals {
     // - and creating dai for user w
     function modifyVault(
         bytes32 colType,
-        address vaultAddr,
-        address src,
-        address dst,
+        address u,
+        address v,
+        address w,
         int256 deltaCol,
         int256 deltaDebt
     ) external notStopped {
-        Vault memory vault = vaults[colType][vaultAddr];
+        Vault memory vault = vaults[colType][u];
         CollateralType memory col = cols[colType];
-        require(col.rate != 0, "collateral not initialized");
+        require(col.rate != 0, "collateral not init");
 
         vault.collateral = Math.add(vault.collateral, deltaCol);
         vault.debt = Math.add(vault.debt, deltaDebt);
         col.debt = Math.add(col.debt, deltaDebt);
 
-        int256 dRate = Math.mul(col.rate, deltaDebt);
-        uint256 vaultDebt = col.rate * vault.debt;
-        // TODO: why?
-        globalDebt = Math.add(globalDebt, dRate);
+        int256 dtab = Math.mul(col.rate, deltaDebt);
+        uint256 tab = col.rate * vault.debt;
+        globalDebt = Math.add(globalDebt, dtab);
 
-        // int dtab = _mul(ilk.rate, dart);
-        // uint tab = _mul(ilk.rate, urn.art);
-        // debt     = _add(debt, dtab);
+        // either debt has decreased, or debt ceilings are not exceeded
+        require(
+            deltaDebt <= 0
+                || (
+                    col.debt * col.rate <= col.ceiling
+                        && globalDebt <= globalDebtCeiling
+                ),
+            "ceiling exceeded"
+        );
+        // vault is either less risky than before, or it is safe
+        require(
+            (deltaDebt <= 0 && deltaCol >= 0)
+                || tab <= vault.collateral * col.spot,
+            "not safe"
+        );
 
-        gem[colType][src] = Math.sub(gem[colType][src], deltaCol);
-        dai[dst] = Math.add(dai[dst], dRate);
+        // vault is either more safe, or the owner consents
+        require(
+            (deltaDebt <= 0 && deltaCol >= 0) || canModifyAccount(u, msg.sender),
+            "not allowed u"
+        );
+        // collateral src consents
+        require(
+            deltaCol <= 0 || canModifyAccount(v, msg.sender), "not allowed v"
+        );
+        // debt dst consents
+        require(
+            deltaDebt >= 0 || canModifyAccount(w, msg.sender), "not allowed w"
+        );
 
-        vaults[colType][vaultAddr] = vault;
+        // vault has no debt, or a non-dusty amount
+        require(vault.debt == 0 || tab >= col.floor, "Vat/dust");
+
+        gem[colType][v] = Math.sub(gem[colType][v], deltaCol);
+        dai[w] = Math.add(dai[w], dtab);
+
+        vaults[colType][u] = vault;
         cols[colType] = col;
     }
 
