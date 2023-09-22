@@ -148,10 +148,12 @@ contract Vat is Auth, Pause, AccountApprovals {
         vault.debt = Math.add(vault.debt, deltaDebt);
         col.debt = Math.add(col.debt, deltaDebt);
 
-        // TODO: what?
-        int256 dtab = Math.mul(col.rate, deltaDebt);
-        uint256 tab = col.rate * vault.debt;
-        globalDebt = Math.add(globalDebt, dtab);
+        // deltaDebt = delta dai / col.rate
+        // delta dai = col.rate * deltaDebt
+        int256 deltaDai = Math.mul(col.rate, deltaDebt);
+        // total dai + compound interest that the vault owes to protocol
+        uint256 totalDai = col.rate * vault.debt;
+        globalDebt = Math.add(globalDebt, deltaDai);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
@@ -165,29 +167,32 @@ contract Vat is Auth, Pause, AccountApprovals {
         // vault is either less risky than before, or it is safe
         require(
             (deltaDebt <= 0 && deltaCol >= 0)
-                || tab <= vault.collateral * col.spot,
+                || totalDai <= vault.collateral * col.spot,
             "not safe"
         );
 
         // vault is either more safe, or the owner consents
         require(
-            (deltaDebt <= 0 && deltaCol >= 0) || canModifyAccount(vaultAddr, msg.sender),
+            (deltaDebt <= 0 && deltaCol >= 0)
+                || canModifyAccount(vaultAddr, msg.sender),
             "not allowed vault addr"
         );
         // collateral src consents
         require(
-            deltaCol <= 0 || canModifyAccount(colSrc, msg.sender), "not allowed collateral src"
+            deltaCol <= 0 || canModifyAccount(colSrc, msg.sender),
+            "not allowed collateral src"
         );
         // debt dst consents
         require(
-            deltaDebt >= 0 || canModifyAccount(debtDst, msg.sender), "not allowed debt dst"
+            deltaDebt >= 0 || canModifyAccount(debtDst, msg.sender),
+            "not allowed debt dst"
         );
 
         // vault has no debt, or a non-dusty amount
-        require(vault.debt == 0 || tab >= col.floor, "Vat/dust");
+        require(vault.debt == 0 || totalDai >= col.floor, "Vat/dust");
 
         gem[colType][colSrc] = Math.sub(gem[colType][colSrc], deltaCol);
-        dai[debtDst] = Math.add(dai[debtDst], dtab);
+        dai[debtDst] = Math.add(dai[debtDst], deltaDai);
 
         vaults[colType][vaultAddr] = vault;
         cols[colType] = col;
