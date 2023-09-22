@@ -29,11 +29,8 @@ interface IVat {
     function transferDai(address src, address dst, uint256 rad) external;
     // fold
     // TODO: what is vow?, rate?
-    function updateAccumulatedRate(
-        bytes32 collateralType,
-        address vow,
-        int256 rate
-    ) external;
+    function updateRate(bytes32 collateralType, address vow, int256 rate)
+        external;
     // ilks
     function collateralTypes(bytes32)
         external

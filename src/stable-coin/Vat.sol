@@ -218,9 +218,8 @@ contract Vat is Auth, Pause, AccountApprovals {
         v.collateral = Math.add(v.collateral, deltaCol);
         v.debt = Math.add(v.debt, deltaDebt);
 
-        // TODO: what's going on here?
-        uint256 utab = u.debt * col.rate;
-        uint256 vtab = v.debt * col.rate;
+        uint256 uTotalDai = u.debt * col.rate;
+        uint256 vTotalDai = v.debt * col.rate;
 
         // both sides consent
         require(
@@ -230,12 +229,12 @@ contract Vat is Auth, Pause, AccountApprovals {
         );
 
         // both sides safe
-        require(utab <= u.collateral * col.spot, "not safe src");
-        require(vtab <= v.collateral * col.spot, "not safe dst");
+        require(uTotalDai <= u.collateral * col.spot, "not safe src");
+        require(vTotalDai <= v.collateral * col.spot, "not safe dst");
 
         // both sides non-dusty
-        require(utab >= col.floor || u.debt == 0, "dust src");
-        require(vtab >= col.floor || v.debt == 0, "dust dst");
+        require(uTotalDai >= col.floor || u.debt == 0, "dust src");
+        require(vTotalDai >= col.floor || v.debt == 0, "dust dst");
     }
 
     // --- CDP Confiscation ---
@@ -294,16 +293,17 @@ contract Vat is Auth, Pause, AccountApprovals {
 
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
-    function updateRate(bytes32 colType, address dst, int256 rate)
+    function updateRate(bytes32 colType, address dst, int256 deltaRate)
         external
         auth
         notStopped
     {
-        // TODO: what is this doing?
         CollateralType storage col = cols[colType];
-        col.rate = Math.add(col.rate, rate);
-        int256 delta = Math.mul(col.debt, rate);
-        dai[dst] = Math.add(dai[dst], delta);
-        globalDebt = Math.add(globalDebt, delta);
+        col.rate = Math.add(col.rate, deltaRate);
+        // old total debe = col.debt * col.rate
+        // new total debt = col.debt * (col.rate + deltaRate)
+        int256 deltaDebt = Math.mul(col.debt, deltaRate);
+        dai[dst] = Math.add(dai[dst], deltaDebt);
+        globalDebt = Math.add(globalDebt, deltaDebt);
     }
 }

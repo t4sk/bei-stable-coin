@@ -79,7 +79,7 @@ contract Jug is Auth {
         rate = Math.rpow(base + col.fee, block.timestamp - col.updatedAt, RAY)
             * prev / RAY;
         // TODO: ?
-        vat.updateAccumulatedRate(colType, vow, _diff(rate, prev));
+        vat.updateRate(colType, vow, _diff(rate, prev));
         col.updatedAt = block.timestamp;
     }
 }
