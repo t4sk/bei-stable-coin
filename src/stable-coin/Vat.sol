@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import {CollateralType, Vault} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 import "../lib/Pause.sol";
@@ -12,28 +13,6 @@ dart: change in debt.
 */
 
 contract Vat is Auth, Pause, AccountApprovals {
-    // Ilk: a collateral type.
-    struct CollateralType {
-        // Art: total normalized stablecoin debt.
-        uint256 debt; // wad
-        // rate: stablecoin debt multiplier (accumulated stability fees).
-        uint256 rate; // ray
-        // spot: collateral price with safety margin, i.e. the maximum stablecoin allowed per unit of collateral.
-        uint256 spot; // ray
-        // line: the debt ceiling for a specific collateral type.
-        uint256 ceiling; // rad
-        // dust: the debt floor for a specific collateral type.
-        uint256 floor; // rad
-    }
-
-    // Urn: a specific Vault.
-    struct Vault {
-        // ink: collateral balance.
-        uint256 collateral; // wad
-        // art: normalized outstanding stablecoin debt.
-        uint256 debt; // wad
-    }
-
     // ilks
     mapping(bytes32 => CollateralType) public cols;
     // urns - collateral type => account => Vault
@@ -120,6 +99,7 @@ contract Vat is Auth, Pause, AccountApprovals {
         dai[dst] += rad;
     }
 
+    // TODO: - study how proxy action calls frob
     // --- CDP Manipulation ---
     // frob: modify a Vault.
     //     lock: transfer collateral into a Vault.

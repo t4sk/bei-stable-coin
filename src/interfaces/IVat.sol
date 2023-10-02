@@ -1,8 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+// Ilk: a collateral type.
+struct CollateralType {
+    // Art: total normalized stablecoin debt.
+    uint256 debt; // wad
+    // rate: stablecoin debt multiplier (accumulated stability fees).
+    uint256 rate; // ray
+    // spot: collateral price with safety margin, i.e. the maximum stablecoin allowed per unit of collateral.
+    uint256 spot; // ray
+    // line: the debt ceiling for a specific collateral type.
+    uint256 ceiling; // rad
+    // dust: the debt floor for a specific collateral type.
+    uint256 floor; // rad
+}
+
+// Urn: a specific Vault.
+struct Vault {
+    // ink: collateral balance.
+    uint256 collateral; // wad
+    // art: normalized outstanding stablecoin debt.
+    uint256 debt; // wad
+}
+
 interface IVat {
     function dai(address vault) external view returns (uint256);
+    function vaults(bytes32 colType, address vault)
+        external
+        view
+        returns (Vault memory);
     // can
     function isAuthorized(address owner, address user)
         external
