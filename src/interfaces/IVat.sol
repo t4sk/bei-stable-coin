@@ -65,4 +65,9 @@ interface IVat {
 
     // file
     function modifyParam(bytes32, bytes32, uint256) external;
+
+    // hope
+    function approveAccountModification(address user) external;
+    // nope
+    function denyAccountModification(address user) external;
 }

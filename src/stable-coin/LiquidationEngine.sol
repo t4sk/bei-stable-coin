@@ -2,23 +2,42 @@
 pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
+import {IVow} from "../interfaces/IVow.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
 
 contract LiquidationEngine is Auth, Pause {
+    struct CollateralType {
+        // clip
+        address auction; // Liquidator
+        // chop
+        uint256 penalty; // Liquidation Penalty                                          [wad]
+        // hole
+        uint256 max; // Max DAI needed to cover debt+fees of active auctions per ilk [rad]
+        // dirt
+        uint256 amount; // Amt DAI needed to cover debt+fees of active auctions per ilk [rad]
+    }
+
     IVat public immutable vat;
+    mapping(bytes32 => CollateralType) public colTypes;
+    // vow
+    IVow public vow; // Debt Engine
+    // Hole
+    uint256 public max; // Max DAI needed to cover debt+fees of active auctions [rad]
+    // Dirt
+    uint256 public total; // Amt DAI needed to cover debt+fees of active auctions [rad]
 
     constructor(address _vat) {
         vat = IVat(_vat);
     }
 
-    function liquidate(bytes32 colType, address vault, address kpr)
+    function liquidate(bytes32 colType, address vault, address keeper)
         external
         notStopped
         returns (uint256 id)
     {
-        // Vault memory v = vat.vaults(colType, vault);
+        IVat.Vault memory v = vat.vaults(colType, vault);
         //     colType memory milk = ilks[colType];
         //     uint256 dart;
         //     uint256 rate;
@@ -77,7 +96,7 @@ contract LiquidationEngine is Auth, Pause {
         //             tab: tab,
         //             lot: dink,
         //             usr: vault,
-        //             kpr: kpr
+        //             kpr: keeper
         //         });
         //     }
 
