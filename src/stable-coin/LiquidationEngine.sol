@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {Vault, IVat} from "../interfaces/IVat.sol";
+import {IVat} from "../interfaces/IVat.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";

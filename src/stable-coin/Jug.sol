@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "../interfaces/IVat.sol";
+import {IVat} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
@@ -70,16 +70,16 @@ contract Jug is Auth {
 
     // drip
     function drip(bytes32 colType) external returns (uint256 rate) {
-        CollateralType storage col = collateralTypes[colType];
+        // CollateralType storage col = collateralTypes[colType];
 
-        require(
-            block.timestamp >= col.updatedAt, "block timestamp < update time"
-        );
-        (, uint256 prev) = vat.collateralTypes(colType);
-        rate = Math.rpow(base + col.fee, block.timestamp - col.updatedAt, RAY)
-            * prev / RAY;
-        // TODO: ?
-        vat.updateRate(colType, vow, _diff(rate, prev));
-        col.updatedAt = block.timestamp;
+        // require(
+        //     block.timestamp >= col.updatedAt, "block timestamp < update time"
+        // );
+        // (, uint256 prev) = vat.collateralTypes(colType);
+        // rate = Math.rpow(base + col.fee, block.timestamp - col.updatedAt, RAY)
+        //     * prev / RAY;
+        // // TODO: ?
+        // vat.updateRate(colType, vow, _diff(rate, prev));
+        // col.updatedAt = block.timestamp;
     }
 }

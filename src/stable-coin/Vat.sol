@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {CollateralType, Vault} from "../interfaces/IVat.sol";
+import {IVat} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 import "../lib/Pause.sol";
@@ -14,9 +14,9 @@ dart: change in debt.
 
 contract Vat is Auth, Pause, AccountApprovals {
     // ilks
-    mapping(bytes32 => CollateralType) public cols;
+    mapping(bytes32 => IVat.CollateralType) public cols;
     // urns - collateral type => account => Vault
-    mapping(bytes32 => mapping(address => Vault)) public vaults;
+    mapping(bytes32 => mapping(address => IVat.Vault)) public vaults;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // account => dai balance (rad)
@@ -120,8 +120,8 @@ contract Vat is Auth, Pause, AccountApprovals {
         int256 deltaCol,
         int256 deltaDebt
     ) external notStopped {
-        Vault memory vault = vaults[colType][vaultAddr];
-        CollateralType memory col = cols[colType];
+        IVat.Vault memory vault = vaults[colType][vaultAddr];
+        IVat.CollateralType memory col = cols[colType];
         require(col.rate != 0, "collateral not init");
 
         vault.collateral = Math.add(vault.collateral, deltaCol);
@@ -189,9 +189,9 @@ contract Vat is Auth, Pause, AccountApprovals {
         int256 deltaCol,
         int256 deltaDebt
     ) external {
-        Vault storage u = vaults[colType][src];
-        Vault storage v = vaults[colType][dst];
-        CollateralType storage col = cols[colType];
+        IVat.Vault storage u = vaults[colType][src];
+        IVat.Vault storage v = vaults[colType][dst];
+        IVat.CollateralType storage col = cols[colType];
 
         u.collateral = Math.sub(u.collateral, deltaCol);
         u.debt = Math.sub(u.debt, deltaDebt);
@@ -233,8 +233,8 @@ contract Vat is Auth, Pause, AccountApprovals {
         int256 deltaCol,
         int256 deltaDebt
     ) external auth {
-        Vault storage vault = vaults[colType][src];
-        CollateralType storage col = cols[colType];
+        IVat.Vault storage vault = vaults[colType][src];
+        IVat.CollateralType storage col = cols[colType];
 
         vault.collateral = Math.add(vault.collateral, deltaCol);
         vault.debt = Math.add(vault.debt, deltaDebt);
@@ -278,7 +278,7 @@ contract Vat is Auth, Pause, AccountApprovals {
         auth
         notStopped
     {
-        CollateralType storage col = cols[colType];
+        IVat.CollateralType storage col = cols[colType];
         col.rate = Math.add(col.rate, deltaRate);
         // old total debe = col.debt * col.rate
         // new total debt = col.debt * (col.rate + deltaRate)
