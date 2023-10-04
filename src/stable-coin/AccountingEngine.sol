@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {IVat} from "../interfaces/IVat.sol";
 import {IDebtAuctionHouse} from "../interfaces/IDebtAuctionHouse.sol";
 import {ISurplusAuctionHouse} from "../interfaces/ISurplusAuctionHouse.sol";
+import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
 
@@ -14,7 +15,7 @@ contract AccountingEngine is Auth, Pause {
     // flopper
     IDebtAuctionHouse public debtAuctionHouse;
 
-    // sin
+    // sin (mapping timestamp => rad)
     mapping(uint256 => uint256) public debtQueue; // debt queue
     // Sin
     uint256 public totalQueuedDebt; // Queued debt            [rad]
@@ -23,15 +24,19 @@ contract AccountingEngine is Auth, Pause {
 
     // wait
     uint256 public popDebtDelay; // Flop delay             [seconds]
-    // dump
-    uint256 public dump; // Flop initial lot size  [wad]
-    // sump
-    uint256 public sump; // Flop fixed bid size    [rad]
+    // dump [wad]
+    // Amount of protocol tokens to be minted post-auction
+    uint256 public debtAuctionInitialLotSize;
+    // sump [rad]
+    // Amount of debt sold in one debt auction (initial coin bid for debtAuctionInitialLotSize protocol tokens)
+    uint256 public debtAcutionBidSize;
 
-    // bump
-    uint256 public bump; // Flap fixed lot size    [rad]
-    // hump
-    uint256 public hump; // Surplus buffer         [rad]
+    // bump [rad]
+    // Amount of surplus stability fees sold in one surplus auction
+    uint256 public surplusLotSize;
+    // hump [rad]
+    // Amount of stability fees that need to accrue in this contract before any surplus auction can start
+    uint256 public surplusBuffer;
 
     constructor(
         address _vat,
@@ -63,51 +68,103 @@ contract AccountingEngine is Auth, Pause {
     //     else revert("Vow/file-unrecognized-param");
     // }
 
-    // function fess(uint tab) external auth {
-    //     sin[now] = add(sin[now], tab);
-    //     Sin = add(Sin, tab);
-    // }
-    // // Pop from debt-queue
-    // function flog(uint era) external {
-    //     require(add(era, wait) <= now, "Vow/wait-not-finished");
-    //     Sin = sub(Sin, sin[era]);
-    //     sin[era] = 0;
-    // }
+    // fess
+    /**
+     * @notice Push bad debt into a queue
+     * @dev Debt is locked in a queue to give the system enough time to auction collateral
+     *      and gather surplus
+     */
+    function pushDebtToQueue(uint256 debt) external auth {
+        debtQueue[block.timestamp] += debt;
+        totalQueuedDebt += debt;
+    }
 
-    // // Debt settlement
-    // function heal(uint rad) external {
-    //     require(rad <= vat.dai(address(this)), "Vow/insufficient-surplus");
-    //     require(rad <= sub(sub(vat.sin(address(this)), Sin), Ash), "Vow/insufficient-debt");
-    //     vat.heal(rad);
-    // }
-    // function kiss(uint rad) external {
-    //     require(rad <= Ash, "Vow/not-enough-ash");
-    //     require(rad <= vat.dai(address(this)), "Vow/insufficient-surplus");
-    //     Ash = sub(Ash, rad);
-    //     vat.heal(rad);
-    // }
+    // flog - Pop from debt-queue
+    /**
+     * @notice Pop a block of bad debt from the debt queue
+     */
+    function popDebtFromQueue(uint256 timestamp) external {
+        require(
+            timestamp + popDebtDelay <= block.timestamp, "wait not finished"
+        );
+        totalQueuedDebt -= debtQueue[timestamp];
+        debtQueue[timestamp] = 0;
+    }
 
-    // // Debt auction
-    // function flop() external returns (uint id) {
-    //     require(sump <= sub(sub(vat.sin(address(this)), Sin), Ash), "Vow/insufficient-debt");
-    //     require(vat.dai(address(this)) == 0, "Vow/surplus-not-zero");
-    //     Ash = add(Ash, sump);
-    //     id = flopper.kick(address(this), dump, sump);
-    // }
-    // // Surplus auction
-    // function flap() external returns (uint id) {
-    //     require(vat.dai(address(this)) >= add(add(vat.sin(address(this)), bump), hump), "Vow/insufficient-surplus");
-    //     require(sub(sub(vat.sin(address(this)), Sin), Ash) == 0, "Vow/debt-not-zero");
-    //     id = flapper.kick(bump, 0);
-    // }
+    // heal - Debt settlement
+    /**
+     * @notice Destroy an equal amount of coins and bad debt
+     * @dev We can only destroy debt that is not locked in the queue and also not in a debt auction
+     *
+     */
+    function settleDebt(uint256 rad) external {
+        require(rad <= vat.dai(address(this)), "insufficient surplus");
+        require(
+            rad
+                <= vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction,
+            "insufficient debt"
+        );
+        vat.settle(rad);
+    }
 
-    // function cage() external auth {
-    //     require(live == 1, "Vow/not-live");
-    //     live = 0;
-    //     Sin = 0;
-    //     Ash = 0;
-    //     flapper.cage(vat.dai(address(flapper)));
-    //     flopper.cage();
-    //     vat.heal(min(vat.dai(address(this)), vat.sin(address(this))));
-    // }
+    // kiss
+    /**
+     * @notice Use surplus coins to destroy debt that was in a debt auction
+     *
+     */
+    function cancelAuctionedDebtWithSurplus(uint256 rad) external {
+        require(rad <= totalDebtOnAuction, "not enough debt on auction");
+        require(rad <= vat.dai(address(this)), "insufficient surplus");
+        totalDebtOnAuction -= rad;
+        vat.settle(rad);
+    }
+
+    // Debt auction
+    /**
+     * @notice Start a debt auction (print protocol tokens in exchange for coins so that the
+     *         system can be recapitalized)
+     * @dev We can only auction debt that is not already being auctioned and is not locked in the debt queue
+     *
+     */
+    function startDebtAuction() external returns (uint256 id) {
+        require(
+            debtAcutionBidSize
+                <= vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction,
+            "insufficient debt"
+        );
+        require(vat.dai(address(this)) == 0, "surplus not zero");
+        totalDebtOnAuction += debtAcutionBidSize;
+        id = debtAuctionHouse.startAuction(
+            address(this), debtAuctionInitialLotSize, debtAcutionBidSize
+        );
+    }
+
+    // Surplus auction
+    /**
+     * @notice Start a surplus auction
+     * @dev We can only auction surplus if we wait at least 'surplusAuctionDelay' seconds since the last
+     *      surplus auction trigger, if we keep enough surplus in the buffer and if there is no bad debt left to settle
+     *
+     */
+    function startSurplusAuction() external returns (uint256 id) {
+        require(
+            vat.dai(address(this))
+                >= vat.debts(address(this)) + surplusLotSize + surplusBuffer,
+            "insufficient surplus"
+        );
+        require(
+            vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction == 0,
+            "debt not zero"
+        );
+        id = surplusAuctionHouse.startAuction(surplusLotSize, 0);
+    }
+
+    function stop() external auth {
+        _stop();
+        totalQueuedDebt = 0;
+        totalDebtOnAuction = 0;
+        surplusAuctionHouse.stop(vat.dai(address(surplusAuctionHouse)));
+        debtAuctionHouse.stop();
+        vat.settle(Math.min(vat.dai(address(this)), vat.debts(address(this))));
+    }
 }

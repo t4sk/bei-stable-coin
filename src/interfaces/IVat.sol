@@ -25,6 +25,7 @@ interface IVat {
     }
 
     function dai(address vault) external view returns (uint256);
+    function debts(address account) external view returns (uint256);
     function vaults(bytes32 colType, address vault)
         external
         view
@@ -70,4 +71,5 @@ interface IVat {
     function approveAccountModification(address user) external;
     // nope
     function denyAccountModification(address user) external;
+    function settle(uint256 rad) external;
 }
