@@ -31,7 +31,7 @@ interface IVat {
         view
         returns (Vault memory);
     // ilks
-    function collateralTypes(bytes32 colType)
+    function cols(bytes32 colType)
         external
         view
         returns (CollateralType memory);
@@ -72,4 +72,12 @@ interface IVat {
     // nope
     function denyAccountModification(address user) external;
     function settle(uint256 rad) external;
+    function grab(
+        bytes32 colType,
+        address src,
+        address dst,
+        address debtDst,
+        int256 deltaCol,
+        int256 deltaDebt
+    ) external;
 }
