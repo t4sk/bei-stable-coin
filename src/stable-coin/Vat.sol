@@ -252,10 +252,10 @@ contract Vat is Auth, Pause, AccountApprovals {
     // heal: create / destroy equal quantities of stablecoin and system debt (vice).
     function settle(uint256 rad) external {
         address account = msg.sender;
-        debts[account] = debts[account] - rad;
-        dai[account] = dai[account] - rad;
-        globalUnbackedDebt = globalUnbackedDebt - rad;
-        globalDebt = globalDebt - rad;
+        debts[account] -= rad;
+        dai[account] -= rad;
+        globalUnbackedDebt -= rad;
+        globalDebt -= rad;
     }
 
     // suck: mint unbacked stablecoin (accounted for with vice).
@@ -263,10 +263,10 @@ contract Vat is Auth, Pause, AccountApprovals {
         external
         auth
     {
-        debts[debtDst] = debts[debtDst] + rad;
-        dai[coinDst] = dai[coinDst] + rad;
-        globalUnbackedDebt = globalUnbackedDebt + rad;
-        globalDebt = globalDebt + rad;
+        debts[debtDst] += rad;
+        dai[coinDst] += rad;
+        globalUnbackedDebt += rad;
+        globalDebt += rad;
     }
 
     // --- Rates ---

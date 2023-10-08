@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+uint256 constant BLN = 10 ** 9;
 uint256 constant WAD = 10 ** 18;
 uint256 constant RAY = 10 ** 27;
 uint256 constant RAD = 10 ** 45;
@@ -34,6 +35,14 @@ library Math {
 
     function toRad(uint256 wad) internal pure returns (uint256 rad) {
         rad = wad * RAY;
+    }
+
+    function wmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = x * y / WAD;
+    }
+
+    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = x * y / RAY;
     }
 
     function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {

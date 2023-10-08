@@ -82,4 +82,5 @@ interface IVat {
         int256 deltaCol,
         int256 deltaDebt
     ) external;
+    function mint(address debtDst, address coinDst, uint256 rad) external;
 }
