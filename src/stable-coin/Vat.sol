@@ -12,7 +12,7 @@ dink: change in collateral.
 dart: change in debt.
 */
 
-// CDP Engin
+// CDP Engine
 contract Vat is Auth, Pause, AccountApprovals {
     // ilks
     mapping(bytes32 => IVat.CollateralType) public cols;
@@ -229,7 +229,7 @@ contract Vat is Auth, Pause, AccountApprovals {
     function grab(
         bytes32 colType,
         address src,
-        address dst,
+        address colDst,
         address debtDst,
         int256 deltaCol,
         int256 deltaDebt
@@ -241,14 +241,11 @@ contract Vat is Auth, Pause, AccountApprovals {
         vault.debt = Math.add(vault.debt, deltaDebt);
         col.debt = Math.add(col.debt, deltaDebt);
 
-        // TODO: what is dtab and why mul?
-        int256 dtab = Math.mul(col.rate, deltaDebt);
+        int256 deltaDai = Math.mul(col.rate, deltaDebt);
 
-        // TODO: delta col is negative?
-        // TODO: why debt dst != col dst
-        gem[colType][dst] = Math.sub(gem[colType][dst], deltaCol);
-        debts[debtDst] = Math.sub(debts[debtDst], dtab);
-        globalUnbackedDebt = Math.sub(globalUnbackedDebt, dtab);
+        gem[colType][colDst] = Math.sub(gem[colType][colDst], deltaCol);
+        debts[debtDst] = Math.sub(debts[debtDst], deltaDai);
+        globalUnbackedDebt = Math.sub(globalUnbackedDebt, deltaDai);
     }
 
     // --- Settlement ---

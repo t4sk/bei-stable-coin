@@ -11,8 +11,10 @@ interface IVat {
         // spot: collateral price with safety margin, i.e. the maximum stablecoin allowed per unit of collateral.
         uint256 spot; // ray
         // line: the debt ceiling for a specific collateral type.
+        // TODO: rename to debt_ceiling?
         uint256 ceiling; // rad
         // dust: the debt floor for a specific collateral type.
+        // TODO: rename to min_debt?
         uint256 floor; // rad
     }
 

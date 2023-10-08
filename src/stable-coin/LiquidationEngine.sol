@@ -23,7 +23,7 @@ contract LiquidationEngine is Auth, Pause {
     }
 
     IVat public immutable vat;
-    mapping(bytes32 => CollateralType) public colTypes;
+    mapping(bytes32 => CollateralType) public cols;
     // vow
     IDebtEngine public debtEngine;
     // Hole
@@ -44,11 +44,9 @@ contract LiquidationEngine is Auth, Pause {
     {
         IVat.Vault memory v = vat.vaults(colType, vault);
         IVat.CollateralType memory c = vat.cols(colType);
-        CollateralType memory col = colTypes[colType];
-        // TODO: what is dart?
-        uint256 dart;
+        CollateralType memory col = cols[colType];
+        uint256 deltaDebt;
         {
-            // (, rate, spot,, dust) = vat.colTypes(colType);
             require(
                 c.spot > 0 && v.collateral * c.spot < v.debt * c.rate,
                 "not unsafe"
@@ -60,64 +58,62 @@ contract LiquidationEngine is Auth, Pause {
             require(
                 max > total && col.max > col.amount, "Dog/liquidation-limit-hit"
             );
-            uint256 diff = Math.min(max - total, col.max - col.amount);
+            uint256 room = Math.min(max - total, col.max - col.amount);
 
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
-            dart = Math.min(v.debt, diff * WAD / c.rate / col.penalty);
+            deltaDebt = Math.min(v.debt, room * WAD / c.rate / col.penalty);
 
             // Partial liquidation edge case logic
-            if (v.debt > dart) {
-                if ((v.debt - dart) * c.rate < c.floor) {
+            if (v.debt > deltaDebt) {
+                if ((v.debt - deltaDebt) * c.rate < c.floor) {
                     // If the leftover Vault would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
                     // This deviation is assumed to be small compared to both hole_i and Hole, so that
                     // the extra amount of target DAI over the limits intended is not of economic concern.
-                    dart = v.debt;
+                    deltaDebt = v.debt;
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
                     require(
-                        dart * c.rate >= c.floor,
+                        deltaDebt * c.rate >= c.floor,
                         "dusty auction from partial liquidation"
                     );
                 }
             }
         }
 
-        // TODO: what is dink?
-        uint256 dink = (v.collateral * dart) / v.debt;
+        uint256 deltaCol = (v.collateral * deltaDebt) / v.debt;
 
-        require(dink > 0, "null-auction");
-        require(dart <= 2 ** 255 && dink <= 2 ** 255, "overflow");
+        require(deltaCol > 0, "null-auction");
+        require(deltaDebt <= 2 ** 255 && deltaCol <= 2 ** 255, "overflow");
 
-        vat.grab(
-            colType,
-            vault,
-            col.auction,
-            address(debtEngine),
-            -int256(dink),
-            -int256(dart)
-        );
+        vat.grab({
+            colType: colType,
+            src: vault,
+            dst: col.auction,
+            debtDst: address(debtEngine),
+            deltaCol: -int256(deltaCol),
+            deltaDebt: -int256(deltaDebt)
+        });
 
-        uint256 due = dart * c.rate;
+        uint256 due = deltaDebt * c.rate;
         debtEngine.pushDebtToQueue(due);
 
         {
             // Avoid stack too deep
-            // This calcuation will overflow if dart*rate exceeds ~10^14
-            // TODO: what is tab?
-            uint256 tab = due * col.penalty / WAD;
-            total += tab;
-            colTypes[colType].amount += tab;
+            // This calcuation will overflow if deltaDebt*rate exceeds ~10^14
+            // tab: the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
+            uint256 targetDai = due * col.penalty / WAD;
+            total += targetDai;
+            cols[colType].amount += targetDai;
 
             id = ICollateralAuctionHouse(col.auction).startAuction({
-                tab: tab,
-                lot: dink,
+                tab: targetDai,
+                // lot: the amount of collateral available for purchase [wad]
+                lot: deltaCol,
                 user: vault,
                 keeper: keeper
             });
         }
-
-        // emit Liquidate(colType, vault, dink, dart, due, col.auction, id);
     }
 }
