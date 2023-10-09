@@ -32,7 +32,8 @@ contract CollateralAuctionHouse is Auth {
     uint64 public chip; // Percentage of dai_to_raise to mint from debt_engine to incentivize keepers         [wad]
     // tip
     uint192 public flat_fee; // Flat fee to mint from debt_engine to incentivize keepers                  [rad]
-    uint256 public chost; // Cache the collateral_type dust times the collateral_type chop to prevent excessive SLOADs [rad]
+    // chost
+    uint256 public cache; // Cache the collateral_type dust times the collateral_type chop to prevent excessive SLOADs [rad]
 
     // kicks
     uint256 public last_auction_id; // Total auctions
@@ -262,10 +263,10 @@ contract CollateralAuctionHouse is Auth {
         uint256 _chip = chip;
         uint256 coin;
         if (fee > 0 || _chip > 0) {
-            uint256 _chost = chost;
+            uint256 _cache = cache;
             if (
-                dai_to_raise >= _chost
-                    && collateral_to_sell * feed_price >= _chost
+                dai_to_raise >= _cache
+                    && collateral_to_sell * feed_price >= _cache
             ) {
                 coin = fee + Math.wmul(dai_to_raise, _chip);
                 vat.mint(debt_engine, keeper, coin);
@@ -304,7 +305,8 @@ contract CollateralAuctionHouse is Auth {
         uint256 id, // Auction id
         uint256 amt, // Upper limit on amount of collateral to buy  [wad]
         uint256 max, // Maximum acceptable price (DAI / collateral) [ray]
-        address who, // Receiver of collateral and external call address
+        // who
+        address collateral_receiver, // Receiver of collateral and external call address
         bytes calldata data // Data to pass in external call; if length 0, no call is done
     ) external lock isStopped(3) {
         address user = sales[id].user;
@@ -343,35 +345,34 @@ contract CollateralAuctionHouse is Auth {
                 slice = owe / price; // slice' = owe' / price <= owe / price == slice <= collateral_to_sell
             } else if (owe < dai_to_raise && slice < collateral_to_sell) {
                 // If slice == collateral_to_sell => auction completed => dust doesn't matter
-                uint256 _chost = chost;
-                if (dai_to_raise - owe < _chost) {
+                uint256 _cache = cache;
+                if (dai_to_raise - owe < _cache) {
                     // safe as owe < dai_to_raise
                     // If dai_to_raise <= chost, buyers have to take the entire collateral_to_sell.
-                    require(dai_to_raise > _chost, "no-partial-purchase");
+                    require(dai_to_raise > _cache, "no-partial-purchase");
                     // Adjust amount to pay
-                    owe = dai_to_raise - _chost; // owe' <= owe
+                    owe = dai_to_raise - _cache; // owe' <= owe
                     // Adjust slice
                     slice = owe / price; // slice' = owe' / price < owe / price == slice < collateral_to_sell
                 }
             }
 
             // Calculate remaining dai_to_raise after operation
-            dai_to_raise = dai_to_raise - owe; // safe since owe <= dai_to_raise
+            dai_to_raise -= owe; // safe since owe <= dai_to_raise
             // Calculate remaining collateral_to_sell after operation
-            collateral_to_sell = collateral_to_sell - slice;
+            collateral_to_sell -= slice;
 
             // Send collateral to who
-            vat.transferCollateral(collateral_type, address(this), who, slice);
+            vat.transferCollateral(collateral_type, address(this), collateral_receiver, slice);
 
             // Do external call (if data is defined) but to be
             // extremely careful we don't allow to do it to the two
             // contracts which the Clipper needs to be authorized
-            ILiquidationEngine liquidation_engine_ = liquidation_engine;
             if (
-                data.length > 0 && who != address(vat)
-                    && who != address(liquidation_engine_)
+                data.length > 0 && collateral_receiver != address(vat)
+                    && collateral_receiver != address(liquidation_engine)
             ) {
-                ICollateralAuctionHouseCallee(who).callback(
+                ICollateralAuctionHouseCallee(collateral_receiver).callback(
                     msg.sender, owe, slice, data
                 );
             }
@@ -380,7 +381,7 @@ contract CollateralAuctionHouse is Auth {
             vat.transferDai(msg.sender, debt_engine, owe);
 
             // Removes Dai out for liquidation from accumulator
-            liquidation_engine_.digs(
+            liquidation_engine.removeDaiFromAuction(
                 collateral_type,
                 collateral_to_sell == 0 ? dai_to_raise + owe : owe
             );
@@ -402,11 +403,11 @@ contract CollateralAuctionHouse is Auth {
     }
 
     function _remove(uint256 id) internal {
-        uint256 _move = active[active.length - 1];
-        if (id != _move) {
-            uint256 _index = sales[id].pos;
-            active[_index] = _move;
-            sales[_move].pos = _index;
+        uint256 last = active[active.length - 1];
+        if (id != last) {
+            uint256 pos = sales[id].pos;
+            active[pos] = last;
+            sales[last].pos = pos;
         }
         active.pop();
         delete sales[id];
@@ -458,11 +459,13 @@ contract CollateralAuctionHouse is Auth {
         );
     }
 
-    // // Public function to update the cached dust*chop value.
-    // function upchost() external {
-    //     (,,,, uint256 _dust) = IVat(vat).ilks(collateral_type);
-    //     chost = wmul(_dust, liquidation_engine.chop(collateral_type));
-    // }
+    // Public function to update the cached dust*chop value.
+    // upchost
+    function update_cache() external {
+        IVat.CollateralType memory col = IVat(vat).cols(collateral_type);
+        cache =
+            Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
+    }
 
     // // Cancel an auction during ES or via governance action.
     // function yank(uint256 id) external auth lock {

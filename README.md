@@ -1,5 +1,13 @@
 ## Topics
 
+### TODO
+
+shell
+
+- solidity
+- vyper
+- sway
+
 - overview
 - `wad`, `ray`, `rad`
 - `DAI`, `wards`, `rely`, `deny`
