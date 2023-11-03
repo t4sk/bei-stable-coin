@@ -250,7 +250,7 @@ contract Vat is Auth, Pause, AccountApprovals {
 
     // --- Settlement ---
     // heal: create / destroy equal quantities of stablecoin and system debt (vice).
-    function settle(uint256 rad) external {
+    function burn(uint256 rad) external {
         address account = msg.sender;
         debts[account] -= rad;
         dai[account] -= rad;
@@ -277,9 +277,9 @@ contract Vat is Auth, Pause, AccountApprovals {
         notStopped
     {
         IVat.CollateralType storage col = cols[colType];
-        col.rate = Math.add(col.rate, deltaRate);
-        // old total debe = col.debt * col.rate
+        // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + deltaRate)
+        col.rate = Math.add(col.rate, deltaRate);
         int256 deltaDebt = Math.mul(col.debt, deltaRate);
         dai[dst] = Math.add(dai[dst], deltaDebt);
         globalDebt = Math.add(globalDebt, deltaDebt);

@@ -29,6 +29,11 @@ library Math {
         z = int256(x) * y;
     }
 
+    function diff(uint256 x, uint256 y) internal pure returns (int256 z) {
+        z = int256(x) - int256(y);
+        require(int256(x) >= 0 && int256(y) >= 0);
+    }
+
     function toInt(uint256 x) internal pure returns (int256 y) {
         y = int256(x);
     }

@@ -105,7 +105,7 @@ contract DebtEngine is Auth, Pause {
                 <= vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction,
             "insufficient debt"
         );
-        vat.settle(rad);
+        vat.burn(rad);
     }
 
     // kiss
@@ -117,7 +117,7 @@ contract DebtEngine is Auth, Pause {
         require(rad <= totalDebtOnAuction, "not enough debt on auction");
         require(rad <= vat.dai(address(this)), "insufficient surplus");
         totalDebtOnAuction -= rad;
-        vat.settle(rad);
+        vat.burn(rad);
     }
 
     // Debt auction
@@ -144,7 +144,7 @@ contract DebtEngine is Auth, Pause {
     /**
      * @notice Start a surplus auction
      * @dev We can only auction surplus if we wait at least 'surplusAuctionDelay' seconds since the last
-     *      surplus auction trigger, if we keep enough surplus in the buffer and if there is no bad debt left to settle
+     *      surplus auction trigger, if we keep enough surplus in the buffer and if there is no bad debt left to burn
      *
      */
     function startSurplusAuction() external returns (uint256 id) {
@@ -166,6 +166,6 @@ contract DebtEngine is Auth, Pause {
         totalDebtOnAuction = 0;
         surplusAuctionHouse.stop(vat.dai(address(surplusAuctionHouse)));
         debtAuctionHouse.stop();
-        vat.settle(Math.min(vat.dai(address(this)), vat.debts(address(this))));
+        vat.burn(Math.min(vat.dai(address(this)), vat.debts(address(this))));
     }
 }

@@ -2,6 +2,8 @@
 
 ### TODO
 
+- dictionary
+
 shell
 
 - solidity

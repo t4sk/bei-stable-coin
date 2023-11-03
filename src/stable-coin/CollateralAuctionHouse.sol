@@ -363,7 +363,9 @@ contract CollateralAuctionHouse is Auth {
             collateral_to_sell -= slice;
 
             // Send collateral to who
-            vat.transferCollateral(collateral_type, address(this), collateral_receiver, slice);
+            vat.transferCollateral(
+                collateral_type, address(this), collateral_receiver, slice
+            );
 
             // Do external call (if data is defined) but to be
             // extremely careful we don't allow to do it to the two

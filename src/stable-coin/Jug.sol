@@ -5,81 +5,78 @@ import {IVat} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
+/*
+The primary function of the Jug smart contract is to accumulate stability fees
+for a particular collateral type whenever its drip() method is called.
+*/
 contract Jug is Auth {
     struct CollateralType {
         // Per second stability fee
+        // duty - Collateral-specific, per-second stability fee contribution [ray]
         uint256 fee;
-        uint256 updatedAt;
+        // rho - Time of last drip [unix epoch time]
+        uint256 updated_at;
     }
 
-    mapping(bytes32 => CollateralType) public collateralTypes;
+    mapping(bytes32 => CollateralType) public cols;
+    // CDP engine
     IVat public immutable vat;
+    // Debt engine
     address public vow;
-    // Global stability fee
-    uint256 public base;
+    // base - Global per-second stability fee [ray]
+    uint256 public base_fee;
 
     constructor(address _vat) {
         vat = IVat(_vat);
     }
 
-    function _diff(uint256 x, uint256 y) internal pure returns (int256 z) {
-        z = int256(x) - int256(y);
-        require(int256(x) >= 0 && int256(y) >= 0);
-    }
-
-    function init(bytes32 colType) external auth {
-        CollateralType storage col = collateralTypes[colType];
+    // --- Administration ---
+    function init(bytes32 col_type) external auth {
+        CollateralType storage col = cols[col_type];
         require(col.fee == 0, "already initialized");
         col.fee = RAY;
-        col.updatedAt = block.timestamp;
+        col.updated_at = block.timestamp;
     }
 
     // file
-    function modifyParams(bytes32 colType, bytes32 name, uint256 data)
-        external
-        auth
-    {
+    function set(bytes32 col_type, bytes32 key, uint256 data) external auth {
         require(
-            block.timestamp == collateralTypes[colType].updatedAt,
-            "update time != now"
+            block.timestamp == cols[col_type].updated_at, "update time != now"
         );
-        if (name == "fee") {
-            collateralTypes[colType].fee = data;
+        if (key == "fee") {
+            cols[col_type].fee = data;
         } else {
-            revert("Unrecognized name");
+            revert("Unrecognized key");
         }
     }
 
-    function modifyParams(bytes32 name, uint256 data) external auth {
-        if (name == "base") {
-            base = data;
+    function set(bytes32 key, uint256 data) external auth {
+        if (key == "base_fee") {
+            base_fee = data;
         } else {
-            revert("Unrecognized name");
+            revert("Unrecognized key");
         }
     }
 
-    function modifyParams(bytes32 name, address data) external auth {
-        if (name == "vow") {
+    function set(bytes32 key, address data) external auth {
+        if (key == "vow") {
             vow = data;
         } else {
-            revert("Unrecognized name");
+            revert("Unrecognized key");
         }
     }
 
-    // TODO: fee
-
+    // --- Stability Fee Collection ---
     // drip
-    function drip(bytes32 colType) external returns (uint256 rate) {
-        // CollateralType storage col = collateralTypes[colType];
-
-        // require(
-        //     block.timestamp >= col.updatedAt, "block timestamp < update time"
-        // );
-        // (, uint256 prev) = vat.collateralTypes(colType);
-        // rate = Math.rpow(base + col.fee, block.timestamp - col.updatedAt, RAY)
-        //     * prev / RAY;
-        // // TODO: ?
-        // vat.updateRate(colType, vow, _diff(rate, prev));
-        // col.updatedAt = block.timestamp;
+    function drip(bytes32 col_type) external returns (uint256 rate) {
+        CollateralType storage col = cols[col_type];
+        require(block.timestamp >= col.updated_at, "now < last update");
+        IVat.CollateralType memory c = vat.cols(col_type);
+        rate = Math.rmul(
+            Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
+            c.rate
+        );
+        vat.updateRate(col_type, vow, Math.diff(rate, c.rate));
+        col.updated_at = block.timestamp;
     }
 }

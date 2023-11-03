@@ -73,7 +73,7 @@ interface IVat {
     function approveAccountModification(address user) external;
     // nope
     function denyAccountModification(address user) external;
-    function settle(uint256 rad) external;
+    function burn(uint256 rad) external;
     function grab(
         bytes32 colType,
         address src,
