@@ -8,6 +8,7 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
 
+// TODO:
 // Dog
 contract LiquidationEngine is Auth, Pause {
     struct CollateralType {
@@ -36,10 +37,10 @@ contract LiquidationEngine is Auth, Pause {
         vat = IVat(_vat);
     }
 
-    function liquidate(bytes32 colType, address safe, address keeper) external not_stopped returns (uint256 id) {
-        IVat.Safe memory v = vat.safes(colType, safe);
-        IVat.CollateralType memory c = vat.cols(colType);
-        CollateralType memory col = cols[colType];
+    function liquidate(bytes32 col_type, address safe, address keeper) external not_stopped returns (uint256 id) {
+        IVat.Safe memory v = vat.safes(col_type, safe);
+        IVat.CollateralType memory c = vat.cols(col_type);
+        CollateralType memory col = cols[col_type];
         uint256 deltaDebt;
         {
             require(c.spot > 0 && v.collateral * c.spot < v.debt * c.rate, "not unsafe");
@@ -75,7 +76,7 @@ contract LiquidationEngine is Auth, Pause {
         require(deltaDebt <= 2 ** 255 && deltaCol <= 2 ** 255, "overflow");
 
         vat.grab({
-            col_type: colType,
+            col_type: col_type,
             src: safe,
             dst: col.auction,
             debt_dst: address(vow),
@@ -92,7 +93,7 @@ contract LiquidationEngine is Auth, Pause {
             // tab: the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
             uint256 targetDai = due * col.penalty / WAD;
             total += targetDai;
-            cols[colType].amount += targetDai;
+            cols[col_type].amount += targetDai;
 
             id = ICollateralAuctionHouse(col.auction).start_auction({
                 tab: targetDai,

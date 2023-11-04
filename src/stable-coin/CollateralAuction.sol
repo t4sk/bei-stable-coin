@@ -5,34 +5,46 @@ import {IVat} from "../interfaces/IVat.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceCalculator} from "../interfaces/IPriceCalculator.sol";
-import {ICollateralAuctionHouseCallee} from "../interfaces/ICollateralAuctionHouseCallee.sol";
+import {ICollateralAuctionCallee} from "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
+import {Guard} from "../lib/Guard.sol";
 
-contract CollateralAuctionHouse is Auth {
+// Clipper
+contract CollateralAuction is Auth, Guard {
     bytes32 public immutable collateral_type;
     IVat public immutable vat;
 
     // dog
     ILiquidationEngine public liquidation_engine;
     // vow
-    address public debt_engine; // Recipient of dai raised in auctions
-    ISpotter public spotter; // Collateral price module
-    // Abacus
-    IPriceCalculator public calc; // Current price calculator
+    // Recipient of dai raised in auctions
+    address public debt_engine;
+    // Collateral price module
+    ISpotter public spotter;
+    // calc
+    // Current price calculator
+    IPriceCalculator public calc;
 
-    uint256 public buf; // Multiplicative factor to increase starting price                  [ray]
+    // buf
+    // Multiplicative factor to increase starting price [ray]
+    uint256 public buf;
     // tail
-    uint256 public max_duration; // Time elapsed before auction reset                                 [seconds]
+    // Time elapsed before auction reset [seconds]
+    uint256 public max_duration;
     // cusp
-    uint256 public min_delta_price_ratio; // Percentage drop before auction reset                              [ray]
+    // Percentage drop before auction reset [ray]
+    uint256 public min_delta_price_ratio;
     // chip
-    uint64 public chip; // Percentage of dai_to_raise to mint from debt_engine to incentivize keepers         [wad]
+    // Percentage of coin_to_raise to mint from debt_engine to incentivize keepers [wad]
+    uint64 public chip;
     // tip
-    uint192 public flat_fee; // Flat fee to mint from debt_engine to incentivize keepers                  [rad]
+    // Flat fee to mint from debt_engine to incentivize keepers [rad]
+    uint192 public flat_fee;
     // chost
-    uint256 public cache; // Cache the collateral_type dust times the collateral_type chop to prevent excessive SLOADs [rad]
+    // Cache the collateral_type dust times the collateral_type chop to prevent excessive SLOADs [rad]
+    uint256 public cache;
 
     // kicks
     uint256 public last_auction_id; // Total auctions
@@ -43,7 +55,7 @@ contract CollateralAuctionHouse is Auth {
         uint256 pos;
         // tab
         // Dai to raise       [rad]
-        uint256 dai_to_raise;
+        uint256 coin_to_raise;
         // lot
         // collateral to sell [wad]
         uint256 collateral_to_sell;
@@ -60,8 +72,6 @@ contract CollateralAuctionHouse is Auth {
 
     mapping(uint256 => Sale) public sales;
 
-    uint256 internal locked;
-
     // Levels for circuit breaker
     // 0: no breaker
     // 1: no new kick()
@@ -76,7 +86,7 @@ contract CollateralAuctionHouse is Auth {
     event Kick(
         uint256 indexed id,
         uint256 starting_price,
-        uint256 dai_to_raise,
+        uint256 coin_to_raise,
         uint256 collateral_to_sell,
         address indexed user,
         address indexed keeper,
@@ -87,14 +97,14 @@ contract CollateralAuctionHouse is Auth {
         uint256 max,
         uint256 price,
         uint256 owe,
-        uint256 dai_to_raise,
+        uint256 coin_to_raise,
         uint256 collateral_to_sell,
         address indexed user
     );
     event Redo(
         uint256 indexed id,
         uint256 starting_price,
-        uint256 dai_to_raise,
+        uint256 coin_to_raise,
         uint256 collateral_to_sell,
         address indexed user,
         address indexed keeper,
@@ -113,52 +123,52 @@ contract CollateralAuctionHouse is Auth {
     }
 
     // --- Synchronization ---
-    modifier lock() {
-        require(locked == 0, "Clipper/system-locked");
-        locked = 1;
-        _;
-        locked = 0;
-    }
-
     modifier isStopped(uint256 level) {
         require(stopped < level, "Clipper/stopped-incorrect");
         _;
     }
 
     // --- Administration ---
-    // function file(bytes32 what, uint256 data) external auth lock {
-    //     if (what == "buf") buf = data;
-    //     else if (what == "max_duration") max_duration = data; // Time elapsed before auction reset
+    // file
+    function set(bytes32 key, uint256 val) external auth lock {
+        if (key == "buf") {
+            buf = val;
+        } else if (key == "max_duration") {
+            // Time elapsed before auction reset
+            max_duration = val;
+        } else if (key == "min_delta_price_ratio") {
+            // Percentage drop before auction reset
+            min_delta_price_ratio = val;
+        } else if (key == "chip") {
+            // Percentage of coin_to_raise to incentivize (max: 2^64 - 1 => 18.xxx WAD = 18xx%)
+            chip = uint64(val);
+        } else if (key == "flat_fee") {
+            // Flat fee to incentivize keepers (max: 2^192 - 1 => 6.277T RAD)
+            flat_fee = uint192(val);
+        } else if (key == "stopped") {
+            // Set breaker (0, 1, 2, or 3)
+            stopped = val;
+        } else {
+            revert("unrecognized param");
+        }
+    }
 
-    //     else if (what == "min_delta_price_ratio") min_delta_price_ratio = data; // Percentage drop before auction reset
-
-    //     else if (what == "chip") chip = uint64(data); // Percentage of dai_to_raise to incentivize (max: 2^64 - 1 => 18.xxx WAD = 18xx%)
-
-    //     else if (what == "flat_fee") flat_fee = uint192(data); // Flat fee to incentivize keepers (max: 2^192 - 1 => 6.277T RAD)
-
-    //     else if (what == "stopped") stopped = data; // Set breaker (0, 1, 2, or 3)
-
-    //     else revert("Clipper/file-unrecognized-param");
-    //     emit File(what, data);
-    // }
-
-    // function file(bytes32 what, address data) external auth lock {
-    //     if (what == "spotter") {
-    //         spotter = ISpotter(data);
-    //     } else if (what == "liquidation_engine") {
-    //         liquidation_engine = ILiquidationEngine(data);
-    //     } else if (what == "debt_engine") {
-    //         debt_engine = data;
-    //     } else if (what == "calc") {
-    //         calc = IPriceCalculator(data);
-    //     } else {
-    //         revert("Clipper/file-unrecognized-param");
-    //     }
-    //     emit File(what, data);
-    // }
+    // file
+    function set(bytes32 key, address addr) external auth lock {
+        if (key == "spotter") {
+            spotter = ISpotter(addr);
+        } else if (key == "liquidation_engine") {
+            liquidation_engine = ILiquidationEngine(addr);
+        } else if (key == "debt_engine") {
+            debt_engine = addr;
+        } else if (key == "calc") {
+            calc = IPriceCalculator(addr);
+        } else {
+            revert("unrecognized param");
+        }
+    }
 
     // --- Auction ---
-
     // get the price directly from the OSM
     // Could get this from rmul(Vat.ilks(collateral_type).spot, Spotter.mat()) instead, but
     // if mat has changed since the last poke, the resulting value will be
@@ -170,6 +180,7 @@ contract CollateralAuctionHouse is Auth {
         price = Math.rdiv(val * BLN, spotter.par());
     }
 
+    // kick
     // start an auction
     // note: trusts the caller to transfer collateral to the contract
     // The starting price `starting_price` is obtained as follows:
@@ -180,13 +191,13 @@ contract CollateralAuctionHouse is Auth {
     // multiplicative factor to increase the starting price, and `par` is a
     // reference per DAI.
     function kick(
-        uint256 dai_to_raise, // Debt                   [rad]
+        uint256 coin_to_raise, // Debt                   [rad]
         uint256 collateral_to_sell, // Collateral             [wad]
         address user, // Address that will receive any leftover collateral
         address keeper // Address that will receive incentives
     ) external auth lock isStopped(1) returns (uint256 id) {
         // Input validation
-        require(dai_to_raise > 0, "Clipper/zero-dai_to_raise");
+        require(coin_to_raise > 0, "Clipper/zero-coin_to_raise");
         require(collateral_to_sell > 0, "Clipper/zero-collateral_to_sell");
         require(user != address(0), "Clipper/zero-user");
         id = ++last_auction_id;
@@ -195,7 +206,7 @@ contract CollateralAuctionHouse is Auth {
         active.push(id);
 
         sales[id].pos = active.length - 1;
-        sales[id].dai_to_raise = dai_to_raise;
+        sales[id].coin_to_raise = coin_to_raise;
         sales[id].collateral_to_sell = collateral_to_sell;
         sales[id].user = user;
         sales[id].start_time = uint96(block.timestamp);
@@ -210,11 +221,11 @@ contract CollateralAuctionHouse is Auth {
         uint256 _chip = chip;
         uint256 coin;
         if (fee > 0 || _chip > 0) {
-            coin = fee + Math.wmul(dai_to_raise, _chip);
+            coin = fee + Math.wmul(coin_to_raise, _chip);
             vat.mint(debt_engine, keeper, coin);
         }
 
-        emit Kick(id, starting_price, dai_to_raise, collateral_to_sell, user, keeper, coin);
+        emit Kick(id, starting_price, coin_to_raise, collateral_to_sell, user, keeper, coin);
     }
 
     // Reset an auction
@@ -235,7 +246,7 @@ contract CollateralAuctionHouse is Auth {
         (bool done,) = status(start_time, starting_price);
         require(done, "cannot-reset");
 
-        uint256 dai_to_raise = sales[id].dai_to_raise;
+        uint256 coin_to_raise = sales[id].coin_to_raise;
         uint256 collateral_to_sell = sales[id].collateral_to_sell;
         sales[id].start_time = uint96(block.timestamp);
 
@@ -250,20 +261,20 @@ contract CollateralAuctionHouse is Auth {
         uint256 coin;
         if (fee > 0 || _chip > 0) {
             uint256 _cache = cache;
-            if (dai_to_raise >= _cache && collateral_to_sell * feed_price >= _cache) {
-                coin = fee + Math.wmul(dai_to_raise, _chip);
+            if (coin_to_raise >= _cache && collateral_to_sell * feed_price >= _cache) {
+                coin = fee + Math.wmul(coin_to_raise, _chip);
                 vat.mint(debt_engine, keeper, coin);
             }
         }
 
-        emit Redo(id, starting_price, dai_to_raise, collateral_to_sell, user, keeper, coin);
+        emit Redo(id, starting_price, coin_to_raise, collateral_to_sell, user, keeper, coin);
     }
 
     // Buy up to `amt` of collateral from the auction indexed by `id`.
     //
-    // Auctions will not collect more DAI than their assigned DAI target,`dai_to_raise`;
-    // thus, if `amt` would cost more DAI than `dai_to_raise` at the current price, the
-    // amount of collateral purchased will instead be just enough to collect `dai_to_raise` DAI.
+    // Auctions will not collect more DAI than their assigned DAI target,`coin_to_raise`;
+    // thus, if `amt` would cost more DAI than `coin_to_raise` at the current price, the
+    // amount of collateral purchased will instead be just enough to collect `coin_to_raise` DAI.
     //
     // To avoid partial purchases resulting in very small leftover auctions that will
     // never be cleared, any partial purchase must leave at least `Clipper.chost`
@@ -271,10 +282,10 @@ contract CollateralAuctionHouse is Auth {
     // (Vat.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
     // by whatever they were when Clipper.upchost() was last called. Purchase amounts
     // will be minimally decreased when necessary to respect this limit; i.e., if the
-    // specified `amt` would leave `dai_to_raise < chost` but `dai_to_raise > 0`, the amount actually
-    // purchased will be such that `dai_to_raise == chost`.
+    // specified `amt` would leave `coin_to_raise < chost` but `coin_to_raise > 0`, the amount actually
+    // purchased will be such that `coin_to_raise == chost`.
     //
-    // If `dai_to_raise <= chost`, partial purchases are no longer possible; that is, the remaining
+    // If `coin_to_raise <= chost`, partial purchases are no longer possible; that is, the remaining
     // collateral can only be purchased entirely, or not at all.
     function take(
         uint256 id, // Auction id
@@ -302,7 +313,7 @@ contract CollateralAuctionHouse is Auth {
         require(max >= price, "too-expensive");
 
         uint256 collateral_to_sell = sales[id].collateral_to_sell;
-        uint256 dai_to_raise = sales[id].dai_to_raise;
+        uint256 coin_to_raise = sales[id].coin_to_raise;
         uint256 owe;
 
         {
@@ -312,28 +323,28 @@ contract CollateralAuctionHouse is Auth {
             // DAI needed to buy a slice of this sale
             owe = slice * price;
 
-            // Don't collect more than dai_to_raise of DAI
-            if (owe > dai_to_raise) {
+            // Don't collect more than coin_to_raise of DAI
+            if (owe > coin_to_raise) {
                 // Total debt will be paid
-                owe = dai_to_raise; // owe' <= owe
+                owe = coin_to_raise; // owe' <= owe
                 // Adjust slice
                 slice = owe / price; // slice' = owe' / price <= owe / price == slice <= collateral_to_sell
-            } else if (owe < dai_to_raise && slice < collateral_to_sell) {
+            } else if (owe < coin_to_raise && slice < collateral_to_sell) {
                 // If slice == collateral_to_sell => auction completed => dust doesn't matter
                 uint256 _cache = cache;
-                if (dai_to_raise - owe < _cache) {
-                    // safe as owe < dai_to_raise
-                    // If dai_to_raise <= chost, buyers have to take the entire collateral_to_sell.
-                    require(dai_to_raise > _cache, "no-partial-purchase");
+                if (coin_to_raise - owe < _cache) {
+                    // safe as owe < coin_to_raise
+                    // If coin_to_raise <= chost, buyers have to take the entire collateral_to_sell.
+                    require(coin_to_raise > _cache, "no-partial-purchase");
                     // Adjust amount to pay
-                    owe = dai_to_raise - _cache; // owe' <= owe
+                    owe = coin_to_raise - _cache; // owe' <= owe
                     // Adjust slice
                     slice = owe / price; // slice' = owe' / price < owe / price == slice < collateral_to_sell
                 }
             }
 
-            // Calculate remaining dai_to_raise after operation
-            dai_to_raise -= owe; // safe since owe <= dai_to_raise
+            // Calculate remaining coin_to_raise after operation
+            coin_to_raise -= owe; // safe since owe <= coin_to_raise
             // Calculate remaining collateral_to_sell after operation
             collateral_to_sell -= slice;
 
@@ -347,27 +358,29 @@ contract CollateralAuctionHouse is Auth {
                 data.length > 0 && collateral_receiver != address(vat)
                     && collateral_receiver != address(liquidation_engine)
             ) {
-                ICollateralAuctionHouseCallee(collateral_receiver).callback(msg.sender, owe, slice, data);
+                ICollateralAuctionCallee(collateral_receiver).callback(msg.sender, owe, slice, data);
             }
 
             // Get DAI from caller
             vat.transfer_coin(msg.sender, debt_engine, owe);
 
             // Removes Dai out for liquidation from accumulator
-            liquidation_engine.removeDaiFromAuction(collateral_type, collateral_to_sell == 0 ? dai_to_raise + owe : owe);
+            liquidation_engine.removeDaiFromAuction(
+                collateral_type, collateral_to_sell == 0 ? coin_to_raise + owe : owe
+            );
         }
 
         if (collateral_to_sell == 0) {
             _remove(id);
-        } else if (dai_to_raise == 0) {
+        } else if (coin_to_raise == 0) {
             vat.transfer_collateral(collateral_type, address(this), user, collateral_to_sell);
             _remove(id);
         } else {
-            sales[id].dai_to_raise = dai_to_raise;
+            sales[id].coin_to_raise = coin_to_raise;
             sales[id].collateral_to_sell = collateral_to_sell;
         }
 
-        emit Take(id, max, price, owe, dai_to_raise, collateral_to_sell, user);
+        emit Take(id, max, price, owe, coin_to_raise, collateral_to_sell, user);
     }
 
     function _remove(uint256 id) internal {
@@ -391,28 +404,24 @@ contract CollateralAuctionHouse is Auth {
         return active;
     }
 
-    // Externally returns boolean for if an auction needs a redo and also the current price
-    // function getStatus(uint256 id)
-    //     external
-    //     view
-    //     returns (
-    //         bool needsRedo,
-    //         uint256 price,
-    //         uint256 collateral_to_sell,
-    //         uint256 dai_to_raise
-    //     )
-    // {
-    //     // Read auction data
-    //     address user = sales[id].user;
-    //     uint96 start_time = sales[id].start_time;
+    // Externally returns boolean for if an auction needs a redo and
+    // also the current price
+    function get_status(uint256 id)
+        external
+        view
+        returns (bool needs_redo, uint256 price, uint256 collateral_to_sell, uint256 coin_to_raise)
+    {
+        // Read auction data
+        address user = sales[id].user;
+        uint96 start_time = sales[id].start_time;
 
-    //     bool done;
-    //     (done, price) = status(start_time, sales[id].starting_price);
+        bool done;
+        (done, price) = status(start_time, sales[id].starting_price);
 
-    //     needsRedo = user != address(0) && done;
-    //     collateral_to_sell = sales[id].collateral_to_sell;
-    //     dai_to_raise = sales[id].dai_to_raise;
-    // }
+        needs_redo = user != address(0) && done;
+        collateral_to_sell = sales[id].collateral_to_sell;
+        coin_to_raise = sales[id].coin_to_raise;
+    }
 
     // Internally returns boolean for if an auction needs a redo
     function status(uint96 start_time, uint256 starting_price) internal view returns (bool done, uint256 price) {
@@ -427,17 +436,12 @@ contract CollateralAuctionHouse is Auth {
         cache = Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
     }
 
-    // // Cancel an auction during ES or via governance action.
-    // function yank(uint256 id) external auth lock {
-    //     require(sales[id].user != address(0), "Clipper/not-running-auction");
-    //     liquidation_engine.digs(collateral_type, sales[id].dai_to_raise);
-    //     vat.flux(
-    //         collateral_type,
-    //         address(this),
-    //         msg.sender,
-    //         sales[id].collateral_to_sell
-    //     );
-    //     _remove(id);
-    //     emit Yank(id);
-    // }
+    // Cancel an auction during ES or via governance action.
+    function yank(uint256 id) external auth lock {
+        require(sales[id].user != address(0), "Clipper/not-running-auction");
+        liquidation_engine.digs(collateral_type, sales[id].coin_to_raise);
+        vat.transfer_collateral(collateral_type, address(this), msg.sender, sales[id].collateral_to_sell);
+        _remove(id);
+        emit Yank(id);
+    }
 }
