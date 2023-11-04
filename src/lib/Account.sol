@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-contract AccountAuth {
+contract Account {
     // can
     // account => caller => can modify account
     mapping(address => mapping(address => bool)) internal can;
