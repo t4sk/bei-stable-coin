@@ -83,12 +83,12 @@ contract Pot is Auth, Pause {
         require(block.timestamp == updated_at, "updated_at != now");
         balances[msg.sender] += wad;
         total += wad;
-        vat.transferDai(msg.sender, address(this), chi * wad);
+        vat.transfer_coin(msg.sender, address(this), chi * wad);
     }
 
     function exit(uint256 wad) external {
         balances[msg.sender] -= wad;
         total -= wad;
-        vat.transferDai(address(this), msg.sender, chi * wad);
+        vat.transfer_coin(address(this), msg.sender, chi * wad);
     }
 }

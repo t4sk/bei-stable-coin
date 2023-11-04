@@ -70,7 +70,7 @@ contract Spot is Auth, Pause {
                 Math.rdiv(val * 10 ** 9, par), cols[colType].liquidationRatio
             )
             : 0;
-        vat.modifyParam(colType, "spot", spot);
+        vat.set(colType, "spot", spot);
         emit Poke(colType, val, spot);
     }
 

@@ -19,6 +19,7 @@ interface IVat {
     }
 
     // Urn: a specific Vault.
+    // TODO: rename to Safe
     struct Vault {
         // ink: collateral balance.
         uint256 collateral; // wad
@@ -26,61 +27,72 @@ interface IVat {
         uint256 debt; // wad
     }
 
-    function dai(address vault) external view returns (uint256);
+    function coin(address vault) external view returns (uint256);
     function debts(address account) external view returns (uint256);
-    function vaults(bytes32 colType, address vault)
+    function vaults(bytes32 col_type, address vault)
         external
         view
         returns (Vault memory);
     // ilks
-    function cols(bytes32 colType)
+    function cols(bytes32 col_type)
         external
         view
         returns (CollateralType memory);
-    // can
-    function isAuthorized(address owner, address user)
+    // rely
+    function add_auth(address user) external;
+    // deny
+    function remove_auth(address user) external;
+    // wards
+    function authorized(address owner, address user)
         external
         view
         returns (bool);
     // hope
-    function addAuthorization(address user) external;
+    function allow_account_modification(address user) external;
     // nope
-    function removeAuthorization(address user) external;
+    function deny_account_modification(address user) external;
+    // wish
+    function can_modify_account(address account, address user)
+        external
+        view
+        returns (bool);
+    // file
+    function set(bytes32 key, uint256 val) external;
+    function set(bytes32 col_type, bytes32 key, uint256 val) external;
     // slip
-    function modifyCollateralBalance(
-        bytes32 collateralType,
+    function modify_collateral_balance(
+        bytes32 col_type,
         address user,
         int256 wad
     ) external;
     // flux
-    function transferCollateral(
-        bytes32 colType,
+    function transfer_collateral(
+        bytes32 col_type,
         address src,
         address dst,
         uint256 wad
     ) external;
     // move
-    function transferDai(address src, address dst, uint256 rad) external;
-    // fold
-    // TODO: what is vow?, rate?
-    function updateRate(bytes32 collateralType, address vow, int256 rate)
-        external;
-
-    // file
-    function modifyParam(bytes32, bytes32, uint256) external;
-
-    // hope
-    function approveAccountModification(address user) external;
-    // nope
-    function denyAccountModification(address user) external;
-    function burn(uint256 rad) external;
-    function grab(
-        bytes32 colType,
+    function transfer_coin(address src, address dst, uint256 rad) external;
+    function fork(
+        bytes32 col_type,
         address src,
         address dst,
-        address debtDst,
-        int256 deltaCol,
-        int256 deltaDebt
+        int256 delta_col,
+        int256 delta_debt
     ) external;
-    function mint(address debtDst, address coinDst, uint256 rad) external;
+    function grab(
+        bytes32 col_type,
+        address src,
+        address dst,
+        address debt_dst,
+        int256 delta_col,
+        int256 delta_debt
+    ) external;
+    // suck
+    function mint(address debt_dst, address coin_dst, uint256 rad) external;
+    // heal
+    function burn(uint256 rad) external;
+    // fold
+    function update_rate(bytes32 col_type, address vow, int256 rate) external;
 }

@@ -363,7 +363,7 @@ contract CollateralAuctionHouse is Auth {
             collateral_to_sell -= slice;
 
             // Send collateral to who
-            vat.transferCollateral(
+            vat.transfer_collateral(
                 collateral_type, address(this), collateral_receiver, slice
             );
 
@@ -380,7 +380,7 @@ contract CollateralAuctionHouse is Auth {
             }
 
             // Get DAI from caller
-            vat.transferDai(msg.sender, debt_engine, owe);
+            vat.transfer_coin(msg.sender, debt_engine, owe);
 
             // Removes Dai out for liquidation from accumulator
             liquidation_engine.removeDaiFromAuction(
@@ -392,7 +392,7 @@ contract CollateralAuctionHouse is Auth {
         if (collateral_to_sell == 0) {
             _remove(id);
         } else if (dai_to_raise == 0) {
-            vat.transferCollateral(
+            vat.transfer_collateral(
                 collateral_type, address(this), user, collateral_to_sell
             );
             _remove(id);

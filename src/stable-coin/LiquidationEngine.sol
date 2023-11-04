@@ -88,12 +88,12 @@ contract LiquidationEngine is Auth, Pause {
         require(deltaDebt <= 2 ** 255 && deltaCol <= 2 ** 255, "overflow");
 
         vat.grab({
-            colType: colType,
+            col_type: colType,
             src: vault,
             dst: col.auction,
-            debtDst: address(vow),
-            deltaCol: -int256(deltaCol),
-            deltaDebt: -int256(deltaDebt)
+            debt_dst: address(vow),
+            delta_col: -int256(deltaCol),
+            delta_debt: -int256(deltaDebt)
         });
 
         uint256 due = deltaDebt * c.rate;

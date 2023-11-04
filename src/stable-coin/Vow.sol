@@ -13,62 +13,73 @@ import {Pause} from "../lib/Pause.sol";
 contract Vow is Auth, Pause {
     IVat public immutable vat;
     // flapper
-    ISurplusAuctionHouse public surplusAuctionHouse;
+    ISurplusAuctionHouse public surplus_auction_house;
     // flopper
-    IDebtAuctionHouse public debtAuctionHouse;
+    IDebtAuctionHouse public debt_auction_house;
 
     // sin (mapping timestamp => rad)
-    mapping(uint256 => uint256) public debtQueue; // debt queue
+    mapping(uint256 => uint256) public debt_queue; // debt queue
     // Sin
-    uint256 public totalQueuedDebt; // Queued debt            [rad]
+    uint256 public total_debt_on_queue; // Queued debt [rad]
     // Ash
-    uint256 public totalDebtOnAuction; // On-auction debt        [rad]
+    uint256 public total_debt_on_auction; // On-auction debt [rad]
 
     // wait
-    uint256 public popDebtDelay; // Flop delay             [seconds]
+    uint256 public pop_debt_delay; // debt auction delay [seconds]
     // dump [wad]
     // Amount of protocol tokens to be minted post-auction
-    uint256 public debtAuctionInitialLotSize;
+    uint256 public debt_auction_lot_size;
     // sump [rad]
-    // Amount of debt sold in one debt auction (initial coin bid for debtAuctionInitialLotSize protocol tokens)
-    uint256 public debtAcutionBidSize;
+    // Amount of debt sold in one debt auction
+    // (initial coin bid for debt_auction_lot_size protocol tokens)
+    uint256 public debt_auction_bid_size;
 
     // bump [rad]
     // Amount of surplus stability fees sold in one surplus auction
-    uint256 public surplusLotSize;
+    uint256 public surplus_auction_lot_size;
     // hump [rad]
     // Amount of stability fees that need to accrue in this contract before any surplus auction can start
-    uint256 public surplusBuffer;
+    uint256 public surplus_buffer;
 
     constructor(
         address _vat,
-        address _surplusAuctionHouse,
-        address _debtAuctionHouse
+        address _surplus_auction_house,
+        address _debt_auction_house
     ) {
         vat = IVat(_vat);
-        surplusAuctionHouse = ISurplusAuctionHouse(_surplusAuctionHouse);
-        debtAuctionHouse = IDebtAuctionHouse(_debtAuctionHouse);
-        vat.approveAccountModification(_surplusAuctionHouse);
+        surplus_auction_house = ISurplusAuctionHouse(_surplus_auction_house);
+        debt_auction_house = IDebtAuctionHouse(_debt_auction_house);
+        vat.allow_account_modification(_surplus_auction_house);
     }
 
-    // function file(bytes32 what, uint data) external auth {
-    //     if (what == "wait") wait = data;
-    //     else if (what == "bump") bump = data;
-    //     else if (what == "sump") sump = data;
-    //     else if (what == "dump") dump = data;
-    //     else if (what == "hump") hump = data;
-    //     else revert("Vow/file-unrecognized-param");
-    // }
+    // --- Administration ---
+    function set(bytes32 key, uint256 val) external auth {
+        if (key == "wait") {
+            pop_debt_delay = val;
+        } else if (key == "surplus_auction_lot_size") {
+            surplus_auction_lot_size = val;
+        } else if (key == "debt_auction_bid_size") {
+            debt_auction_bid_size = val;
+        } else if (key == "debt_auction_lot_size") {
+            debt_auction_lot_size = val;
+        } else if (key == "surplus_buffer") {
+            surplus_buffer = val;
+        } else {
+            revert("unrecognized param");
+        }
+    }
 
-    // function file(bytes32 what, address data) external auth {
-    //     if (what == "flapper") {
-    //         vat.nope(address(flapper));
-    //         flapper = FlapLike(data);
-    //         vat.hope(data);
-    //     }
-    //     else if (what == "flopper") flopper = FlopLike(data);
-    //     else revert("Vow/file-unrecognized-param");
-    // }
+    function set(bytes32 key, address addr) external auth {
+        if (key == "surplus_auction_house") {
+            vat.deny_account_modification(address(surplus_auction_house));
+            surplus_auction_house = ISurplusAuctionHouse(addr);
+            vat.allow_account_modification(addr);
+        } else if (key == "debt_auction_house") {
+            debt_auction_house = IDebtAuctionHouse(addr);
+        } else {
+            revert("unrecognized param");
+        }
+    }
 
     // fess
     /**
@@ -77,8 +88,8 @@ contract Vow is Auth, Pause {
      *      and gather surplus
      */
     function pushDebtToQueue(uint256 debt) external auth {
-        debtQueue[block.timestamp] += debt;
-        totalQueuedDebt += debt;
+        debt_queue[block.timestamp] += debt;
+        total_debt_on_queue += debt;
     }
 
     // flog - Pop from debt-queue
@@ -87,10 +98,10 @@ contract Vow is Auth, Pause {
      */
     function popDebtFromQueue(uint256 timestamp) external {
         require(
-            timestamp + popDebtDelay <= block.timestamp, "wait not finished"
+            timestamp + pop_debt_delay <= block.timestamp, "wait not finished"
         );
-        totalQueuedDebt -= debtQueue[timestamp];
-        debtQueue[timestamp] = 0;
+        total_debt_on_queue -= debt_queue[timestamp];
+        debt_queue[timestamp] = 0;
     }
 
     // heal - Debt settlement
@@ -100,10 +111,11 @@ contract Vow is Auth, Pause {
      *
      */
     function settleDebt(uint256 rad) external {
-        require(rad <= vat.dai(address(this)), "insufficient surplus");
+        require(rad <= vat.coin(address(this)), "insufficient surplus");
         require(
             rad
-                <= vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction,
+                <= vat.debts(address(this)) - total_debt_on_queue
+                    - total_debt_on_auction,
             "insufficient debt"
         );
         vat.burn(rad);
@@ -115,9 +127,9 @@ contract Vow is Auth, Pause {
      *
      */
     function cancelAuctionedDebtWithSurplus(uint256 rad) external {
-        require(rad <= totalDebtOnAuction, "not enough debt on auction");
-        require(rad <= vat.dai(address(this)), "insufficient surplus");
-        totalDebtOnAuction -= rad;
+        require(rad <= total_debt_on_auction, "not enough debt on auction");
+        require(rad <= vat.coin(address(this)), "insufficient surplus");
+        total_debt_on_auction -= rad;
         vat.burn(rad);
     }
 
@@ -130,14 +142,15 @@ contract Vow is Auth, Pause {
      */
     function startDebtAuction() external returns (uint256 id) {
         require(
-            debtAcutionBidSize
-                <= vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction,
+            debt_auction_bid_size
+                <= vat.debts(address(this)) - total_debt_on_queue
+                    - total_debt_on_auction,
             "insufficient debt"
         );
-        require(vat.dai(address(this)) == 0, "surplus not zero");
-        totalDebtOnAuction += debtAcutionBidSize;
-        id = debtAuctionHouse.startAuction(
-            address(this), debtAuctionInitialLotSize, debtAcutionBidSize
+        require(vat.coin(address(this)) == 0, "surplus not zero");
+        total_debt_on_auction += debt_auction_bid_size;
+        id = debt_auction_house.startAuction(
+            address(this), debt_auction_lot_size, debt_auction_bid_size
         );
     }
 
@@ -150,23 +163,25 @@ contract Vow is Auth, Pause {
      */
     function startSurplusAuction() external returns (uint256 id) {
         require(
-            vat.dai(address(this))
-                >= vat.debts(address(this)) + surplusLotSize + surplusBuffer,
+            vat.coin(address(this))
+                >= vat.debts(address(this)) + surplus_auction_lot_size
+                    + surplus_buffer,
             "insufficient surplus"
         );
         require(
-            vat.debts(address(this)) - totalQueuedDebt - totalDebtOnAuction == 0,
+            vat.debts(address(this)) - total_debt_on_queue
+                - total_debt_on_auction == 0,
             "debt not zero"
         );
-        id = surplusAuctionHouse.startAuction(surplusLotSize, 0);
+        id = surplus_auction_house.startAuction(surplus_auction_lot_size, 0);
     }
 
     function stop() external auth {
         _stop();
-        totalQueuedDebt = 0;
-        totalDebtOnAuction = 0;
-        surplusAuctionHouse.stop(vat.dai(address(surplusAuctionHouse)));
-        debtAuctionHouse.stop();
-        vat.burn(Math.min(vat.dai(address(this)), vat.debts(address(this))));
+        total_debt_on_queue = 0;
+        total_debt_on_auction = 0;
+        surplus_auction_house.stop(vat.coin(address(surplus_auction_house)));
+        debt_auction_house.stop();
+        vat.burn(Math.min(vat.coin(address(this)), vat.debts(address(this))));
     }
 }

@@ -12,8 +12,8 @@ contract Common {
     function daiJoin_join(address adapter, address account, uint256 wad)
         public
     {
-        ICoinJoin(adapter).dai().transferFrom(msg.sender, address(this), wad);
-        ICoinJoin(adapter).dai().approve(adapter, wad);
+        ICoinJoin(adapter).coin().transferFrom(msg.sender, address(this), wad);
+        ICoinJoin(adapter).coin().approve(adapter, wad);
         ICoinJoin(adapter).join(account, wad);
     }
 }
@@ -62,7 +62,7 @@ contract ProxyActions is Common {
         uint256 rate = IJug(jug).drip(collateralType);
 
         // Gets DAI balance of the vault in the vat
-        uint256 dai = IVat(vat).dai(vault);
+        uint256 dai = IVat(vat).coin(vault);
 
         // TODO:?
         // If there was already enough DAI in the vat balance,

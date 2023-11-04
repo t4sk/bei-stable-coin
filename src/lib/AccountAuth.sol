@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-contract AccountApprovals {
+contract AccountAuth {
     // can
     // account => caller => can modify account
-    mapping(address => mapping(address => bool)) public can;
+    mapping(address => mapping(address => bool)) internal can;
 
     // hope
     function allow_account_modification(address user) external {
@@ -18,7 +18,7 @@ contract AccountApprovals {
 
     // wish
     function can_modify_account(address account, address user)
-        internal
+        public
         view
         returns (bool)
     {

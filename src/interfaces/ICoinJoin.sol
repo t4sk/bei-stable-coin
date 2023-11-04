@@ -2,11 +2,11 @@
 pragma solidity 0.8.19;
 
 import {IVat} from "./IVat.sol";
-import {IGem} from "./IGem.sol";
+import {ICoin} from "./ICoin.sol";
 
 interface ICoinJoin {
     function vat() external returns (IVat);
-    function dai() external returns (IGem);
+    function coin() external returns (ICoin);
     function join(address, uint256) external payable;
     function exit(address, uint256) external;
 }

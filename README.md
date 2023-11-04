@@ -2,6 +2,8 @@
 
 ### TODO
 
+- tests
+
 - dictionary
 
 shell

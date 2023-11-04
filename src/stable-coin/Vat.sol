@@ -5,7 +5,7 @@ import {IVat} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 import "../lib/Pause.sol";
-import "../lib/AccountApprovals.sol";
+import "../lib/AccountAuth.sol";
 
 /*
 dink: change in collateral.
@@ -13,7 +13,7 @@ dart: change in debt.
 */
 
 // CDP Engine
-contract Vat is Auth, Pause, AccountApprovals {
+contract Vat is Auth, Pause, AccountAuth {
     // ilks
     mapping(bytes32 => IVat.CollateralType) public cols;
     // urns - collateral type => account => Vault

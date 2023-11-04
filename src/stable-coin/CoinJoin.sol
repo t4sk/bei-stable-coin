@@ -25,14 +25,14 @@ contract CoinJoin is Auth, Pause {
     }
 
     function join(address user, uint256 wad) external {
-        vat.transferDai(address(this), user, wad * RAY);
+        vat.transfer_coin(address(this), user, wad * RAY);
         dai.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external {
         require(live, "not live");
-        vat.transferDai(msg.sender, address(this), wad * RAY);
+        vat.transfer_coin(msg.sender, address(this), wad * RAY);
         dai.mint(user, wad);
         emit Exit(user, wad);
     }
