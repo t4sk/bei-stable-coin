@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 interface ICollateralAuctionHouse {
-    function startAuction(
+    function start_auction(
         // address forgoneCollateralReceiver,
         // address initialBidder,
         // uint256 amountToRaise,

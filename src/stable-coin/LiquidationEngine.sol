@@ -39,7 +39,7 @@ contract LiquidationEngine is Auth, Pause {
 
     function liquidate(bytes32 colType, address safe, address keeper)
         external
-        notStopped
+        not_stopped
         returns (uint256 id)
     {
         IVat.Safe memory v = vat.safes(colType, safe);
@@ -97,7 +97,7 @@ contract LiquidationEngine is Auth, Pause {
         });
 
         uint256 due = deltaDebt * c.rate;
-        vow.pushDebtToQueue(due);
+        vow.push_debt_to_queue(due);
 
         {
             // Avoid stack too deep
@@ -107,7 +107,7 @@ contract LiquidationEngine is Auth, Pause {
             total += targetDai;
             cols[colType].amount += targetDai;
 
-            id = ICollateralAuctionHouse(col.auction).startAuction({
+            id = ICollateralAuctionHouse(col.auction).start_auction({
                 tab: targetDai,
                 // lot: the amount of collateral available for purchase [wad]
                 lot: deltaCol,

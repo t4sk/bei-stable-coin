@@ -8,7 +8,7 @@ import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
 
-// TODO:
+// TODO: here
 // Vow - Debt engine
 contract Vow is Auth, Pause {
     IVat public immutable vat;
@@ -87,7 +87,7 @@ contract Vow is Auth, Pause {
      * @dev Debt is locked in a queue to give the system enough time to auction collateral
      *      and gather surplus
      */
-    function pushDebtToQueue(uint256 debt) external auth {
+    function push_debt_to_queue(uint256 debt) external auth {
         debt_queue[block.timestamp] += debt;
         total_debt_on_queue += debt;
     }
@@ -96,12 +96,10 @@ contract Vow is Auth, Pause {
     /**
      * @notice Pop a block of bad debt from the debt queue
      */
-    function popDebtFromQueue(uint256 timestamp) external {
-        require(
-            timestamp + pop_debt_delay <= block.timestamp, "wait not finished"
-        );
-        total_debt_on_queue -= debt_queue[timestamp];
-        debt_queue[timestamp] = 0;
+    function pop_debt_from_queue(uint256 t) external {
+        require(t + pop_debt_delay <= block.timestamp, "wait not finished");
+        total_debt_on_queue -= debt_queue[t];
+        debt_queue[t] = 0;
     }
 
     // heal - Debt settlement
@@ -110,8 +108,9 @@ contract Vow is Auth, Pause {
      * @dev We can only destroy debt that is not locked in the queue and also not in a debt auction
      *
      */
-    function settleDebt(uint256 rad) external {
+    function settle_debt(uint256 rad) external {
         require(rad <= vat.coin(address(this)), "insufficient surplus");
+        // TODO: what?
         require(
             rad
                 <= vat.debts(address(this)) - total_debt_on_queue
@@ -126,9 +125,10 @@ contract Vow is Auth, Pause {
      * @notice Use surplus coins to destroy debt that was in a debt auction
      *
      */
-    function cancelAuctionedDebtWithSurplus(uint256 rad) external {
+    function cancel_auctioned_debt_with_surplus(uint256 rad) external {
         require(rad <= total_debt_on_auction, "not enough debt on auction");
         require(rad <= vat.coin(address(this)), "insufficient surplus");
+        // TODO: what?
         total_debt_on_auction -= rad;
         vat.burn(rad);
     }
@@ -140,7 +140,7 @@ contract Vow is Auth, Pause {
      * @dev We can only auction debt that is not already being auctioned and is not locked in the debt queue
      *
      */
-    function startDebtAuction() external returns (uint256 id) {
+    function start_debt_auction() external returns (uint256 id) {
         require(
             debt_auction_bid_size
                 <= vat.debts(address(this)) - total_debt_on_queue
@@ -149,7 +149,7 @@ contract Vow is Auth, Pause {
         );
         require(vat.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction_house.startAuction(
+        id = debt_auction_house.start_auction(
             address(this), debt_auction_lot_size, debt_auction_bid_size
         );
     }
@@ -161,7 +161,7 @@ contract Vow is Auth, Pause {
      *      surplus auction trigger, if we keep enough surplus in the buffer and if there is no bad debt left to burn
      *
      */
-    function startSurplusAuction() external returns (uint256 id) {
+    function start_surplus_auction() external returns (uint256 id) {
         require(
             vat.coin(address(this))
                 >= vat.debts(address(this)) + surplus_auction_lot_size
@@ -173,7 +173,7 @@ contract Vow is Auth, Pause {
                 - total_debt_on_auction == 0,
             "debt not zero"
         );
-        id = surplus_auction_house.startAuction(surplus_auction_lot_size, 0);
+        id = surplus_auction_house.start_auction(surplus_auction_lot_size, 0);
     }
 
     function stop() external auth {

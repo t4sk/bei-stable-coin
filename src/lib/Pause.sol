@@ -6,7 +6,7 @@ abstract contract Pause {
 
     bool public live;
 
-    modifier notStopped() {
+    modifier not_stopped() {
         require(live, "stopped");
         _;
     }
@@ -17,6 +17,7 @@ abstract contract Pause {
 
     // cage
     function _stop() internal {
+        require(live, "not live");
         live = false;
         emit Stop();
     }

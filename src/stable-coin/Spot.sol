@@ -33,7 +33,7 @@ contract Spot is Auth, Pause {
     function set(bytes32 colType, bytes32 name, address priceFeed)
         external
         auth
-        notStopped
+        not_stopped
     {
         if (name == "priceFeed") {
             cols[colType].priceFeed = IPriceFeed(priceFeed);
@@ -45,7 +45,7 @@ contract Spot is Auth, Pause {
     function set(bytes32 colType, bytes32 name, uint256 data)
         external
         auth
-        notStopped
+        not_stopped
     {
         if (name == "liquidationRatio") {
             cols[colType].liquidationRatio = data;
@@ -54,7 +54,7 @@ contract Spot is Auth, Pause {
         }
     }
 
-    function set(bytes32 name, uint256 data) external auth notStopped {
+    function set(bytes32 name, uint256 data) external auth not_stopped {
         if (name == "par") {
             par = data;
         } else {

@@ -39,7 +39,7 @@ contract Pot is Auth, Pause {
 
     // --- Administration ---
     // file
-    function set(bytes32 key, uint256 val) external auth notStopped {
+    function set(bytes32 key, uint256 val) external auth not_stopped {
         require(block.timestamp == updated_at, "updated_at != now");
         if (key == "dsr") {
             dsr = val;

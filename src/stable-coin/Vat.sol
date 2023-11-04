@@ -39,7 +39,7 @@ contract Vat is Auth, Pause, AccountAuth {
     }
 
     // file
-    function set(bytes32 key, uint256 val) external auth notStopped {
+    function set(bytes32 key, uint256 val) external auth not_stopped {
         if (key == "global_debt_ceiling") {
             global_debt_ceiling = val;
         } else {
@@ -50,7 +50,7 @@ contract Vat is Auth, Pause, AccountAuth {
     function set(bytes32 col_type, bytes32 key, uint256 val)
         external
         auth
-        notStopped
+        not_stopped
     {
         if (key == "spot") {
             cols[col_type].spot = val;
@@ -116,7 +116,7 @@ contract Vat is Auth, Pause, AccountAuth {
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
-    ) external notStopped {
+    ) external not_stopped {
         IVat.Safe memory safe = safes[col_type][safe_addr];
         IVat.CollateralType memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
@@ -269,7 +269,7 @@ contract Vat is Auth, Pause, AccountAuth {
     function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
         external
         auth
-        notStopped
+        not_stopped
     {
         IVat.CollateralType storage col = cols[col_type];
         // old total debt = col.debt * col.rate
