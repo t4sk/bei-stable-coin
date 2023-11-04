@@ -37,12 +37,12 @@ contract LiquidationEngine is Auth, Pause {
         vat = IVat(_vat);
     }
 
-    function liquidate(bytes32 colType, address vault, address keeper)
+    function liquidate(bytes32 colType, address safe, address keeper)
         external
         notStopped
         returns (uint256 id)
     {
-        IVat.Vault memory v = vat.vaults(colType, vault);
+        IVat.Safe memory v = vat.safes(colType, safe);
         IVat.CollateralType memory c = vat.cols(colType);
         CollateralType memory col = cols[colType];
         uint256 deltaDebt;
@@ -66,7 +66,7 @@ contract LiquidationEngine is Auth, Pause {
             // Partial liquidation edge case logic
             if (v.debt > deltaDebt) {
                 if ((v.debt - deltaDebt) * c.rate < c.floor) {
-                    // If the leftover Vault would be dusty, just liquidate it entirely.
+                    // If the leftover safe would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
                     // This deviation is assumed to be small compared to both hole_i and Hole, so that
@@ -89,7 +89,7 @@ contract LiquidationEngine is Auth, Pause {
 
         vat.grab({
             col_type: colType,
-            src: vault,
+            src: safe,
             dst: col.auction,
             debt_dst: address(vow),
             delta_col: -int256(deltaCol),
@@ -111,7 +111,7 @@ contract LiquidationEngine is Auth, Pause {
                 tab: targetDai,
                 // lot: the amount of collateral available for purchase [wad]
                 lot: deltaCol,
-                user: vault,
+                user: safe,
                 keeper: keeper
             });
         }

@@ -18,21 +18,20 @@ interface IVat {
         uint256 floor; // rad
     }
 
-    // Urn: a specific Vault.
-    // TODO: rename to Safe
-    struct Vault {
+    // Urn: a specific safe.
+    struct Safe {
         // ink: collateral balance.
         uint256 collateral; // wad
         // art: normalized outstanding stablecoin debt.
         uint256 debt; // wad
     }
 
-    function coin(address vault) external view returns (uint256);
+    function coin(address safe) external view returns (uint256);
     function debts(address account) external view returns (uint256);
-    function vaults(bytes32 col_type, address vault)
+    function safes(bytes32 col_type, address safe)
         external
         view
-        returns (Vault memory);
+        returns (Safe memory);
     // ilks
     function cols(bytes32 col_type)
         external

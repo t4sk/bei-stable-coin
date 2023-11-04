@@ -28,7 +28,7 @@ contract ProxyActions is Common {
 
     function gemJoin_join(
         address adapter,
-        address vault,
+        address safe,
         uint256 amount,
         bool isTransferFrom
     ) public {
@@ -38,7 +38,7 @@ contract ProxyActions is Common {
             );
             IGemJoin(adapter).gem().approve(adapter, amount);
         }
-        IGemJoin(adapter).join(vault, amount);
+        IGemJoin(adapter).join(safe, amount);
     }
 
     function to18Decimals(address gemJoin, uint256 amount)
@@ -54,15 +54,15 @@ contract ProxyActions is Common {
     function getDeltaDebt(
         address vat,
         address jug,
-        address vault,
+        address safe,
         bytes32 collateralType,
         uint256 wad
     ) internal returns (int256 deltaDebt) {
         // Updates stability fee rate
         uint256 rate = IJug(jug).drip(collateralType);
 
-        // Gets DAI balance of the vault in the vat
-        uint256 dai = IVat(vat).coin(vault);
+        // Gets DAI balance of the safe in the vat
+        uint256 dai = IVat(vat).coin(safe);
 
         // TODO:?
         // If there was already enough DAI in the vat balance,
@@ -106,11 +106,11 @@ contract ProxyActions is Common {
         uint256 wad,
         bool isTransferFrom
     ) public {
-        address vault = ICdpManager(manager).vaults(cdp);
+        address safe = ICdpManager(manager).safes(cdp);
         address vat = ICdpManager(manager).vat();
         bytes32 collateralType = ICdpManager(manager).collateralTypes(cdp);
 
-        gemJoin_join(gemJoin, vault, amount, isTransferFrom);
+        gemJoin_join(gemJoin, safe, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
         // frob(manager, cdp, to_int(to18Decimals(gemJoin, amount)), _getDrawDart(vat, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the vat in rad) to proxy's address

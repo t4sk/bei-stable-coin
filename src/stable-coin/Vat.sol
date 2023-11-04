@@ -16,8 +16,8 @@ dart: change in debt.
 contract Vat is Auth, Pause, AccountAuth {
     // ilks
     mapping(bytes32 => IVat.CollateralType) public cols;
-    // urns - collateral type => account => Vault
-    mapping(bytes32 => mapping(address => IVat.Vault)) public vaults;
+    // urns - collateral type => account => safe
+    mapping(bytes32 => mapping(address => IVat.Safe)) public safes;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // account => coin balance (rad)
@@ -98,38 +98,38 @@ contract Vat is Auth, Pause, AccountAuth {
     }
 
     // --- CDP Manipulation ---
-    // frob: modify a Vault.
-    //     lock: transfer collateral into a Vault.
-    //     free: transfer collateral from a Vault.
-    //     draw: increase Vault debt, creating coin.
-    //     wipe: decrease Vault debt, destroying coin.
-    // frob(i, u, v, w, dink, dart) - modify a Vault
-    // - modify the Vault of user u
+    // frob: modify a safe.
+    //     lock: transfer collateral into a safe.
+    //     free: transfer collateral from a safe.
+    //     draw: increase safe debt, creating coin.
+    //     wipe: decrease safe debt, destroying coin.
+    // frob(i, u, v, w, dink, dart) - modify a safe
+    // - modify the safe of user u
     // - using gem from user v
     // - and creating coin for user w
     // dink: change in collateral.
     // dart: change in debt.
-    function modify_vault(
+    function modify_safe(
         bytes32 col_type,
-        address vault_addr,
+        address safe_addr,
         address col_src,
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
     ) external notStopped {
-        IVat.Vault memory vault = vaults[col_type][vault_addr];
+        IVat.Safe memory safe = safes[col_type][safe_addr];
         IVat.CollateralType memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
-        vault.collateral = Math.add(vault.collateral, delta_col);
-        vault.debt = Math.add(vault.debt, delta_debt);
+        safe.collateral = Math.add(safe.collateral, delta_col);
+        safe.debt = Math.add(safe.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         // delta_debt = delta coin / col.rate
         // delta coin = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
-        // total coin + compound interest that the vault owes to protocol
-        uint256 total_coin = col.rate * vault.debt;
+        // total coin + compound interest that the safe owes to protocol
+        uint256 total_coin = col.rate * safe.debt;
         global_debt = Math.add(global_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
@@ -141,18 +141,18 @@ contract Vat is Auth, Pause, AccountAuth {
                 ),
             "ceiling exceeded"
         );
-        // vault is either less risky than before, or it is safe
+        // safe is either less risky than before, or it is safe
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || total_coin <= vault.collateral * col.spot,
+                || total_coin <= safe.collateral * col.spot,
             "not safe"
         );
 
-        // vault is either more safe, or the owner consents
+        // safe is either more safe, or the owner consents
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(vault_addr, msg.sender),
-            "not allowed vault addr"
+                || can_modify_account(safe_addr, msg.sender),
+            "not allowed safe addr"
         );
         // collateral src consents
         require(
@@ -165,18 +165,18 @@ contract Vat is Auth, Pause, AccountAuth {
             "not allowed debt dst"
         );
 
-        // vault has no debt, or a non-dusty amount
-        require(vault.debt == 0 || total_coin >= col.floor, "Vat/dust");
+        // safe has no debt, or a non-dusty amount
+        require(safe.debt == 0 || total_coin >= col.floor, "Vat/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
 
-        vaults[col_type][vault_addr] = vault;
+        safes[col_type][safe_addr] = safe;
         cols[col_type] = col;
     }
 
     // --- CDP Fungibility ---
-    // fork: to split a Vault - binary approval or splitting/merging Vaults.
+    // fork: to split a safe - binary approval or splitting/merging safes.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(
@@ -186,8 +186,8 @@ contract Vat is Auth, Pause, AccountAuth {
         int256 delta_col,
         int256 delta_debt
     ) external {
-        IVat.Vault storage u = vaults[col_type][src];
-        IVat.Vault storage v = vaults[col_type][dst];
+        IVat.Safe storage u = safes[col_type][src];
+        IVat.Safe storage v = safes[col_type][dst];
         IVat.CollateralType storage col = cols[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
@@ -215,13 +215,13 @@ contract Vat is Auth, Pause, AccountAuth {
     }
 
     // --- CDP Confiscation ---
-    // grab: liquidate a Vault.
+    // grab: liquidate a safe.
     // grab(i, u, v, w, dink, dart)
-    // - modify the Vault of user u
+    // - modify the safe of user u
     // - give gem to user v
     // - create sin for user w
-    // grab is the means by which Vaults are liquidated,
-    // transferring debt from the Vault to a users sin balance.
+    // grab is the means by which safes are liquidated,
+    // transferring debt from the safe to a users sin balance.
     function grab(
         bytes32 col_type,
         address src,
@@ -230,11 +230,11 @@ contract Vat is Auth, Pause, AccountAuth {
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        IVat.Vault storage vault = vaults[col_type][src];
+        IVat.Safe storage safe = safes[col_type][src];
         IVat.CollateralType storage col = cols[col_type];
 
-        vault.collateral = Math.add(vault.collateral, delta_col);
-        vault.debt = Math.add(vault.debt, delta_debt);
+        safe.collateral = Math.add(safe.collateral, delta_col);
+        safe.debt = Math.add(safe.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         int256 delta_coin = Math.mul(col.rate, delta_debt);
