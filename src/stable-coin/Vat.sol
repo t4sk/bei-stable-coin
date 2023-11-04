@@ -20,48 +20,44 @@ contract Vat is Auth, Pause, AccountApprovals {
     mapping(bytes32 => mapping(address => IVat.Vault)) public vaults;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
-    // account => dai balance (rad)
-    mapping(address => uint256) public dai;
+    // account => coin balance (rad)
+    mapping(address => uint256) public coin;
     // sin - account => debt balance (rad)
     mapping(address => uint256) public debts;
 
-    // debt- Total DAI issued (rad)
-    uint256 public globalDebt;
-    // vice -Total unbacked Dai (rad)
-    uint256 public globalUnbackedDebt;
+    // debt- Total coin issued (rad)
+    uint256 public global_debt;
+    // vice -Total unbacked coin (rad)
+    uint256 public global_unbacked_debt;
     // Line - Total debt ceiling (rad)
-    uint256 public globalDebtCeiling;
-
-    constructor() {
-        live = true;
-    }
+    uint256 public global_debt_ceiling;
 
     // --- Administration ---
-    function init(bytes32 colType) external auth {
-        require(cols[colType].rate == 0, "already init");
-        cols[colType].rate = RAY;
+    function init(bytes32 col_type) external auth {
+        require(cols[col_type].rate == 0, "already init");
+        cols[col_type].rate = RAY;
     }
 
     // file
     function set(bytes32 key, uint256 val) external auth notStopped {
-        if (key == "globalDebtCeiling") {
-            globalDebtCeiling = val;
+        if (key == "global_debt_ceiling") {
+            global_debt_ceiling = val;
         } else {
             revert("unrecognized param");
         }
     }
 
-    function set(bytes32 colType, bytes32 key, uint256 val)
+    function set(bytes32 col_type, bytes32 key, uint256 val)
         external
         auth
         notStopped
     {
         if (key == "spot") {
-            cols[colType].spot = val;
+            cols[col_type].spot = val;
         } else if (key == "ceiling") {
-            cols[colType].ceiling = val;
+            cols[col_type].ceiling = val;
         } else if (key == "floor") {
-            cols[colType].floor = val;
+            cols[col_type].floor = val;
         } else {
             revert("unrecognized param");
         }
@@ -74,30 +70,31 @@ contract Vat is Auth, Pause, AccountApprovals {
 
     // --- Fungibility ---
     // slip: modify a user's collateral balance.
-    function modifyCollateralBalance(bytes32 colType, address user, int256 wad)
-        external
-        auth
-    {
-        gem[colType][user] = Math.add(gem[colType][user], wad);
+    function modify_collateral_balance(
+        bytes32 col_type,
+        address user,
+        int256 wad
+    ) external auth {
+        gem[col_type][user] = Math.add(gem[col_type][user], wad);
     }
 
     // flux: transfer collateral between users.
-    function transferCollateral(
-        bytes32 colType,
+    function transfer_collateral(
+        bytes32 col_type,
         address src,
         address dst,
         uint256 wad
     ) external {
         require(canModifyAccount(src, msg.sender), "not authorized");
-        gem[colType][src] -= wad;
-        gem[colType][dst] += wad;
+        gem[col_type][src] -= wad;
+        gem[col_type][dst] += wad;
     }
 
     // move: transfer stablecoin between users.
-    function transferDai(address src, address dst, uint256 rad) external {
+    function transfer_coin(address src, address dst, uint256 rad) external {
         require(canModifyAccount(src, msg.sender), "not authorized");
-        dai[src] -= rad;
-        dai[dst] += rad;
+        coin[src] -= rad;
+        coin[dst] += rad;
     }
 
     // TODO: - study how proxy action calls frob
@@ -105,78 +102,78 @@ contract Vat is Auth, Pause, AccountApprovals {
     // frob: modify a Vault.
     //     lock: transfer collateral into a Vault.
     //     free: transfer collateral from a Vault.
-    //     draw: increase Vault debt, creating Dai.
-    //     wipe: decrease Vault debt, destroying Dai.
+    //     draw: increase Vault debt, creating coin.
+    //     wipe: decrease Vault debt, destroying coin.
     // frob(i, u, v, w, dink, dart) - modify a Vault
     // - modify the Vault of user u
     // - using gem from user v
-    // - and creating dai for user w
+    // - and creating coin for user w
     // dink: change in collateral.
     // dart: change in debt.
-    function modifyVault(
-        bytes32 colType,
-        address vaultAddr,
-        address colSrc,
-        address debtDst,
-        int256 deltaCol,
-        int256 deltaDebt
+    function modify_vault(
+        bytes32 col_type,
+        address vault_addr,
+        address col_src,
+        address debt_dst,
+        int256 delta_col,
+        int256 delta_debt
     ) external notStopped {
-        IVat.Vault memory vault = vaults[colType][vaultAddr];
-        IVat.CollateralType memory col = cols[colType];
+        IVat.Vault memory vault = vaults[col_type][vault_addr];
+        IVat.CollateralType memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
-        vault.collateral = Math.add(vault.collateral, deltaCol);
-        vault.debt = Math.add(vault.debt, deltaDebt);
-        col.debt = Math.add(col.debt, deltaDebt);
+        vault.collateral = Math.add(vault.collateral, delta_col);
+        vault.debt = Math.add(vault.debt, delta_debt);
+        col.debt = Math.add(col.debt, delta_debt);
 
-        // deltaDebt = delta dai / col.rate
-        // delta dai = col.rate * deltaDebt
-        int256 deltaDai = Math.mul(col.rate, deltaDebt);
-        // total dai + compound interest that the vault owes to protocol
-        uint256 totalDai = col.rate * vault.debt;
-        globalDebt = Math.add(globalDebt, deltaDai);
+        // delta_debt = delta coin / col.rate
+        // delta coin = col.rate * delta_debt
+        int256 delta_coin = Math.mul(col.rate, delta_debt);
+        // total coin + compound interest that the vault owes to protocol
+        uint256 total_coin = col.rate * vault.debt;
+        global_debt = Math.add(global_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
-            deltaDebt <= 0
+            delta_debt <= 0
                 || (
                     col.debt * col.rate <= col.ceiling
-                        && globalDebt <= globalDebtCeiling
+                        && global_debt <= global_debt_ceiling
                 ),
             "ceiling exceeded"
         );
         // vault is either less risky than before, or it is safe
         require(
-            (deltaDebt <= 0 && deltaCol >= 0)
-                || totalDai <= vault.collateral * col.spot,
+            (delta_debt <= 0 && delta_col >= 0)
+                || total_coin <= vault.collateral * col.spot,
             "not safe"
         );
 
         // vault is either more safe, or the owner consents
         require(
-            (deltaDebt <= 0 && deltaCol >= 0)
-                || canModifyAccount(vaultAddr, msg.sender),
+            (delta_debt <= 0 && delta_col >= 0)
+                || canModifyAccount(vault_addr, msg.sender),
             "not allowed vault addr"
         );
         // collateral src consents
         require(
-            deltaCol <= 0 || canModifyAccount(colSrc, msg.sender),
+            delta_col <= 0 || canModifyAccount(col_src, msg.sender),
             "not allowed collateral src"
         );
         // debt dst consents
         require(
-            deltaDebt >= 0 || canModifyAccount(debtDst, msg.sender),
+            delta_debt >= 0 || canModifyAccount(debt_dst, msg.sender),
             "not allowed debt dst"
         );
 
         // vault has no debt, or a non-dusty amount
-        require(vault.debt == 0 || totalDai >= col.floor, "Vat/dust");
+        require(vault.debt == 0 || total_coin >= col.floor, "Vat/dust");
 
-        gem[colType][colSrc] = Math.sub(gem[colType][colSrc], deltaCol);
-        dai[debtDst] = Math.add(dai[debtDst], deltaDai);
+        gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
+        coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
 
-        vaults[colType][vaultAddr] = vault;
-        cols[colType] = col;
+        vaults[col_type][vault_addr] = vault;
+        cols[col_type] = col;
     }
 
     // --- CDP Fungibility ---
@@ -184,23 +181,23 @@ contract Vat is Auth, Pause, AccountApprovals {
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(
-        bytes32 colType,
+        bytes32 col_type,
         address src,
         address dst,
-        int256 deltaCol,
-        int256 deltaDebt
+        int256 delta_col,
+        int256 delta_debt
     ) external {
-        IVat.Vault storage u = vaults[colType][src];
-        IVat.Vault storage v = vaults[colType][dst];
-        IVat.CollateralType storage col = cols[colType];
+        IVat.Vault storage u = vaults[col_type][src];
+        IVat.Vault storage v = vaults[col_type][dst];
+        IVat.CollateralType storage col = cols[col_type];
 
-        u.collateral = Math.sub(u.collateral, deltaCol);
-        u.debt = Math.sub(u.debt, deltaDebt);
-        v.collateral = Math.add(v.collateral, deltaCol);
-        v.debt = Math.add(v.debt, deltaDebt);
+        u.collateral = Math.sub(u.collateral, delta_col);
+        u.debt = Math.sub(u.debt, delta_debt);
+        v.collateral = Math.add(v.collateral, delta_col);
+        v.debt = Math.add(v.debt, delta_debt);
 
-        uint256 uTotalDai = u.debt * col.rate;
-        uint256 vTotalDai = v.debt * col.rate;
+        uint256 u_total_coin = u.debt * col.rate;
+        uint256 v_total_coin = v.debt * col.rate;
 
         // both sides consent
         require(
@@ -210,12 +207,12 @@ contract Vat is Auth, Pause, AccountApprovals {
         );
 
         // both sides safe
-        require(uTotalDai <= u.collateral * col.spot, "not safe src");
-        require(vTotalDai <= v.collateral * col.spot, "not safe dst");
+        require(u_total_coin <= u.collateral * col.spot, "not safe src");
+        require(v_total_coin <= v.collateral * col.spot, "not safe dst");
 
         // both sides non-dusty
-        require(uTotalDai >= col.floor || u.debt == 0, "dust src");
-        require(vTotalDai >= col.floor || v.debt == 0, "dust dst");
+        require(u_total_coin >= col.floor || u.debt == 0, "dust src");
+        require(v_total_coin >= col.floor || v.debt == 0, "dust dst");
     }
 
     // --- CDP Confiscation ---
@@ -227,61 +224,60 @@ contract Vat is Auth, Pause, AccountApprovals {
     // grab is the means by which Vaults are liquidated,
     // transferring debt from the Vault to a users sin balance.
     function grab(
-        bytes32 colType,
+        bytes32 col_type,
         address src,
-        address colDst,
-        address debtDst,
-        int256 deltaCol,
-        int256 deltaDebt
+        address col_dst,
+        address debt_dst,
+        int256 delta_col,
+        int256 delta_debt
     ) external auth {
-        IVat.Vault storage vault = vaults[colType][src];
-        IVat.CollateralType storage col = cols[colType];
+        IVat.Vault storage vault = vaults[col_type][src];
+        IVat.CollateralType storage col = cols[col_type];
 
-        vault.collateral = Math.add(vault.collateral, deltaCol);
-        vault.debt = Math.add(vault.debt, deltaDebt);
-        col.debt = Math.add(col.debt, deltaDebt);
+        vault.collateral = Math.add(vault.collateral, delta_col);
+        vault.debt = Math.add(vault.debt, delta_debt);
+        col.debt = Math.add(col.debt, delta_debt);
 
-        int256 deltaDai = Math.mul(col.rate, deltaDebt);
+        int256 delta_coin = Math.mul(col.rate, delta_debt);
 
-        gem[colType][colDst] = Math.sub(gem[colType][colDst], deltaCol);
-        debts[debtDst] = Math.sub(debts[debtDst], deltaDai);
-        globalUnbackedDebt = Math.sub(globalUnbackedDebt, deltaDai);
+        gem[col_type][col_dst] = Math.sub(gem[col_type][col_dst], delta_col);
+        debts[debt_dst] = Math.sub(debts[debt_dst], delta_coin);
+        global_unbacked_debt = Math.sub(global_unbacked_debt, delta_coin);
     }
 
     // --- Settlement ---
     // heal: create / destroy equal quantities of stablecoin and system debt (vice).
     function burn(uint256 rad) external {
-        address account = msg.sender;
-        debts[account] -= rad;
-        dai[account] -= rad;
-        globalUnbackedDebt -= rad;
-        globalDebt -= rad;
+        debts[msg.sender] -= rad;
+        coin[msg.sender] -= rad;
+        global_unbacked_debt -= rad;
+        global_debt -= rad;
     }
 
     // suck: mint unbacked stablecoin (accounted for with vice).
-    function mint(address debtDst, address coinDst, uint256 rad)
+    function mint(address debt_dst, address coin_dst, uint256 rad)
         external
         auth
     {
-        debts[debtDst] += rad;
-        dai[coinDst] += rad;
-        globalUnbackedDebt += rad;
-        globalDebt += rad;
+        debts[debt_dst] += rad;
+        coin[coin_dst] += rad;
+        global_unbacked_debt += rad;
+        global_debt += rad;
     }
 
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
-    function updateRate(bytes32 colType, address dst, int256 deltaRate)
+    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
         external
         auth
         notStopped
     {
-        IVat.CollateralType storage col = cols[colType];
+        IVat.CollateralType storage col = cols[col_type];
         // old total debt = col.debt * col.rate
-        // new total debt = col.debt * (col.rate + deltaRate)
-        col.rate = Math.add(col.rate, deltaRate);
-        int256 deltaDebt = Math.mul(col.debt, deltaRate);
-        dai[dst] = Math.add(dai[dst], deltaDebt);
-        globalDebt = Math.add(globalDebt, deltaDebt);
+        // new total debt = col.debt * (col.rate + delta_rate)
+        col.rate = Math.add(col.rate, delta_rate);
+        int256 delta_debt = Math.mul(col.debt, delta_rate);
+        coin[coin_dst] = Math.add(coin[coin_dst], delta_debt);
+        global_debt = Math.add(global_debt, delta_debt);
     }
 }
