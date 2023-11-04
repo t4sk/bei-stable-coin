@@ -43,25 +43,25 @@ contract Vat is Auth, Pause, AccountApprovals {
     }
 
     // file
-    function set(bytes32 name, uint256 data) external auth notStopped {
-        if (name == "globalDebtCeiling") {
-            globalDebtCeiling = data;
+    function set(bytes32 key, uint256 val) external auth notStopped {
+        if (key == "globalDebtCeiling") {
+            globalDebtCeiling = val;
         } else {
             revert("unrecognized param");
         }
     }
 
-    function set(bytes32 colType, bytes32 name, uint256 data)
+    function set(bytes32 colType, bytes32 key, uint256 val)
         external
         auth
         notStopped
     {
-        if (name == "spot") {
-            cols[colType].spot = data;
-        } else if (name == "ceiling") {
-            cols[colType].ceiling = data;
-        } else if (name == "floor") {
-            cols[colType].floor = data;
+        if (key == "spot") {
+            cols[colType].spot = val;
+        } else if (key == "ceiling") {
+            cols[colType].ceiling = val;
+        } else if (key == "floor") {
+            cols[colType].floor = val;
         } else {
             revert("unrecognized param");
         }
