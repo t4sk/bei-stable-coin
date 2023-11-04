@@ -2,8 +2,8 @@
 pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
-import {IDebtAuctionHouse} from "../interfaces/IDebtAuctionHouse.sol";
-import {ISurplusAuctionHouse} from "../interfaces/ISurplusAuctionHouse.sol";
+import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
+import {ISurplusAuction} from "../interfaces/ISurplusAuction.sol";
 import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
@@ -13,9 +13,9 @@ import {Pause} from "../lib/Pause.sol";
 contract Vow is Auth, Pause {
     IVat public immutable vat;
     // flapper
-    ISurplusAuctionHouse public surplus_auction_house;
+    ISurplusAuction public surplus_auction;
     // flopper
-    IDebtAuctionHouse public debt_auction_house;
+    IDebtAuction public debt_auction;
 
     // sin (mapping timestamp => rad)
     mapping(uint256 => uint256) public debt_queue; // debt queue
@@ -47,8 +47,8 @@ contract Vow is Auth, Pause {
         address _debt_auction_house
     ) {
         vat = IVat(_vat);
-        surplus_auction_house = ISurplusAuctionHouse(_surplus_auction_house);
-        debt_auction_house = IDebtAuctionHouse(_debt_auction_house);
+        surplus_auction = ISurplusAuction(_surplus_auction_house);
+        debt_auction = IDebtAuction(_debt_auction_house);
         vat.allow_account_modification(_surplus_auction_house);
     }
 
@@ -70,12 +70,12 @@ contract Vow is Auth, Pause {
     }
 
     function set(bytes32 key, address addr) external auth {
-        if (key == "surplus_auction_house") {
-            vat.deny_account_modification(address(surplus_auction_house));
-            surplus_auction_house = ISurplusAuctionHouse(addr);
+        if (key == "surplus_auction") {
+            vat.deny_account_modification(address(surplus_auction));
+            surplus_auction = ISurplusAuction(addr);
             vat.allow_account_modification(addr);
-        } else if (key == "debt_auction_house") {
-            debt_auction_house = IDebtAuctionHouse(addr);
+        } else if (key == "debt_auction") {
+            debt_auction = IDebtAuction(addr);
         } else {
             revert("unrecognized param");
         }
@@ -141,6 +141,7 @@ contract Vow is Auth, Pause {
      *
      */
     function start_debt_auction() external returns (uint256 id) {
+        // TODO: what?
         require(
             debt_auction_bid_size
                 <= vat.debts(address(this)) - total_debt_on_queue
@@ -149,7 +150,7 @@ contract Vow is Auth, Pause {
         );
         require(vat.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction_house.start_auction(
+        id = debt_auction.start_auction(
             address(this), debt_auction_lot_size, debt_auction_bid_size
         );
     }
@@ -173,15 +174,15 @@ contract Vow is Auth, Pause {
                 - total_debt_on_auction == 0,
             "debt not zero"
         );
-        id = surplus_auction_house.start_auction(surplus_auction_lot_size, 0);
+        id = surplus_auction.start_auction(surplus_auction_lot_size, 0);
     }
 
     function stop() external auth {
         _stop();
         total_debt_on_queue = 0;
         total_debt_on_auction = 0;
-        surplus_auction_house.stop(vat.coin(address(surplus_auction_house)));
-        debt_auction_house.stop();
+        surplus_auction.stop(vat.coin(address(surplus_auction)));
+        debt_auction.stop();
         vat.burn(Math.min(vat.coin(address(this)), vat.debts(address(this))));
     }
 }

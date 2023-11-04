@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-interface IDebtAuctionHouse {
+interface IDebtAuction {
     function start_auction(
         address incomeReceiver,
         uint256 amountToSell,
