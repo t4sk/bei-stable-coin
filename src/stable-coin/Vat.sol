@@ -97,7 +97,6 @@ contract Vat is Auth, Pause, AccountApprovals {
         coin[dst] += rad;
     }
 
-    // TODO: - study how proxy action calls frob
     // --- CDP Manipulation ---
     // frob: modify a Vault.
     //     lock: transfer collateral into a Vault.
