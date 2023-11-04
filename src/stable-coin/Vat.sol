@@ -3,9 +3,9 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import "../lib/Math.sol";
-import "../lib/Auth.sol";
-import "../lib/Pause.sol";
-import "../lib/AccountAuth.sol";
+import {Auth} from "../lib/Auth.sol";
+import {Stopper} from "../lib/Stopper.sol";
+import {AccountAuth} from "../lib/AccountAuth.sol";
 
 /*
 dink: change in collateral.
@@ -13,7 +13,7 @@ dart: change in debt.
 */
 
 // CDP Engine
-contract Vat is Auth, Pause, AccountAuth {
+contract Vat is Auth, Stopper, AccountAuth {
     // ilks
     mapping(bytes32 => IVat.CollateralType) public cols;
     // urns - collateral type => account => safe

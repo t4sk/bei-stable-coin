@@ -3,10 +3,10 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import {IGem} from "../interfaces/IGem.sol";
-import "../lib/Auth.sol";
-import "../lib/Pause.sol";
+import {Auth} from "../lib/Auth.sol";
+import {Stopper} from "../lib/Stopper.sol";
 
-contract GemJoin is Auth, Pause {
+contract GemJoin is Auth, Stopper {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 

@@ -6,11 +6,11 @@ import {IVow} from "../interfaces/IVow.sol";
 import {ICollateralAuctionHouse} from "../interfaces/ICollateralAuctionHouse.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Pause} from "../lib/Pause.sol";
+import {Stopper} from "../lib/Stopper.sol";
 
 // TODO:
 // Dog
-contract LiquidationEngine is Auth, Pause {
+contract LiquidationEngine is Auth, Stopper {
     struct CollateralType {
         // clip - Address of collateral auction house
         address auction;

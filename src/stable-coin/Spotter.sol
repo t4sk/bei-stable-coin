@@ -5,9 +5,9 @@ import {IVat} from "../interfaces/IVat.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Pause} from "../lib/Pause.sol";
+import {Stopper} from "../lib/Stopper.sol";
 
-contract Spotter is Auth, Pause {
+contract Spotter is Auth, Stopper {
     event Poke(bytes32 col_type, uint256 val, uint256 spot);
 
     // Ilk
