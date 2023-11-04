@@ -15,46 +15,46 @@ struct CollateralType {
 }
 
 contract Spot is Auth, Pause {
-    event Poke( // [wad]
-        // [ray]
-    bytes32 colType, uint256 val, uint256 spot);
+    event Poke(bytes32 colType, uint256 val, uint256 spot);
 
-    mapping(bytes32 => CollateralType) public colTypes;
+    mapping(bytes32 => CollateralType) public cols;
 
     IVat public immutable vat;
     // TODO: what is par?
     uint256 public par; // ref per dai [ray]
 
     constructor(address _vat) {
+        live = true;
         vat = IVat(_vat);
         par = RAY;
     }
 
-    function file(bytes32 colType, bytes32 name, address priceFeed)
+    // file
+    function set(bytes32 colType, bytes32 name, address priceFeed)
         external
         auth
         notStopped
     {
         if (name == "priceFeed") {
-            colTypes[colType].priceFeed = IPriceFeed(priceFeed);
+            cols[colType].priceFeed = IPriceFeed(priceFeed);
         } else {
             revert("unrecognized param");
         }
     }
 
-    function file(bytes32 colType, bytes32 name, uint256 data)
+    function set(bytes32 colType, bytes32 name, uint256 data)
         external
         auth
         notStopped
     {
         if (name == "liquidationRatio") {
-            colTypes[colType].liquidationRatio = data;
+            cols[colType].liquidationRatio = data;
         } else {
             revert("unrecognized param");
         }
     }
 
-    function file(bytes32 name, uint256 data) external auth notStopped {
+    function set(bytes32 name, uint256 data) external auth notStopped {
         if (name == "par") {
             par = data;
         } else {
@@ -63,11 +63,11 @@ contract Spot is Auth, Pause {
     }
 
     function poke(bytes32 colType) external {
-        (uint256 val, bool ok) = colTypes[colType].priceFeed.peek();
+        (uint256 val, bool ok) = cols[colType].priceFeed.peek();
         uint256 spot = ok
             // TODO: what?
             ? Math.rdiv(
-                Math.rdiv(val * 10 ** 9, par), colTypes[colType].liquidationRatio
+                Math.rdiv(val * 10 ** 9, par), cols[colType].liquidationRatio
             )
             : 0;
         vat.modifyParam(colType, "spot", spot);
