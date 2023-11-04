@@ -19,13 +19,13 @@ contract Auth {
     }
 
     // rely
-    function addAuthorization(address user) external auth {
+    function add_auth(address user) external auth {
         authorized[user] = true;
         emit AddAuthorization(user);
     }
 
     // deny
-    function remoteAuthorization(address user) external auth {
+    function remove_auth(address user) external auth {
         authorized[user] = false;
         emit RemoveAuthorization(user);
     }

@@ -1,42 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-contract Coin {
-    event AddAuthorization(address indexed user);
-    event RemoveAuthorization(address indexed user);
+import {Auth} from "../lib/Auth.sol";
+
+contract Coin is Auth {
     event Approval(address indexed src, address indexed spender, uint256 wad);
     event Transfer(address indexed src, address indexed dst, uint256 wad);
 
-    // wards
-    mapping(address => bool) public authorized;
-
-    string public constant name = "DAI stablecoin";
-    string public constant symbol = "DAI";
+    string public constant name = "Stable coin";
+    string public constant symbol = "COIN";
     uint8 public constant decimals = 18;
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
-
-    modifier auth() {
-        require(authorized[msg.sender], "not authorized");
-        _;
-    }
-
-    constructor() {
-        authorized[msg.sender] = true;
-    }
-
-    // rely
-    function addAuthorization(address user) external auth {
-        authorized[user] = true;
-        emit AddAuthorization(user);
-    }
-
-    // deny
-    function remoteAuthorization(address user) external auth {
-        authorized[user] = false;
-        emit RemoveAuthorization(user);
-    }
 
     function transfer(address dst, uint256 wad) external returns (bool) {
         return transferFrom(msg.sender, dst, wad);
@@ -83,18 +59,5 @@ contract Coin {
         allowance[msg.sender][user] = wad;
         emit Approval(msg.sender, user, wad);
         return true;
-    }
-
-    // Alias
-    function push(address user, uint256 wad) external {
-        transferFrom(msg.sender, user, wad);
-    }
-
-    function pull(address user, uint256 wad) external {
-        transferFrom(user, msg.sender, wad);
-    }
-
-    function move(address src, address dst, uint256 wad) external {
-        transferFrom(src, dst, wad);
     }
 }
