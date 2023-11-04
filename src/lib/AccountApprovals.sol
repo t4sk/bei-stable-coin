@@ -7,17 +7,17 @@ contract AccountApprovals {
     mapping(address => mapping(address => bool)) public can;
 
     // hope
-    function approveAccountModification(address user) external {
+    function allow_account_modification(address user) external {
         can[msg.sender][user] = true;
     }
 
     // nope
-    function denyAccountModification(address user) external {
+    function deny_account_modification(address user) external {
         can[msg.sender][user] = false;
     }
 
     // wish
-    function canModifyAccount(address account, address user)
+    function can_modify_account(address account, address user)
         internal
         view
         returns (bool)

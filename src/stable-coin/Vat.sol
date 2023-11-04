@@ -85,14 +85,14 @@ contract Vat is Auth, Pause, AccountApprovals {
         address dst,
         uint256 wad
     ) external {
-        require(canModifyAccount(src, msg.sender), "not authorized");
+        require(can_modify_account(src, msg.sender), "not authorized");
         gem[col_type][src] -= wad;
         gem[col_type][dst] += wad;
     }
 
     // move: transfer stablecoin between users.
     function transfer_coin(address src, address dst, uint256 rad) external {
-        require(canModifyAccount(src, msg.sender), "not authorized");
+        require(can_modify_account(src, msg.sender), "not authorized");
         coin[src] -= rad;
         coin[dst] += rad;
     }
@@ -152,17 +152,17 @@ contract Vat is Auth, Pause, AccountApprovals {
         // vault is either more safe, or the owner consents
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || canModifyAccount(vault_addr, msg.sender),
+                || can_modify_account(vault_addr, msg.sender),
             "not allowed vault addr"
         );
         // collateral src consents
         require(
-            delta_col <= 0 || canModifyAccount(col_src, msg.sender),
+            delta_col <= 0 || can_modify_account(col_src, msg.sender),
             "not allowed collateral src"
         );
         // debt dst consents
         require(
-            delta_debt >= 0 || canModifyAccount(debt_dst, msg.sender),
+            delta_debt >= 0 || can_modify_account(debt_dst, msg.sender),
             "not allowed debt dst"
         );
 
@@ -201,8 +201,8 @@ contract Vat is Auth, Pause, AccountApprovals {
 
         // both sides consent
         require(
-            canModifyAccount(src, msg.sender)
-                && canModifyAccount(dst, msg.sender),
+            can_modify_account(src, msg.sender)
+                && can_modify_account(dst, msg.sender),
             "not allowed"
         );
 

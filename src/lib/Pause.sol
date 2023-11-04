@@ -11,6 +11,10 @@ abstract contract Pause {
         _;
     }
 
+    constructor() {
+        live = true;
+    }
+
     // cage
     function _stop() internal {
         live = false;
