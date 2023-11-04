@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-contract Dai {
+contract Coin {
     event AddAuthorization(address indexed user);
     event RemoveAuthorization(address indexed user);
     event Approval(address indexed src, address indexed spender, uint256 wad);

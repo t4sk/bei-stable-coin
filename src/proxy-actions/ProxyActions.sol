@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IDaiJoin} from "../interfaces/IDaiJoin.sol";
+import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {ICdpManager} from "../interfaces/ICdpManager.sol";
 import {IVat} from "../interfaces/IVat.sol";
@@ -12,9 +12,9 @@ contract Common {
     function daiJoin_join(address adapter, address account, uint256 wad)
         public
     {
-        IDaiJoin(adapter).dai().transferFrom(msg.sender, address(this), wad);
-        IDaiJoin(adapter).dai().approve(adapter, wad);
-        IDaiJoin(adapter).join(account, wad);
+        ICoinJoin(adapter).dai().transferFrom(msg.sender, address(this), wad);
+        ICoinJoin(adapter).dai().approve(adapter, wad);
+        ICoinJoin(adapter).join(account, wad);
     }
 }
 
@@ -120,7 +120,7 @@ contract ProxyActions is Common {
         //     VatLike(vat).hope(daiJoin);
         // }
         // Exits DAI to the user's wallet as a token
-        IDaiJoin(daiJoin).exit(msg.sender, wad);
+        ICoinJoin(daiJoin).exit(msg.sender, wad);
     }
 
     function openLockGemAndDraw(
