@@ -5,8 +5,7 @@ import {IVat} from "../interfaces/IVat.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceCalculator} from "../interfaces/IPriceCalculator.sol";
-import {ICollateralAuctionHouseCallee} from
-    "../interfaces/ICollateralAuctionHouseCallee.sol";
+import {ICollateralAuctionHouseCallee} from "../interfaces/ICollateralAuctionHouseCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -105,12 +104,7 @@ contract CollateralAuctionHouse is Auth {
     event Yank(uint256 id);
 
     // --- Init ---
-    constructor(
-        address vat_,
-        address spotter_,
-        address liquidation_engine_,
-        bytes32 collateral_type_
-    ) {
+    constructor(address vat_, address spotter_, address liquidation_engine_, bytes32 collateral_type_) {
         vat = IVat(vat_);
         spotter = ISpotter(spotter_);
         liquidation_engine = ILiquidationEngine(liquidation_engine_);
@@ -220,15 +214,7 @@ contract CollateralAuctionHouse is Auth {
             vat.mint(debt_engine, keeper, coin);
         }
 
-        emit Kick(
-            id,
-            starting_price,
-            dai_to_raise,
-            collateral_to_sell,
-            user,
-            keeper,
-            coin
-        );
+        emit Kick(id, starting_price, dai_to_raise, collateral_to_sell, user, keeper, coin);
     }
 
     // Reset an auction
@@ -264,24 +250,13 @@ contract CollateralAuctionHouse is Auth {
         uint256 coin;
         if (fee > 0 || _chip > 0) {
             uint256 _cache = cache;
-            if (
-                dai_to_raise >= _cache
-                    && collateral_to_sell * feed_price >= _cache
-            ) {
+            if (dai_to_raise >= _cache && collateral_to_sell * feed_price >= _cache) {
                 coin = fee + Math.wmul(dai_to_raise, _chip);
                 vat.mint(debt_engine, keeper, coin);
             }
         }
 
-        emit Redo(
-            id,
-            starting_price,
-            dai_to_raise,
-            collateral_to_sell,
-            user,
-            keeper,
-            coin
-        );
+        emit Redo(id, starting_price, dai_to_raise, collateral_to_sell, user, keeper, coin);
     }
 
     // Buy up to `amt` of collateral from the auction indexed by `id`.
@@ -363,9 +338,7 @@ contract CollateralAuctionHouse is Auth {
             collateral_to_sell -= slice;
 
             // Send collateral to who
-            vat.transfer_collateral(
-                collateral_type, address(this), collateral_receiver, slice
-            );
+            vat.transfer_collateral(collateral_type, address(this), collateral_receiver, slice);
 
             // Do external call (if data is defined) but to be
             // extremely careful we don't allow to do it to the two
@@ -374,27 +347,20 @@ contract CollateralAuctionHouse is Auth {
                 data.length > 0 && collateral_receiver != address(vat)
                     && collateral_receiver != address(liquidation_engine)
             ) {
-                ICollateralAuctionHouseCallee(collateral_receiver).callback(
-                    msg.sender, owe, slice, data
-                );
+                ICollateralAuctionHouseCallee(collateral_receiver).callback(msg.sender, owe, slice, data);
             }
 
             // Get DAI from caller
             vat.transfer_coin(msg.sender, debt_engine, owe);
 
             // Removes Dai out for liquidation from accumulator
-            liquidation_engine.removeDaiFromAuction(
-                collateral_type,
-                collateral_to_sell == 0 ? dai_to_raise + owe : owe
-            );
+            liquidation_engine.removeDaiFromAuction(collateral_type, collateral_to_sell == 0 ? dai_to_raise + owe : owe);
         }
 
         if (collateral_to_sell == 0) {
             _remove(id);
         } else if (dai_to_raise == 0) {
-            vat.transfer_collateral(
-                collateral_type, address(this), user, collateral_to_sell
-            );
+            vat.transfer_collateral(collateral_type, address(this), user, collateral_to_sell);
             _remove(id);
         } else {
             sales[id].dai_to_raise = dai_to_raise;
@@ -449,24 +415,16 @@ contract CollateralAuctionHouse is Auth {
     // }
 
     // Internally returns boolean for if an auction needs a redo
-    function status(uint96 start_time, uint256 starting_price)
-        internal
-        view
-        returns (bool done, uint256 price)
-    {
+    function status(uint96 start_time, uint256 starting_price) internal view returns (bool done, uint256 price) {
         price = calc.price(starting_price, block.timestamp - start_time);
-        done = (
-            block.timestamp - start_time > max_duration
-                || Math.rdiv(price, starting_price) < min_delta_price_ratio
-        );
+        done = (block.timestamp - start_time > max_duration || Math.rdiv(price, starting_price) < min_delta_price_ratio);
     }
 
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
         IVat.CollateralType memory col = IVat(vat).cols(collateral_type);
-        cache =
-            Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
+        cache = Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
     }
 
     // // Cancel an auction during ES or via governance action.

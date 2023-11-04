@@ -47,11 +47,7 @@ contract Vat is Auth, Pause, AccountAuth {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, uint256 val)
-        external
-        auth
-        not_stopped
-    {
+    function set(bytes32 col_type, bytes32 key, uint256 val) external auth not_stopped {
         if (key == "spot") {
             cols[col_type].spot = val;
         } else if (key == "ceiling") {
@@ -70,21 +66,12 @@ contract Vat is Auth, Pause, AccountAuth {
 
     // --- Fungibility ---
     // slip: modify a user's collateral balance.
-    function modify_collateral_balance(
-        bytes32 col_type,
-        address user,
-        int256 wad
-    ) external auth {
+    function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external auth {
         gem[col_type][user] = Math.add(gem[col_type][user], wad);
     }
 
     // flux: transfer collateral between users.
-    function transfer_collateral(
-        bytes32 col_type,
-        address src,
-        address dst,
-        uint256 wad
-    ) external {
+    function transfer_collateral(bytes32 col_type, address src, address dst, uint256 wad) external {
         require(can_modify_account(src, msg.sender), "not authorized");
         gem[col_type][src] -= wad;
         gem[col_type][dst] += wad;
@@ -134,36 +121,20 @@ contract Vat is Auth, Pause, AccountAuth {
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
-            delta_debt <= 0
-                || (
-                    col.debt * col.rate <= col.ceiling
-                        && global_debt <= global_debt_ceiling
-                ),
+            delta_debt <= 0 || (col.debt * col.rate <= col.ceiling && global_debt <= global_debt_ceiling),
             "ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
-        require(
-            (delta_debt <= 0 && delta_col >= 0)
-                || total_coin <= safe.collateral * col.spot,
-            "not safe"
-        );
+        require((delta_debt <= 0 && delta_col >= 0) || total_coin <= safe.collateral * col.spot, "not safe");
 
         // safe is either more safe, or the owner consents
         require(
-            (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(safe_addr, msg.sender),
-            "not allowed safe addr"
+            (delta_debt <= 0 && delta_col >= 0) || can_modify_account(safe_addr, msg.sender), "not allowed safe addr"
         );
         // collateral src consents
-        require(
-            delta_col <= 0 || can_modify_account(col_src, msg.sender),
-            "not allowed collateral src"
-        );
+        require(delta_col <= 0 || can_modify_account(col_src, msg.sender), "not allowed collateral src");
         // debt dst consents
-        require(
-            delta_debt >= 0 || can_modify_account(debt_dst, msg.sender),
-            "not allowed debt dst"
-        );
+        require(delta_debt >= 0 || can_modify_account(debt_dst, msg.sender), "not allowed debt dst");
 
         // safe has no debt, or a non-dusty amount
         require(safe.debt == 0 || total_coin >= col.floor, "Vat/dust");
@@ -179,13 +150,7 @@ contract Vat is Auth, Pause, AccountAuth {
     // fork: to split a safe - binary approval or splitting/merging safes.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
-    function fork(
-        bytes32 col_type,
-        address src,
-        address dst,
-        int256 delta_col,
-        int256 delta_debt
-    ) external {
+    function fork(bytes32 col_type, address src, address dst, int256 delta_col, int256 delta_debt) external {
         IVat.Safe storage u = safes[col_type][src];
         IVat.Safe storage v = safes[col_type][dst];
         IVat.CollateralType storage col = cols[col_type];
@@ -199,11 +164,7 @@ contract Vat is Auth, Pause, AccountAuth {
         uint256 v_total_coin = v.debt * col.rate;
 
         // both sides consent
-        require(
-            can_modify_account(src, msg.sender)
-                && can_modify_account(dst, msg.sender),
-            "not allowed"
-        );
+        require(can_modify_account(src, msg.sender) && can_modify_account(dst, msg.sender), "not allowed");
 
         // both sides safe
         require(u_total_coin <= u.collateral * col.spot, "not safe src");
@@ -222,14 +183,10 @@ contract Vat is Auth, Pause, AccountAuth {
     // - create sin for user w
     // grab is the means by which safes are liquidated,
     // transferring debt from the safe to a users sin balance.
-    function grab(
-        bytes32 col_type,
-        address src,
-        address col_dst,
-        address debt_dst,
-        int256 delta_col,
-        int256 delta_debt
-    ) external auth {
+    function grab(bytes32 col_type, address src, address col_dst, address debt_dst, int256 delta_col, int256 delta_debt)
+        external
+        auth
+    {
         IVat.Safe storage safe = safes[col_type][src];
         IVat.CollateralType storage col = cols[col_type];
 
@@ -254,10 +211,7 @@ contract Vat is Auth, Pause, AccountAuth {
     }
 
     // suck: mint unbacked stablecoin (accounted for with vice).
-    function mint(address debt_dst, address coin_dst, uint256 rad)
-        external
-        auth
-    {
+    function mint(address debt_dst, address coin_dst, uint256 rad) external auth {
         debts[debt_dst] += rad;
         coin[coin_dst] += rad;
         global_unbacked_debt += rad;
@@ -266,11 +220,7 @@ contract Vat is Auth, Pause, AccountAuth {
 
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
-    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
-        external
-        auth
-        not_stopped
-    {
+    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate) external auth not_stopped {
         IVat.CollateralType storage col = cols[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)

@@ -30,11 +30,7 @@ contract Spot is Auth, Pause {
     }
 
     // file
-    function set(bytes32 colType, bytes32 name, address priceFeed)
-        external
-        auth
-        not_stopped
-    {
+    function set(bytes32 colType, bytes32 name, address priceFeed) external auth not_stopped {
         if (name == "priceFeed") {
             cols[colType].priceFeed = IPriceFeed(priceFeed);
         } else {
@@ -42,11 +38,7 @@ contract Spot is Auth, Pause {
         }
     }
 
-    function set(bytes32 colType, bytes32 name, uint256 data)
-        external
-        auth
-        not_stopped
-    {
+    function set(bytes32 colType, bytes32 name, uint256 data) external auth not_stopped {
         if (name == "liquidationRatio") {
             cols[colType].liquidationRatio = data;
         } else {
@@ -66,9 +58,7 @@ contract Spot is Auth, Pause {
         (uint256 val, bool ok) = cols[colType].priceFeed.peek();
         uint256 spot = ok
             // TODO: what?
-            ? Math.rdiv(
-                Math.rdiv(val * 10 ** 9, par), cols[colType].liquidationRatio
-            )
+            ? Math.rdiv(Math.rdiv(val * 10 ** 9, par), cols[colType].liquidationRatio)
             : 0;
         vat.set(colType, "spot", spot);
         emit Poke(colType, val, spot);

@@ -3,8 +3,7 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import {IVow} from "../interfaces/IVow.sol";
-import {ICollateralAuctionHouse} from
-    "../interfaces/ICollateralAuctionHouse.sol";
+import {ICollateralAuctionHouse} from "../interfaces/ICollateralAuctionHouse.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
@@ -37,27 +36,18 @@ contract LiquidationEngine is Auth, Pause {
         vat = IVat(_vat);
     }
 
-    function liquidate(bytes32 colType, address safe, address keeper)
-        external
-        not_stopped
-        returns (uint256 id)
-    {
+    function liquidate(bytes32 colType, address safe, address keeper) external not_stopped returns (uint256 id) {
         IVat.Safe memory v = vat.safes(colType, safe);
         IVat.CollateralType memory c = vat.cols(colType);
         CollateralType memory col = cols[colType];
         uint256 deltaDebt;
         {
-            require(
-                c.spot > 0 && v.collateral * c.spot < v.debt * c.rate,
-                "not unsafe"
-            );
+            require(c.spot > 0 && v.collateral * c.spot < v.debt * c.rate, "not unsafe");
 
             // Get the minimum value between:
             // 1) Remaining space in the general Hole
             // 2) Remaining space in the collateral hole
-            require(
-                max > total && col.max > col.amount, "Dog/liquidation-limit-hit"
-            );
+            require(max > total && col.max > col.amount, "Dog/liquidation-limit-hit");
             uint256 room = Math.min(max - total, col.max - col.amount);
 
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
@@ -74,10 +64,7 @@ contract LiquidationEngine is Auth, Pause {
                     deltaDebt = v.debt;
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
-                    require(
-                        deltaDebt * c.rate >= c.floor,
-                        "dusty auction from partial liquidation"
-                    );
+                    require(deltaDebt * c.rate >= c.floor, "dusty auction from partial liquidation");
                 }
             }
         }
@@ -118,10 +105,7 @@ contract LiquidationEngine is Auth, Pause {
     }
 
     // digs
-    function removeDaiFromAuction(bytes32 collateral_type, uint256 rad)
-        external
-        auth
-    {
+    function removeDaiFromAuction(bytes32 collateral_type, uint256 rad) external auth {
         total -= rad;
         cols[collateral_type].amount -= rad;
         // emit Digs(ilk, rad);

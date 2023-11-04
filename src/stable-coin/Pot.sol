@@ -66,8 +66,7 @@ contract Pot is Auth, Pause {
     // --- Savings Rate Accumulation ---
     function drip() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
-        uint256 tmp =
-            Math.rmul(Math.rpow(dsr, block.timestamp - updated_at, RAY), chi);
+        uint256 tmp = Math.rmul(Math.rpow(dsr, block.timestamp - updated_at, RAY), chi);
         uint256 delta_chi = tmp - chi;
         chi = tmp;
         updated_at = block.timestamp;

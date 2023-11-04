@@ -9,9 +9,7 @@ import {IJug} from "../interfaces/IJug.sol";
 import {Math, WAD, RAY, RAD} from "../lib/Math.sol";
 
 contract Common {
-    function daiJoin_join(address adapter, address account, uint256 wad)
-        public
-    {
+    function daiJoin_join(address adapter, address account, uint256 wad) public {
         ICoinJoin(adapter).coin().transferFrom(msg.sender, address(this), wad);
         ICoinJoin(adapter).coin().approve(adapter, wad);
         ICoinJoin(adapter).join(account, wad);
@@ -19,45 +17,29 @@ contract Common {
 }
 
 contract ProxyActions is Common {
-    function open(address manager, bytes32 collateralType, address user)
-        public
-        returns (uint256 cdp)
-    {
+    function open(address manager, bytes32 collateralType, address user) public returns (uint256 cdp) {
         cdp = ICdpManager(manager).open(collateralType, user);
     }
 
-    function gemJoin_join(
-        address adapter,
-        address safe,
-        uint256 amount,
-        bool isTransferFrom
-    ) public {
+    function gemJoin_join(address adapter, address safe, uint256 amount, bool isTransferFrom) public {
         if (isTransferFrom) {
-            IGemJoin(adapter).gem().transferFrom(
-                msg.sender, address(this), amount
-            );
+            IGemJoin(adapter).gem().transferFrom(msg.sender, address(this), amount);
             IGemJoin(adapter).gem().approve(adapter, amount);
         }
         IGemJoin(adapter).join(safe, amount);
     }
 
-    function to18Decimals(address gemJoin, uint256 amount)
-        internal
-        returns (uint256 wad)
-    {
+    function to18Decimals(address gemJoin, uint256 amount) internal returns (uint256 wad) {
         // For those collaterals that have less than 18 decimals precision we need to do the conversion before passing to frob function
         // Adapters will automatically handle the difference of precision
         wad = amount * 10 ** (18 - IGemJoin(gemJoin).dec());
     }
 
     // _getDrawDart
-    function getDeltaDebt(
-        address vat,
-        address jug,
-        address safe,
-        bytes32 collateralType,
-        uint256 wad
-    ) internal returns (int256 deltaDebt) {
+    function getDeltaDebt(address vat, address jug, address safe, bytes32 collateralType, uint256 wad)
+        internal
+        returns (int256 deltaDebt)
+    {
         // Updates stability fee rate
         uint256 rate = IJug(jug).drip(collateralType);
 
@@ -73,25 +55,16 @@ contract ProxyActions is Common {
             deltaDebt = Math.to_int((wad * RAY - dai) / rate);
             // This is neeeded due lack of precision.
             // It might need to sum an extra delta debt wei (for the given DAI wad amount)
-            deltaDebt = uint256(deltaDebt) * rate < wad * RAY
-                ? deltaDebt - 1
-                : deltaDebt;
+            deltaDebt = uint256(deltaDebt) * rate < wad * RAY ? deltaDebt - 1 : deltaDebt;
         }
     }
 
     // Transfer rad amount of DAI from cdp to dst
-    function move(address manager, uint256 cdp, address dst, uint256 rad)
-        public
-    {
+    function move(address manager, uint256 cdp, address dst, uint256 rad) public {
         ICdpManager(manager).move(cdp, dst, rad);
     }
 
-    function frob(
-        address manager,
-        uint256 cdp,
-        int256 deltaCollateral,
-        int256 deltaDebt
-    ) public {
+    function frob(address manager, uint256 cdp, int256 deltaCollateral, int256 deltaDebt) public {
         ICdpManager(manager).modifyVault(cdp, deltaCollateral, deltaDebt);
     }
 
@@ -134,8 +107,6 @@ contract ProxyActions is Common {
         bool isTransferFrom
     ) public returns (uint256 cdp) {
         cdp = open(manager, collateralType, address(this));
-        lockGemAndDraw(
-            manager, jug, gemJoin, daiJoin, cdp, amount, wad, isTransferFrom
-        );
+        lockGemAndDraw(manager, jug, gemJoin, daiJoin, cdp, amount, wad, isTransferFrom);
     }
 }

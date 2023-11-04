@@ -41,11 +41,7 @@ contract Vow is Auth, Pause {
     // Amount of stability fees that need to accrue in this contract before any surplus auction can start
     uint256 public surplus_buffer;
 
-    constructor(
-        address _vat,
-        address _surplus_auction_house,
-        address _debt_auction_house
-    ) {
+    constructor(address _vat, address _surplus_auction_house, address _debt_auction_house) {
         vat = IVat(_vat);
         surplus_auction = ISurplusAuction(_surplus_auction_house);
         debt_auction = IDebtAuction(_debt_auction_house);
@@ -111,12 +107,7 @@ contract Vow is Auth, Pause {
     function settle_debt(uint256 rad) external {
         require(rad <= vat.coin(address(this)), "insufficient surplus");
         // TODO: what?
-        require(
-            rad
-                <= vat.debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_auction,
-            "insufficient debt"
-        );
+        require(rad <= vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction, "insufficient debt");
         vat.burn(rad);
     }
 
@@ -143,16 +134,12 @@ contract Vow is Auth, Pause {
     function start_debt_auction() external returns (uint256 id) {
         // TODO: what?
         require(
-            debt_auction_bid_size
-                <= vat.debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_auction,
+            debt_auction_bid_size <= vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction,
             "insufficient debt"
         );
         require(vat.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction.start_auction(
-            address(this), debt_auction_lot_size, debt_auction_bid_size
-        );
+        id = debt_auction.start_auction(address(this), debt_auction_lot_size, debt_auction_bid_size);
     }
 
     // Surplus auction
@@ -164,16 +151,10 @@ contract Vow is Auth, Pause {
      */
     function start_surplus_auction() external returns (uint256 id) {
         require(
-            vat.coin(address(this))
-                >= vat.debts(address(this)) + surplus_auction_lot_size
-                    + surplus_buffer,
+            vat.coin(address(this)) >= vat.debts(address(this)) + surplus_auction_lot_size + surplus_buffer,
             "insufficient surplus"
         );
-        require(
-            vat.debts(address(this)) - total_debt_on_queue
-                - total_debt_on_auction == 0,
-            "debt not zero"
-        );
+        require(vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction == 0, "debt not zero");
         id = surplus_auction.start_auction(surplus_auction_lot_size, 0);
     }
 

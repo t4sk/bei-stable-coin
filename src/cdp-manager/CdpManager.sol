@@ -32,10 +32,7 @@ contract CdpManager {
         vat = _vat;
     }
 
-    function open(bytes32 collateralType, address user)
-        public
-        returns (uint256)
-    {
+    function open(bytes32 collateralType, address user) public returns (uint256) {
         require(user != address(0), "user = 0 address");
 
         uint256 id = cdpId + 1;

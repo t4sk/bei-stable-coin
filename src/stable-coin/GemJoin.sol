@@ -34,9 +34,7 @@ contract GemJoin is Auth, Pause {
         // wad <= 2**255 - 1
         require(int256(wad) >= 0, "overflow");
         vat.modify_collateral_balance(collateralType, user, int256(wad));
-        require(
-            gem.transferFrom(msg.sender, address(this), wad), "transfer failed"
-        );
+        require(gem.transferFrom(msg.sender, address(this), wad), "transfer failed");
         emit Join(user, wad);
     }
 
