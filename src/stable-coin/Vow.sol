@@ -8,8 +8,8 @@ import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {Pause} from "../lib/Pause.sol";
 
-// Vow
-contract DebtEngine is Auth, Pause {
+// Vow - Debt engine
+contract Vow is Auth, Pause {
     IVat public immutable vat;
     // flapper
     ISurplusAuctionHouse public surplusAuctionHouse;
