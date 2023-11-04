@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
-import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
+import {IVow} from "../interfaces/IVow.sol";
 import {ICollateralAuctionHouse} from
     "../interfaces/ICollateralAuctionHouse.sol";
 import "../lib/Math.sol";
@@ -25,7 +25,7 @@ contract LiquidationEngine is Auth, Pause {
     IVat public immutable vat;
     mapping(bytes32 => CollateralType) public cols;
     // vow
-    IDebtEngine public debtEngine;
+    IVow public vow;
     // Hole
     // Max DAI needed to cover debt+fees of active auctions [rad]
     uint256 public max;
@@ -91,13 +91,13 @@ contract LiquidationEngine is Auth, Pause {
             colType: colType,
             src: vault,
             dst: col.auction,
-            debtDst: address(debtEngine),
+            debtDst: address(vow),
             deltaCol: -int256(deltaCol),
             deltaDebt: -int256(deltaDebt)
         });
 
         uint256 due = deltaDebt * c.rate;
-        debtEngine.pushDebtToQueue(due);
+        vow.pushDebtToQueue(due);
 
         {
             // Avoid stack too deep
