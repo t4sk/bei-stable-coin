@@ -70,7 +70,7 @@ contract ProxyActions is Common {
         if (dai < wad * RAY) {
             // Calculates the needed delta debt so together with the existing dai
             // in the vat is enough to exit wad amount of DAI tokens
-            deltaDebt = Math.toInt((wad * RAY - dai) / rate);
+            deltaDebt = Math.to_int((wad * RAY - dai) / rate);
             // This is neeeded due lack of precision.
             // It might need to sum an extra delta debt wei (for the given DAI wad amount)
             deltaDebt = uint256(deltaDebt) * rate < wad * RAY
@@ -112,9 +112,9 @@ contract ProxyActions is Common {
 
         gemJoin_join(gemJoin, vault, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
-        // frob(manager, cdp, toInt(to18Decimals(gemJoin, amount)), _getDrawDart(vat, jug, urn, ilk, wadD));
+        // frob(manager, cdp, to_int(to18Decimals(gemJoin, amount)), _getDrawDart(vat, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the vat in rad) to proxy's address
-        move(manager, cdp, address(this), Math.toRad(wad));
+        move(manager, cdp, address(this), Math.to_rad(wad));
         // // Allows adapter to access to proxy's DAI balance in the vat
         // if (VatLike(vat).can(address(this), address(daiJoin)) == 0) {
         //     VatLike(vat).hope(daiJoin);

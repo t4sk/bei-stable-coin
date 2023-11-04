@@ -34,11 +34,11 @@ library Math {
         require(int256(x) >= 0 && int256(y) >= 0);
     }
 
-    function toInt(uint256 x) internal pure returns (int256 y) {
+    function to_int(uint256 x) internal pure returns (int256 y) {
         y = int256(x);
     }
 
-    function toRad(uint256 wad) internal pure returns (uint256 rad) {
+    function to_rad(uint256 wad) internal pure returns (uint256 rad) {
         rad = wad * RAY;
     }
 
