@@ -53,7 +53,7 @@ interface IVat {
     // move
     function transfer_coin(address src, address dst, uint256 rad) external;
     function fork(bytes32 col_type, address src, address dst, int256 delta_col, int256 delta_debt) external;
-    function grab(bytes32 col_type, address src, address dst, address debt_dst, int256 delta_col, int256 delta_debt)
+    function grab(bytes32 col_type, address src, address col_dst, address debt_dst, int256 delta_col, int256 delta_debt)
         external;
     // suck
     function mint(address debt_dst, address coin_dst, uint256 rad) external;
