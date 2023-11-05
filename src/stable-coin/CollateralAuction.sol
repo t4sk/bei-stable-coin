@@ -123,8 +123,8 @@ contract CollateralAuction is Auth, Guard {
     }
 
     // --- Synchronization ---
-    modifier isStopped(uint256 level) {
-        require(stopped < level, "Clipper/stopped-incorrect");
+    modifier is_stopped(uint256 level) {
+        require(stopped < level, "stopped incorrect");
         _;
     }
 
@@ -195,7 +195,7 @@ contract CollateralAuction is Auth, Guard {
         uint256 collateral_to_sell, // Collateral             [wad]
         address user, // Address that will receive any leftover collateral
         address keeper // Address that will receive incentives
-    ) external auth lock isStopped(1) returns (uint256 id) {
+    ) external auth lock is_stopped(1) returns (uint256 id) {
         // Input validation
         require(coin_to_raise > 0, "Clipper/zero-coin_to_raise");
         require(collateral_to_sell > 0, "Clipper/zero-collateral_to_sell");
@@ -233,7 +233,7 @@ contract CollateralAuction is Auth, Guard {
     function redo(
         uint256 id, // id of the auction to reset
         address keeper // Address that will receive incentives
-    ) external lock isStopped(2) {
+    ) external lock is_stopped(2) {
         // Read auction data
         address user = sales[id].user;
         uint96 start_time = sales[id].start_time;
@@ -294,7 +294,7 @@ contract CollateralAuction is Auth, Guard {
         // who
         address collateral_receiver, // Receiver of collateral and external call address
         bytes calldata data // Data to pass in external call; if length 0, no call is done
-    ) external lock isStopped(3) {
+    ) external lock is_stopped(3) {
         address user = sales[id].user;
         uint96 start_time = sales[id].start_time;
 
@@ -439,7 +439,7 @@ contract CollateralAuction is Auth, Guard {
     // Cancel an auction during ES or via governance action.
     function yank(uint256 id) external auth lock {
         require(sales[id].user != address(0), "Clipper/not-running-auction");
-        liquidation_engine.digs(collateral_type, sales[id].coin_to_raise);
+        // liquidation_engine.digs(collateral_type, sales[id].coin_to_raise);
         vat.transfer_collateral(collateral_type, address(this), msg.sender, sales[id].collateral_to_sell);
         _remove(id);
         emit Yank(id);

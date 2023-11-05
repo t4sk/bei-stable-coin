@@ -6,11 +6,11 @@ import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
 import {ISurplusAuction} from "../interfaces/ISurplusAuction.sol";
 import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Stopper} from "../lib/Stopper.sol";
+import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // TODO: rename to debt_engine
 // Vow - Debt engine
-contract Vow is Auth, Stopper {
+contract Vow is Auth, CircuitBreaker {
     IVat public immutable vat;
     // flapper
     ISurplusAuction public surplus_auction;

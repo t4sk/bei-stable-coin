@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Stopper} from "../lib/Stopper.sol";
+import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
 
 /*
@@ -13,7 +13,7 @@ earning savings on their dai.  The DSR is set by Maker Governance, and will
 typically be less than the base stability fee to remain sustainable. 
 The purpose of Pot is to offer another incentive for holding Dai.
 */
-contract Pot is Auth, Stopper {
+contract Pot is Auth, CircuitBreaker {
     // pie
     mapping(address => uint256) public balances; // Normalised savings Dai [wad]
     // Pie

@@ -4,9 +4,9 @@ pragma solidity 0.8.19;
 import {IVat} from "../interfaces/IVat.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Stopper} from "../lib/Stopper.sol";
+import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-contract GemJoin is Auth, Stopper {
+contract GemJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 

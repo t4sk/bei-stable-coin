@@ -5,9 +5,9 @@ import {IVat} from "../interfaces/IVat.sol";
 import {ICoin} from "../interfaces/ICoin.sol";
 import {RAY} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
-import {Stopper} from "../lib/Stopper.sol";
+import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-contract CoinJoin is Auth, Stopper {
+contract CoinJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 
