@@ -17,12 +17,12 @@ contract Spotter is Auth, Stopper {
         // mat [ray]
         uint256 liquidation_ratio;
     }
-    // ilks
 
+    // ilks
     mapping(bytes32 => CollateralType) public cols;
 
     IVat public immutable vat;
-    // TODO: what is par?
+    // par - value of DAI in the reference asset (e.g. $1 per DAI)
     uint256 public par; // ref per dai [ray]
 
     constructor(address _vat) {
@@ -57,7 +57,7 @@ contract Spotter is Auth, Stopper {
 
     function poke(bytes32 col_type) external {
         (uint256 val, bool ok) = cols[col_type].price_feed.peek();
-        // TODO: should require ok
+        // TODO: should require ok?
         uint256 spot = ok
             // TODO: what?
             ? Math.rdiv(Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio)
