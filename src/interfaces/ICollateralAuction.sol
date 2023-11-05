@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-interface ICollateralAuctionHouse {
+interface ICollateralAuction {
     function start_auction(
         // address forgoneCollateralReceiver,
         // address initialBidder,

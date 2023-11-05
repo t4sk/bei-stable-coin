@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {IVat} from "../interfaces/IVat.sol";
 import {IVow} from "../interfaces/IVow.sol";
-import {ICollateralAuctionHouse} from "../interfaces/ICollateralAuctionHouse.sol";
+import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
@@ -95,7 +95,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             total += targetDai;
             cols[col_type].amount += targetDai;
 
-            id = ICollateralAuctionHouse(col.auction).start_auction({
+            id = ICollateralAuction(col.auction).start_auction({
                 tab: targetDai,
                 // lot: the amount of collateral available for purchase [wad]
                 lot: deltaCol,
