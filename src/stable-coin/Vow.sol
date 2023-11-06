@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
 import {ISurplusAuction} from "../interfaces/ISurplusAuction.sol";
 import {Math} from "../lib/Math.sol";
@@ -11,7 +11,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 // TODO: rename to debt_engine
 // Vow - Debt engine
 contract Vow is Auth, CircuitBreaker {
-    IVat public immutable vat;
+    ICDPEngine public immutable cdp_engine;
     // flapper
     ISurplusAuction public surplus_auction;
     // flopper
@@ -41,11 +41,11 @@ contract Vow is Auth, CircuitBreaker {
     // Amount of stability fees that need to accrue in this contract before any surplus auction can start
     uint256 public surplus_buffer;
 
-    constructor(address _vat, address _surplus_auction_house, address _debt_auction_house) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine, address _surplus_auction_house, address _debt_auction_house) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         surplus_auction = ISurplusAuction(_surplus_auction_house);
         debt_auction = IDebtAuction(_debt_auction_house);
-        vat.allow_account_modification(_surplus_auction_house);
+        cdp_engine.allow_account_modification(_surplus_auction_house);
     }
 
     // --- Administration ---
@@ -67,9 +67,9 @@ contract Vow is Auth, CircuitBreaker {
 
     function set(bytes32 key, address addr) external auth {
         if (key == "surplus_auction") {
-            vat.deny_account_modification(address(surplus_auction));
+            cdp_engine.deny_account_modification(address(surplus_auction));
             surplus_auction = ISurplusAuction(addr);
-            vat.allow_account_modification(addr);
+            cdp_engine.allow_account_modification(addr);
         } else if (key == "debt_auction") {
             debt_auction = IDebtAuction(addr);
         } else {
@@ -105,10 +105,12 @@ contract Vow is Auth, CircuitBreaker {
      *
      */
     function settle_debt(uint256 rad) external {
-        require(rad <= vat.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
         // TODO: what?
-        require(rad <= vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction, "insufficient debt");
-        vat.burn(rad);
+        require(
+            rad <= cdp_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction, "insufficient debt"
+        );
+        cdp_engine.burn(rad);
     }
 
     // kiss
@@ -118,10 +120,10 @@ contract Vow is Auth, CircuitBreaker {
      */
     function cancel_auctioned_debt_with_surplus(uint256 rad) external {
         require(rad <= total_debt_on_auction, "not enough debt on auction");
-        require(rad <= vat.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
         // TODO: what?
         total_debt_on_auction -= rad;
-        vat.burn(rad);
+        cdp_engine.burn(rad);
     }
 
     // Debt auction
@@ -134,10 +136,10 @@ contract Vow is Auth, CircuitBreaker {
     function start_debt_auction() external returns (uint256 id) {
         // TODO: what?
         require(
-            debt_auction_bid_size <= vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction,
+            debt_auction_bid_size <= cdp_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction,
             "insufficient debt"
         );
-        require(vat.coin(address(this)) == 0, "surplus not zero");
+        require(cdp_engine.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
         id = debt_auction.start_auction(address(this), debt_auction_lot_size, debt_auction_bid_size);
     }
@@ -151,10 +153,11 @@ contract Vow is Auth, CircuitBreaker {
      */
     function start_surplus_auction() external returns (uint256 id) {
         require(
-            vat.coin(address(this)) >= vat.debts(address(this)) + surplus_auction_lot_size + surplus_buffer,
+            cdp_engine.coin(address(this))
+                >= cdp_engine.debts(address(this)) + surplus_auction_lot_size + surplus_buffer,
             "insufficient surplus"
         );
-        require(vat.debts(address(this)) - total_debt_on_queue - total_debt_on_auction == 0, "debt not zero");
+        require(cdp_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction == 0, "debt not zero");
         id = surplus_auction.start_auction(surplus_auction_lot_size, 0);
     }
 
@@ -162,8 +165,8 @@ contract Vow is Auth, CircuitBreaker {
         _stop();
         total_debt_on_queue = 0;
         total_debt_on_auction = 0;
-        surplus_auction.stop(vat.coin(address(surplus_auction)));
+        surplus_auction.stop(cdp_engine.coin(address(surplus_auction)));
         debt_auction.stop();
-        vat.burn(Math.min(vat.coin(address(this)), vat.debts(address(this))));
+        cdp_engine.burn(Math.min(cdp_engine.coin(address(this)), cdp_engine.debts(address(this))));
     }
 }

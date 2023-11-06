@@ -4,8 +4,8 @@ pragma solidity 0.8.19;
 import "./SafeHandler.sol";
 
 contract CdpManager {
-    address public immutable vat;
-    uint256 public cdpId;
+    address public immutable cdp_engine;
+    uint256 public cdp_id;
 
     struct List {
         uint256 prev;
@@ -17,7 +17,7 @@ contract CdpManager {
     // CDP id => owner
     mapping(uint256 => address) public owners;
     // CDP id => collateral type
-    mapping(uint256 => bytes32) public collateralTypes;
+    mapping(uint256 => bytes32) public cols;
 
     // CDP id => List
     mapping(uint256 => List) public list;
@@ -28,19 +28,19 @@ contract CdpManager {
     // Owner => CDP count
     mapping(address => uint256) public count;
 
-    constructor(address _vat) {
-        vat = _vat;
+    constructor(address _cdp_engine) {
+        cdp_engine = _cdp_engine;
     }
 
-    function open(bytes32 collateralType, address user) public returns (uint256) {
+    function open(bytes32 col_type, address user) public returns (uint256) {
         require(user != address(0), "user = 0 address");
 
-        uint256 id = cdpId + 1;
-        cdpId = id;
+        uint256 id = cdp_id + 1;
+        cdp_id = id;
 
-        safes[id] = address(new SafeHandler(vat));
+        safes[id] = address(new SafeHandler(cdp_engine));
         owners[id] = user;
-        collateralTypes[id] = collateralType;
+        cols[id] = col_type;
 
         // Add new CDP to double linked list
         if (first[user] == 0) {

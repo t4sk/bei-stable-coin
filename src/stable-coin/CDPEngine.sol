@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
@@ -12,12 +12,12 @@ dink: change in collateral.
 dart: change in debt.
 */
 
-// CDP Engine
-contract Vat is Auth, CircuitBreaker, Account {
+// Vat - CDP Engine
+contract CDPEngine is Auth, CircuitBreaker, Account {
     // ilks
-    mapping(bytes32 => IVat.CollateralType) public cols;
+    mapping(bytes32 => ICDPEngine.CollateralType) public cols;
     // urns - collateral type => account => safe
-    mapping(bytes32 => mapping(address => IVat.Safe)) public safes;
+    mapping(bytes32 => mapping(address => ICDPEngine.Safe)) public safes;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // account => coin balance (rad)
@@ -104,8 +104,8 @@ contract Vat is Auth, CircuitBreaker, Account {
         int256 delta_col,
         int256 delta_debt
     ) external not_stopped {
-        IVat.Safe memory safe = safes[col_type][safe_addr];
-        IVat.CollateralType memory col = cols[col_type];
+        ICDPEngine.Safe memory safe = safes[col_type][safe_addr];
+        ICDPEngine.CollateralType memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -137,7 +137,7 @@ contract Vat is Auth, CircuitBreaker, Account {
         require(delta_debt >= 0 || can_modify_account(debt_dst, msg.sender), "not allowed debt dst");
 
         // safe has no debt, or a non-dusty amount
-        require(safe.debt == 0 || total_coin >= col.floor, "Vat/dust");
+        require(safe.debt == 0 || total_coin >= col.floor, "CDPEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
@@ -151,9 +151,9 @@ contract Vat is Auth, CircuitBreaker, Account {
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(bytes32 col_type, address src, address dst, int256 delta_col, int256 delta_debt) external {
-        IVat.Safe storage u = safes[col_type][src];
-        IVat.Safe storage v = safes[col_type][dst];
-        IVat.CollateralType storage col = cols[col_type];
+        ICDPEngine.Safe storage u = safes[col_type][src];
+        ICDPEngine.Safe storage v = safes[col_type][dst];
+        ICDPEngine.CollateralType storage col = cols[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
         u.debt = Math.sub(u.debt, delta_debt);
@@ -187,9 +187,10 @@ contract Vat is Auth, CircuitBreaker, Account {
         external
         auth
     {
-        IVat.Safe storage safe = safes[col_type][src];
-        IVat.CollateralType storage col = cols[col_type];
+        ICDPEngine.Safe storage safe = safes[col_type][src];
+        ICDPEngine.CollateralType storage col = cols[col_type];
 
+        // TODO: flip operations? add -> sub
         safe.collateral = Math.add(safe.collateral, delta_col);
         safe.debt = Math.add(safe.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
@@ -221,7 +222,7 @@ contract Vat is Auth, CircuitBreaker, Account {
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
     function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate) external auth not_stopped {
-        IVat.CollateralType storage col = cols[col_type];
+        ICDPEngine.CollateralType storage col = cols[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);

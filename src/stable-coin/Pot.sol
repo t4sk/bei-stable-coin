@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
@@ -23,15 +23,15 @@ contract Pot is Auth, CircuitBreaker {
     // chi
     uint256 public chi; // Rate accumulator [ray]
 
-    IVat public vat; // CDP Engine
+    ICDPEngine public cdp_engine; // CDP Engine
     address public vow; // Debt Engine
     // rho
     uint256 public updated_at; // Time of last drip [unix epoch time]
     // drip - performs stability fee collection for a specific
     //        collateral type when it is called
 
-    constructor(address _vat) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         dsr = RAY;
         chi = RAY;
         updated_at = block.timestamp;
@@ -73,7 +73,7 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = chi * total
         // new  total = new chi * total
         // mint = new total - prev total = (new chi - chi) * total
-        vat.mint(vow, address(this), total * delta_chi);
+        cdp_engine.mint(vow, address(this), total * delta_chi);
         return tmp;
     }
 
@@ -82,12 +82,12 @@ contract Pot is Auth, CircuitBreaker {
         require(block.timestamp == updated_at, "updated_at != now");
         balances[msg.sender] += wad;
         total += wad;
-        vat.transfer_coin(msg.sender, address(this), chi * wad);
+        cdp_engine.transfer_coin(msg.sender, address(this), chi * wad);
     }
 
     function exit(uint256 wad) external {
         balances[msg.sender] -= wad;
         total -= wad;
-        vat.transfer_coin(address(this), msg.sender, chi * wad);
+        cdp_engine.transfer_coin(address(this), msg.sender, chi * wad);
     }
 }

@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IVow} from "../interfaces/IVow.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// TODO:
 // Dog
 contract LiquidationEngine is Auth, CircuitBreaker {
     event Liquidate(
@@ -33,7 +32,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         uint256 amount;
     }
 
-    IVat public immutable vat;
+    ICDPEngine public immutable cdp_engine;
     mapping(bytes32 => CollateralType) public cols;
     // vow
     IVow public vow;
@@ -44,8 +43,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // Amount DAI needed to cover debt+fees of active auctions [rad]
     uint256 public total;
 
-    constructor(address _vat) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
     }
 
     // --- Administration ---
@@ -98,11 +97,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // case, a partial liquidation is performed to respect the global and per-ilk limits on
     // outstanding DAI target. The one exception is if the resulting auction would likely
     // have too little collateral to be interesting to Keepers (debt taken from Vault < ilk.dust),
-    // in which case the function reverts. Please refer to the code and comments within if
-    // more detail is desired.
+    // in which case the function reverts.
     function liquidate(bytes32 col_type, address safe, address keeper) external not_stopped returns (uint256 id) {
-        IVat.Safe memory s = vat.safes(col_type, safe);
-        IVat.CollateralType memory c = vat.cols(col_type);
+        ICDPEngine.Safe memory s = cdp_engine.safes(col_type, safe);
+        ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
         CollateralType memory col = cols[col_type];
         uint256 delta_debt;
         {
@@ -111,7 +109,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // Get the minimum value between:
             // 1) Remaining space in the general Hole
             // 2) Remaining space in the collateral hole
-            require(max > total && col.max > col.amount, "Dog/liquidation-limit-hit");
+            require(max > total && col.max > col.amount, "liquidation limit");
             uint256 room = Math.min(max - total, col.max - col.amount);
 
             // TODO: why divide by penalty?
@@ -139,7 +137,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_col > 0, "null-auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
-        vat.grab({
+        cdp_engine.grab({
             col_type: col_type,
             src: safe,
             col_dst: col.auction,

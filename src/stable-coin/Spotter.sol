@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -21,12 +21,12 @@ contract Spotter is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => CollateralType) public cols;
 
-    IVat public immutable vat;
+    ICDPEngine public immutable cdp_engine;
     // par - value of DAI in the reference asset (e.g. $1 per DAI)
     uint256 public par; // ref per dai [ray]
 
-    constructor(address _vat) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         par = RAY;
     }
 
@@ -62,7 +62,7 @@ contract Spotter is Auth, CircuitBreaker {
             // TODO: what?
             ? Math.rdiv(Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio)
             : 0;
-        vat.set(col_type, "spot", spot);
+        cdp_engine.set(col_type, "spot", spot);
         emit Poke(col_type, val, spot);
     }
 

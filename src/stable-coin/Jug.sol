@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
@@ -20,14 +20,14 @@ contract Jug is Auth {
 
     mapping(bytes32 => CollateralType) public cols;
     // CDP engine
-    IVat public immutable vat;
+    ICDPEngine public immutable cdp_engine;
     // Debt engine
     address public vow;
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
 
-    constructor(address _vat) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
     }
 
     // --- Administration ---
@@ -69,9 +69,9 @@ contract Jug is Auth {
     function drip(bytes32 col_type) external returns (uint256 rate) {
         CollateralType storage col = cols[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
-        IVat.CollateralType memory c = vat.cols(col_type);
+        ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
         rate = Math.rmul(Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY), c.rate);
-        vat.update_rate(col_type, vow, Math.diff(rate, c.rate));
+        cdp_engine.update_rate(col_type, vow, Math.diff(rate, c.rate));
         col.updated_at = block.timestamp;
     }
 }

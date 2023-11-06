@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 
 contract SafeHandler {
-    constructor(address vat) {
-        IVat(vat).add_auth(msg.sender);
+    constructor(address cdp_engine) {
+        ICDPEngine(cdp_engine).add_auth(msg.sender);
     }
 }

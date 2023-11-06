@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IVat} from "../interfaces/IVat.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ICoin} from "../interfaces/ICoin.sol";
 import {RAY} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -11,11 +11,11 @@ contract CoinJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 
-    IVat public immutable vat;
+    ICDPEngine public immutable cdp_engine;
     ICoin public immutable dai;
 
-    constructor(address _vat, address _dai) {
-        vat = IVat(_vat);
+    constructor(address _cdp_engine, address _dai) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         dai = ICoin(_dai);
     }
 
@@ -25,14 +25,14 @@ contract CoinJoin is Auth, CircuitBreaker {
     }
 
     function join(address user, uint256 wad) external {
-        vat.transfer_coin(address(this), user, wad * RAY);
+        cdp_engine.transfer_coin(address(this), user, wad * RAY);
         dai.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external {
         require(live, "not live");
-        vat.transfer_coin(msg.sender, address(this), wad * RAY);
+        cdp_engine.transfer_coin(msg.sender, address(this), wad * RAY);
         dai.mint(user, wad);
         emit Exit(user, wad);
     }
