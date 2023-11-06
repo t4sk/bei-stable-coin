@@ -60,5 +60,5 @@ interface ICDPEngine {
     // heal
     function burn(uint256 rad) external;
     // fold
-    function update_rate(bytes32 col_type, address vow, int256 rate) external;
+    function update_rate(bytes32 col_type, address debt_engine, int256 rate) external;
 }

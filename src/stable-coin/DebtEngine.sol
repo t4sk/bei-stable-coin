@@ -10,7 +10,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // TODO: rename to debt_engine
 // Vow - Debt engine
-contract Vow is Auth, CircuitBreaker {
+contract DebtEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
     // flapper
     ISurplusAuction public surplus_auction;

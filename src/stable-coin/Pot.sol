@@ -24,7 +24,7 @@ contract Pot is Auth, CircuitBreaker {
     uint256 public chi; // Rate accumulator [ray]
 
     ICDPEngine public cdp_engine; // CDP Engine
-    address public vow; // Debt Engine
+    address public debt_engine; // Debt Engine
     // rho
     uint256 public updated_at; // Time of last drip [unix epoch time]
     // drip - performs stability fee collection for a specific
@@ -50,8 +50,8 @@ contract Pot is Auth, CircuitBreaker {
 
     // file
     function set(bytes32 key, address addr) external auth {
-        if (key == "vow") {
-            vow = addr;
+        if (key == "debt_engine") {
+            debt_engine = addr;
         } else {
             revert("invalid param");
         }
@@ -73,7 +73,7 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = chi * total
         // new  total = new chi * total
         // mint = new total - prev total = (new chi - chi) * total
-        cdp_engine.mint(vow, address(this), total * delta_chi);
+        cdp_engine.mint(debt_engine, address(this), total * delta_chi);
         return tmp;
     }
 

@@ -18,7 +18,7 @@ contract CollateralAuction is Auth, Guard {
 
     // dog
     ILiquidationEngine public liquidation_engine;
-    // vow
+    // debt_engine
     // Recipient of dai raised in auctions
     address public debt_engine;
     // Collateral price module

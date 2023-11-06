@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
-import {ICdpManager} from "../interfaces/ICdpManager.sol";
+import {ICDPManager} from "../interfaces/ICDPManager.sol";
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
 import {Math, WAD, RAY, RAD} from "../lib/Math.sol";
@@ -17,8 +17,8 @@ contract Common {
 }
 
 contract ProxyActions is Common {
-    function open(address manager, bytes32 collateralType, address user) public returns (uint256 cdp) {
-        cdp = ICdpManager(manager).open(collateralType, user);
+    function open(address manager, bytes32 collateral_type, address user) public returns (uint256 cdp) {
+        cdp = ICDPManager(manager).open(collateral_type, user);
     }
 
     function gemJoin_join(address adapter, address safe, uint256 amount, bool isTransferFrom) public {
@@ -36,12 +36,12 @@ contract ProxyActions is Common {
     }
 
     // _getDrawDart
-    function getDeltaDebt(address cdp_engine, address jug, address safe, bytes32 collateralType, uint256 wad)
+    function getDeltaDebt(address cdp_engine, address jug, address safe, bytes32 collateral_type, uint256 wad)
         internal
         returns (int256 deltaDebt)
     {
         // Updates stability fee rate
-        uint256 rate = IJug(jug).drip(collateralType);
+        uint256 rate = IJug(jug).drip(collateral_type);
 
         // Gets DAI balance of the safe in the cdp_engine
         uint256 dai = ICDPEngine(cdp_engine).coin(safe);
@@ -61,11 +61,11 @@ contract ProxyActions is Common {
 
     // Transfer rad amount of DAI from cdp to dst
     function move(address manager, uint256 cdp, address dst, uint256 rad) public {
-        ICdpManager(manager).move(cdp, dst, rad);
+        ICDPManager(manager).move(cdp, dst, rad);
     }
 
     function frob(address manager, uint256 cdp, int256 deltaCollateral, int256 deltaDebt) public {
-        ICdpManager(manager).modifyVault(cdp, deltaCollateral, deltaDebt);
+        ICDPManager(manager).modify_safe(cdp, deltaCollateral, deltaDebt);
     }
 
     // Lock collateral, generate debt and send DAI to msg.sender
@@ -79,9 +79,9 @@ contract ProxyActions is Common {
         uint256 wad,
         bool isTransferFrom
     ) public {
-        address safe = ICdpManager(manager).safes(cdp);
-        address cdp_engine = ICdpManager(manager).cdp_engine();
-        bytes32 collateralType = ICdpManager(manager).collateralTypes(cdp);
+        address safe = ICDPManager(manager).safes(cdp);
+        address cdp_engine = ICDPManager(manager).cdp_engine();
+        bytes32 collateral_type = ICDPManager(manager).cols(cdp);
 
         gemJoin_join(gemJoin, safe, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
@@ -101,12 +101,12 @@ contract ProxyActions is Common {
         address jug,
         address gemJoin,
         address daiJoin,
-        bytes32 collateralType,
+        bytes32 collateral_type,
         uint256 amount,
         uint256 wad,
         bool isTransferFrom
     ) public returns (uint256 cdp) {
-        cdp = open(manager, collateralType, address(this));
+        cdp = open(manager, collateral_type, address(this));
         lockGemAndDraw(manager, jug, gemJoin, daiJoin, cdp, amount, wad, isTransferFrom);
     }
 }

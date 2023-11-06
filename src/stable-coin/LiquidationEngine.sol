@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
-import {IVow} from "../interfaces/IVow.sol";
+import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -34,8 +34,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
     ICDPEngine public immutable cdp_engine;
     mapping(bytes32 => CollateralType) public cols;
-    // vow
-    IVow public vow;
+    // debt_engine
+    IDebtEngine public debt_engine;
     // Hole
     // Max DAI needed to cover debt+fees of active auctions [rad]
     uint256 public max;
@@ -50,8 +50,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // --- Administration ---
     // file
     function set(bytes32 key, address val) external auth {
-        if (key == "vow") {
-            vow = IVow(val);
+        if (key == "debt_engine") {
+            debt_engine = IDebtEngine(val);
         } else {
             revert("set unrecognized param");
         }
@@ -141,13 +141,13 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             col_type: col_type,
             src: safe,
             col_dst: col.auction,
-            debt_dst: address(vow),
+            debt_dst: address(debt_engine),
             delta_col: -int256(delta_col),
             delta_debt: -int256(delta_debt)
         });
 
         uint256 due = delta_debt * c.rate;
-        vow.push_debt_to_queue(due);
+        debt_engine.push_debt_to_queue(due);
 
         {
             // Avoid stack too deep

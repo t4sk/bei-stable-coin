@@ -22,7 +22,7 @@ contract Jug is Auth {
     // CDP engine
     ICDPEngine public immutable cdp_engine;
     // Debt engine
-    address public vow;
+    address public debt_engine;
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
 
@@ -57,8 +57,8 @@ contract Jug is Auth {
     }
 
     function set(bytes32 key, address data) external auth {
-        if (key == "vow") {
-            vow = data;
+        if (key == "debt_engine") {
+            debt_engine = data;
         } else {
             revert("Unrecognized key");
         }
@@ -71,7 +71,7 @@ contract Jug is Auth {
         require(block.timestamp >= col.updated_at, "now < last update");
         ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
         rate = Math.rmul(Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY), c.rate);
-        cdp_engine.update_rate(col_type, vow, Math.diff(rate, c.rate));
+        cdp_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.rate));
         col.updated_at = block.timestamp;
     }
 }
