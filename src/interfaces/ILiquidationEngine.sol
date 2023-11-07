@@ -6,5 +6,5 @@ interface ILiquidationEngine {
     // chop
     function penalty(bytes32 collateral_type) external returns (uint256);
     // digs
-    function removeDaiFromAuction(bytes32 collateral_type, uint256 rad) external;
+    function remove_coin_from_auction(bytes32 collateral_type, uint256 rad) external;
 }
