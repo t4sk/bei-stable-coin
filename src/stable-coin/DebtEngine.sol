@@ -140,7 +140,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         );
         require(cdp_engine.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction.start_auction(address(this), debt_auction_lot_size, debt_auction_bid_size);
+        id = debt_auction.start(address(this), debt_auction_lot_size, debt_auction_bid_size);
     }
 
     // Surplus auction
@@ -157,7 +157,7 @@ contract DebtEngine is Auth, CircuitBreaker {
             "insufficient surplus"
         );
         require(cdp_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction == 0, "debt not zero");
-        id = surplus_auction.start_auction(surplus_auction_lot_size, 0);
+        id = surplus_auction.start(surplus_auction_lot_size, 0);
     }
 
     function stop() external auth {

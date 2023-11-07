@@ -18,13 +18,11 @@ contract CollateralAuction is Auth, Guard {
 
     // dog
     ILiquidationEngine public liquidation_engine;
-    // debt_engine
-    // Recipient of dai raised in auctions
+    // debt_engine - Recipient of dai raised in auctions
     address public debt_engine;
     // Collateral price module
     ISpotter public spotter;
-    // calc
-    // Current price calculator
+    // calc - Current price calculator
     IAuctionPriceCalculator public calc;
 
     // buf
@@ -53,20 +51,15 @@ contract CollateralAuction is Auth, Guard {
     struct Sale {
         // Index in active array
         uint256 pos;
-        // tab
-        // Dai to raise       [rad]
+        // tab - Dai to raise [rad]
         uint256 coin_to_raise;
-        // lot
-        // collateral to sell [wad]
+        // lot - collateral to sell [wad]
         uint256 collateral_to_sell;
-        // usr
-        // Liquidated CDP
+        // usr - Liquidated CDP
         address user;
-        // tick
-        // Auction start time
+        // tick - Auction start time
         uint96 start_time;
-        // top
-        // Starting price     [ray]
+        // top - Starting price [ray]
         uint256 starting_price;
     }
 
@@ -80,9 +73,6 @@ contract CollateralAuction is Auth, Guard {
     uint256 public stopped = 0;
 
     // --- Events ---
-    event File(bytes32 indexed what, uint256 data);
-    event File(bytes32 indexed what, address data);
-
     event Kick(
         uint256 indexed id,
         uint256 starting_price,
@@ -110,7 +100,6 @@ contract CollateralAuction is Auth, Guard {
         address indexed keeper,
         uint256 coin
     );
-
     event Yank(uint256 id);
 
     // --- Init ---
@@ -173,10 +162,11 @@ contract CollateralAuction is Auth, Guard {
     // Could get this from rmul(CDPEngine.ilks(collateral_type).spot, Spotter.mat()) instead, but
     // if mat has changed since the last poke, the resulting value will be
     // incorrect.
-    function get_price_feed() internal returns (uint256 price) {
+    function get_price() internal returns (uint256 price) {
         (IPriceFeed price_feed,) = spotter.collateral_types(collateral_type);
         (uint256 val, bool ok) = price_feed.peek();
-        require(ok, "invalid-price");
+        require(ok, "invalid price");
+        // TODO: math?
         price = Math.rdiv(val * BLN, spotter.par());
     }
 
@@ -190,7 +180,7 @@ contract CollateralAuction is Auth, Guard {
     // Where `val` is the collateral's unitary value in USD, `buf` is a
     // multiplicative factor to increase the starting price, and `par` is a
     // reference per DAI.
-    function kick(
+    function start(
         uint256 coin_to_raise, // Debt                   [rad]
         uint256 collateral_to_sell, // Collateral             [wad]
         address user, // Address that will receive any leftover collateral
@@ -212,7 +202,7 @@ contract CollateralAuction is Auth, Guard {
         sales[id].start_time = uint96(block.timestamp);
 
         uint256 starting_price;
-        starting_price = Math.rmul(get_price_feed(), buf);
+        starting_price = Math.rmul(get_price(), buf);
         require(starting_price > 0, "Clipper/zero-starting_price-price");
         sales[id].starting_price = starting_price;
 
@@ -250,7 +240,7 @@ contract CollateralAuction is Auth, Guard {
         uint256 collateral_to_sell = sales[id].collateral_to_sell;
         sales[id].start_time = uint96(block.timestamp);
 
-        uint256 feed_price = get_price_feed();
+        uint256 feed_price = get_price();
         starting_price = Math.rmul(feed_price, buf);
         require(starting_price > 0, "zero-starting_price-price");
         sales[id].starting_price = starting_price;

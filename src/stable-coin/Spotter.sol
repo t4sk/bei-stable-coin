@@ -7,6 +7,7 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
+// TODO: rename?
 contract Spotter is Auth, CircuitBreaker {
     event Poke(bytes32 col_type, uint256 val, uint256 spot);
 
