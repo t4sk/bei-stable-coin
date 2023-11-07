@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "./SafeHandler.sol";
 
-contract CdpManager {
+contract CDPManager {
     address public immutable cdp_engine;
     uint256 public cdp_id;
 
