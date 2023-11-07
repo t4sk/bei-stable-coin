@@ -170,8 +170,7 @@ contract CollateralAuction is Auth, Guard {
         price = Math.rdiv(val * BLN, spotter.par());
     }
 
-    // kick
-    // start an auction
+    // kick - start an auction
     // note: trusts the caller to transfer collateral to the contract
     // The starting price `starting_price` is obtained as follows:
     //
@@ -181,8 +180,8 @@ contract CollateralAuction is Auth, Guard {
     // multiplicative factor to increase the starting price, and `par` is a
     // reference per DAI.
     function start(
-        uint256 coin_to_raise, // Debt                   [rad]
-        uint256 collateral_to_sell, // Collateral             [wad]
+        uint256 coin_to_raise, // tab - Debt                   [rad]
+        uint256 collateral_to_sell, // lot - Collateral             [wad]
         address user, // Address that will receive any leftover collateral
         address keeper // Address that will receive incentives
     ) external auth lock is_stopped(1) returns (uint256 id) {

@@ -4,15 +4,7 @@ pragma solidity 0.8.19;
 interface ICollateralAuction {
     function collateral_type() external view returns (bytes32);
     // TODO: rename inputs
-    function start(
-        // address forgoneCollateralReceiver,
-        // address initialBidder,
-        // uint256 amountToRaise,
-        // uint256 collateralToSell,
-        // uint256 initialBid
-        uint256 tab,
-        uint256 lot,
-        address user,
-        address keeper
-    ) external returns (uint256);
+    function start(uint256 coin_to_raise, uint256 collateral_to_sell, address user, address keeper)
+        external
+        returns (uint256);
 }

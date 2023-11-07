@@ -158,11 +158,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             cols[col_type].amount += target_coin_amount;
 
             id = ICollateralAuction(col.auction).start({
-                // tab: the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
-                // TODO: what is tab?
-                tab: target_coin_amount,
-                // lot: the amount of collateral available for purchase [wad]
-                lot: delta_col,
+                // tab - the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
+                coin_to_raise: target_coin_amount,
+                // lot - the amount of collateral available for purchase [wad]
+                collateral_to_sell: delta_col,
                 user: safe,
                 keeper: keeper
             });
