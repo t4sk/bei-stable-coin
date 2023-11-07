@@ -39,7 +39,7 @@ shell
     - `ilk`
     - `cdp`
     - `open`
-      - `CdpManager`
+      - `CDPManager`
         - `open`
           - `SafeHandler`
             - `Vat.hope`
