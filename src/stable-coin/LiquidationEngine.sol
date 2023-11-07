@@ -137,6 +137,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_col > 0, "null-auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
+        // NOTE: collateral sent to aution, debt sent to debt engine
         cdp_engine.grab({
             col_type: col_type,
             src: safe,
@@ -152,12 +153,12 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         {
             // Avoid stack too deep
             // This calcuation will overflow if delta_debt*rate exceeds ~10^14
-            // tab: the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
             uint256 target_coin_amount = due * col.penalty / WAD;
             total += target_coin_amount;
             cols[col_type].amount += target_coin_amount;
 
             id = ICollateralAuction(col.auction).start_auction({
+                // tab: the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
                 // TODO: what is tab?
                 tab: target_coin_amount,
                 // lot: the amount of collateral available for purchase [wad]

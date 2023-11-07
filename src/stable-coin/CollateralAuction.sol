@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
-import {IPriceCalculator} from "../interfaces/IPriceCalculator.sol";
+import {IAuctionPriceCalculator} from "../interfaces/IAuctionPriceCalculator.sol";
 import {ICollateralAuctionCallee} from "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
@@ -25,7 +25,7 @@ contract CollateralAuction is Auth, Guard {
     ISpotter public spotter;
     // calc
     // Current price calculator
-    IPriceCalculator public calc;
+    IAuctionPriceCalculator public calc;
 
     // buf
     // Multiplicative factor to increase starting price [ray]
@@ -162,7 +162,7 @@ contract CollateralAuction is Auth, Guard {
         } else if (key == "debt_engine") {
             debt_engine = addr;
         } else if (key == "calc") {
-            calc = IPriceCalculator(addr);
+            calc = IAuctionPriceCalculator(addr);
         } else {
             revert("unrecognized param");
         }

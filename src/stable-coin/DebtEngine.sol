@@ -8,7 +8,6 @@ import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// TODO: rename to debt_engine
 // Vow - Debt engine
 contract DebtEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
