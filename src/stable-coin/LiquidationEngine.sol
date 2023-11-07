@@ -53,7 +53,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         if (key == "debt_engine") {
             debt_engine = IDebtEngine(val);
         } else {
-            revert("set unrecognized param");
+            revert("set invalid param");
         }
     }
 
@@ -61,7 +61,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         if (key == "max") {
             max = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -72,7 +72,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         } else if (key == "max") {
             cols[col_type].max = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -81,7 +81,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             require(col_type == ICollateralAuction(auction).collateral_type(), "col type != auction col type");
             cols[col_type].auction = auction;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 

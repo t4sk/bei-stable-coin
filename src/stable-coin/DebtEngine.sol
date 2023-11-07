@@ -60,7 +60,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         } else if (key == "surplus_buffer") {
             surplus_buffer = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -72,7 +72,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         } else if (key == "debt_auction") {
             debt_auction = IDebtAuction(addr);
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 

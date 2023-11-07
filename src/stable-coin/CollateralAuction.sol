@@ -149,7 +149,7 @@ contract CollateralAuction is Auth, Guard {
             // Set breaker (0, 1, 2, or 3)
             stopped = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -164,7 +164,7 @@ contract CollateralAuction is Auth, Guard {
         } else if (key == "calc") {
             calc = IAuctionPriceCalculator(addr);
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 

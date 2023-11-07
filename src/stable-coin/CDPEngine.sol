@@ -43,7 +43,7 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         if (key == "global_debt_ceiling") {
             global_debt_ceiling = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -55,7 +55,7 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         } else if (key == "floor") {
             cols[col_type].floor = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 

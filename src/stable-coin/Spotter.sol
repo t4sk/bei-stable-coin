@@ -35,7 +35,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "price_feed") {
             cols[col_type].price_feed = IPriceFeed(addr);
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -43,7 +43,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "par") {
             par = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
@@ -51,7 +51,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "liquidation_ratio") {
             cols[col_type].liquidation_ratio = val;
         } else {
-            revert("unrecognized param");
+            revert("invalid param");
         }
     }
 
