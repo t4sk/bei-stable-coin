@@ -76,9 +76,15 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, address auction) external auth {
+    function set(bytes32 col_type, bytes32 key, address auction)
+        external
+        auth
+    {
         if (key == "auction") {
-            require(col_type == ICollateralAuction(auction).collateral_type(), "col type != auction col type");
+            require(
+                col_type == ICollateralAuction(auction).collateral_type(),
+                "col type != auction col type"
+            );
             cols[col_type].auction = auction;
         } else {
             revert("invalid param");
@@ -98,13 +104,20 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // outstanding DAI target. The one exception is if the resulting auction would likely
     // have too little collateral to be interesting to Keepers (debt taken from Vault < ilk.dust),
     // in which case the function reverts.
-    function liquidate(bytes32 col_type, address safe, address keeper) external not_stopped returns (uint256 id) {
+    function liquidate(bytes32 col_type, address safe, address keeper)
+        external
+        live
+        returns (uint256 id)
+    {
         ICDPEngine.Safe memory s = cdp_engine.safes(col_type, safe);
         ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
         CollateralType memory col = cols[col_type];
         uint256 delta_debt;
         {
-            require(c.spot > 0 && s.collateral * c.spot < s.debt * c.rate, "not unsafe");
+            require(
+                c.spot > 0 && s.collateral * c.spot < s.debt * c.rate,
+                "not unsafe"
+            );
 
             // Get the minimum value between:
             // 1) Remaining space in the general Hole
@@ -127,7 +140,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                     delta_debt = s.debt;
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
-                    require(delta_debt * c.rate >= c.floor, "dusty auction from partial liquidation");
+                    require(
+                        delta_debt * c.rate >= c.floor,
+                        "dusty auction from partial liquidation"
+                    );
                 }
             }
         }
@@ -167,11 +183,16 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             });
         }
 
-        emit Liquidate(col_type, safe, delta_col, delta_debt, due, col.auction, id);
+        emit Liquidate(
+            col_type, safe, delta_col, delta_debt, due, col.auction, id
+        );
     }
 
     // digs
-    function remove_coin_from_auction(bytes32 col_type, uint256 rad) external auth {
+    function remove_coin_from_auction(bytes32 col_type, uint256 rad)
+        external
+        auth
+    {
         total -= rad;
         cols[col_type].amount -= rad;
         emit Remove(col_type, rad);

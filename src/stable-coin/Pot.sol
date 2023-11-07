@@ -39,7 +39,7 @@ contract Pot is Auth, CircuitBreaker {
 
     // --- Administration ---
     // file
-    function set(bytes32 key, uint256 val) external auth not_stopped {
+    function set(bytes32 key, uint256 val) external auth live {
         require(block.timestamp == updated_at, "updated_at != now");
         if (key == "dsr") {
             dsr = val;
@@ -66,7 +66,8 @@ contract Pot is Auth, CircuitBreaker {
     // --- Savings Rate Accumulation ---
     function drip() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
-        uint256 tmp = Math.rmul(Math.rpow(dsr, block.timestamp - updated_at, RAY), chi);
+        uint256 tmp =
+            Math.rmul(Math.rpow(dsr, block.timestamp - updated_at, RAY), chi);
         uint256 delta_chi = tmp - chi;
         chi = tmp;
         updated_at = block.timestamp;

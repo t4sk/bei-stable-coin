@@ -4,8 +4,10 @@ pragma solidity 0.8.19;
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
-import {IAuctionPriceCalculator} from "../interfaces/IAuctionPriceCalculator.sol";
-import {ICollateralAuctionCallee} from "../interfaces/ICollateralAuctionCallee.sol";
+import {IAuctionPriceCalculator} from
+    "../interfaces/IAuctionPriceCalculator.sol";
+import {ICollateralAuctionCallee} from
+    "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -94,12 +96,17 @@ contract CollateralAuction is Auth, Guard {
         uint256 collateral_amount,
         address indexed user,
         address indexed keeper,
-        uint256 coin
+        uint256 fee
     );
     event Yank(uint256 id);
 
     // --- Init ---
-    constructor(address vat_, address spotter_, address liquidation_engine_, bytes32 collateral_type_) {
+    constructor(
+        address vat_,
+        address spotter_,
+        address liquidation_engine_,
+        bytes32 collateral_type_
+    ) {
         cdp_engine = ICDPEngine(vat_);
         spotter = ISpotter(spotter_);
         liquidation_engine = ILiquidationEngine(liquidation_engine_);
@@ -207,7 +214,15 @@ contract CollateralAuction is Auth, Guard {
             cdp_engine.mint(debt_engine, keeper, fee);
         }
 
-        emit Start(id, starting_price, coin_amount, collateral_amount, user, keeper, fee);
+        emit Start(
+            id,
+            starting_price,
+            coin_amount,
+            collateral_amount,
+            user,
+            keeper,
+            fee
+        );
     }
 
     // Reset an auction
@@ -232,24 +247,30 @@ contract CollateralAuction is Auth, Guard {
         uint256 collateral_amount = sales[id].collateral_amount;
         sales[id].start_time = uint96(block.timestamp);
 
-        uint256 feed_price = get_price();
-        starting_price = Math.rmul(feed_price, buf);
+        uint256 price = get_price();
+        starting_price = Math.rmul(price, buf);
         require(starting_price > 0, "zero starting price");
         sales[id].starting_price = starting_price;
 
         // incentive to redo auction
-        uint256 fee = flat_fee;
-        uint256 _chip = fee_rate;
-        uint256 coin;
-        if (fee > 0 || _chip > 0) {
-            uint256 _cache = cache;
-            if (coin_amount >= _cache && collateral_amount * feed_price >= _cache) {
-                coin = fee + Math.wmul(coin_amount, _chip);
-                cdp_engine.mint(debt_engine, keeper, coin);
+        // TODO: can call redo multiple times to farm fee?
+        uint256 fee;
+        if (flat_fee > 0 || fee_rate > 0) {
+            if (coin_amount >= cache && collateral_amount * price >= cache) {
+                fee = flat_fee + Math.wmul(coin_amount, fee_rate);
+                cdp_engine.mint(debt_engine, keeper, fee);
             }
         }
 
-        emit Redo(id, starting_price, coin_amount, collateral_amount, user, keeper, coin);
+        emit Redo(
+            id,
+            starting_price,
+            coin_amount,
+            collateral_amount,
+            user,
+            keeper,
+            fee
+        );
     }
 
     // Buy up to `amt` of collateral from the auction indexed by `id`.
@@ -317,14 +338,13 @@ contract CollateralAuction is Auth, Guard {
             } else if (owe < coin_amount && slice < collateral_amount) {
                 // If slice = collateral_amount -> auction completed -> dust doesn't matter
                 // TODO: what?
-                uint256 _cache = cache;
-                if (coin_amount - owe < _cache) {
+                if (coin_amount - owe < cache) {
                     // safe as owe < coin_amount
                     // If coin_amount <= chost, buyers have to take the entire collateral_amount.
-                    require(coin_amount > _cache, "no partial purchase");
+                    require(coin_amount > cache, "no partial purchase");
                     // Adjust amount to pay
                     // owe' <= owe
-                    owe = coin_amount - _cache;
+                    owe = coin_amount - cache;
                     // Adjust slice
                     // slice' = owe' / price < owe / price == slice < collateral_amount
                     slice = owe / price;
@@ -338,13 +358,20 @@ contract CollateralAuction is Auth, Guard {
             collateral_amount -= slice;
 
             // Send collateral to receiver
-            cdp_engine.transfer_collateral(collateral_type, address(this), receiver, slice);
+            cdp_engine.transfer_collateral(
+                collateral_type, address(this), receiver, slice
+            );
 
             // Do external call (if data is defined) but to be
             // extremely careful we don't allow to do it to the two
             // contracts which the Clipper needs to be authorized
-            if (data.length > 0 && receiver != address(cdp_engine) && receiver != address(liquidation_engine)) {
-                ICollateralAuctionCallee(receiver).callback(msg.sender, owe, slice, data);
+            if (
+                data.length > 0 && receiver != address(cdp_engine)
+                    && receiver != address(liquidation_engine)
+            ) {
+                ICollateralAuctionCallee(receiver).callback(
+                    msg.sender, owe, slice, data
+                );
             }
 
             // Get DAI from caller
@@ -352,21 +379,32 @@ contract CollateralAuction is Auth, Guard {
 
             // Removes Dai out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
-                collateral_type, collateral_amount == 0 ? coin_amount + owe : owe
+                collateral_type,
+                collateral_amount == 0 ? coin_amount + owe : owe
             );
         }
 
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {
-            cdp_engine.transfer_collateral(collateral_type, address(this), user, collateral_amount);
+            cdp_engine.transfer_collateral(
+                collateral_type, address(this), user, collateral_amount
+            );
             _remove(id);
         } else {
             sales[id].coin_amount = coin_amount;
             sales[id].collateral_amount = collateral_amount;
         }
 
-        emit Take(id, max_collateral_amount, price, owe, coin_amount, collateral_amount, user);
+        emit Take(
+            id,
+            max_collateral_amount,
+            price,
+            owe,
+            coin_amount,
+            collateral_amount,
+            user
+        );
     }
 
     function _remove(uint256 id) internal {
@@ -395,7 +433,12 @@ contract CollateralAuction is Auth, Guard {
     function get_status(uint256 id)
         external
         view
-        returns (bool needs_redo, uint256 price, uint256 collateral_amount, uint256 coin_amount)
+        returns (
+            bool needs_redo,
+            uint256 price,
+            uint256 collateral_amount,
+            uint256 coin_amount
+        )
     {
         // Read auction data
         address user = sales[id].user;
@@ -410,23 +453,37 @@ contract CollateralAuction is Auth, Guard {
     }
 
     // Internally returns boolean for if an auction needs a redo
-    function status(uint96 start_time, uint256 starting_price) internal view returns (bool done, uint256 price) {
+    function status(uint96 start_time, uint256 starting_price)
+        internal
+        view
+        returns (bool done, uint256 price)
+    {
         price = calc.price(starting_price, block.timestamp - start_time);
-        done = (block.timestamp - start_time > max_duration || Math.rdiv(price, starting_price) < min_delta_price_ratio);
+        done = (
+            block.timestamp - start_time > max_duration
+                || Math.rdiv(price, starting_price) < min_delta_price_ratio
+        );
     }
 
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
-        ICDPEngine.CollateralType memory col = ICDPEngine(cdp_engine).cols(collateral_type);
-        cache = Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
+        ICDPEngine.CollateralType memory col =
+            ICDPEngine(cdp_engine).cols(collateral_type);
+        cache =
+            Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
     }
 
     // Cancel an auction during ES or via governance action.
     function yank(uint256 id) external auth lock {
         require(sales[id].user != address(0), "Clipper/not-running-auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
-        cdp_engine.transfer_collateral(collateral_type, address(this), msg.sender, sales[id].collateral_amount);
+        cdp_engine.transfer_collateral(
+            collateral_type,
+            address(this),
+            msg.sender,
+            sales[id].collateral_amount
+        );
         _remove(id);
         emit Yank(id);
     }

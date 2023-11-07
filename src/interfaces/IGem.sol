@@ -8,4 +8,6 @@ interface IGem {
     function transferFrom(address, address, uint256) external returns (bool);
     function deposit() external payable;
     function withdraw(uint256) external;
+    function mint(address, uint256) external;
+    function burn(address, uint256) external;
 }

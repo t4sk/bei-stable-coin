@@ -40,7 +40,9 @@ contract Jug is Auth {
 
     // file
     function set(bytes32 col_type, bytes32 key, uint256 data) external auth {
-        require(block.timestamp == cols[col_type].updated_at, "update time != now");
+        require(
+            block.timestamp == cols[col_type].updated_at, "update time != now"
+        );
         if (key == "fee") {
             cols[col_type].fee = data;
         } else {
@@ -70,7 +72,10 @@ contract Jug is Auth {
         CollateralType storage col = cols[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
         ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
-        rate = Math.rmul(Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY), c.rate);
+        rate = Math.rmul(
+            Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
+            c.rate
+        );
         cdp_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.rate));
         col.updated_at = block.timestamp;
     }

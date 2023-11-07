@@ -32,7 +32,11 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // file
-    function set(bytes32 col_type, bytes32 key, address addr) external auth not_stopped {
+    function set(bytes32 col_type, bytes32 key, address addr)
+        external
+        auth
+        live
+    {
         if (key == "price_feed") {
             cols[col_type].price_feed = IPriceFeed(addr);
         } else {
@@ -40,7 +44,7 @@ contract Spotter is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 key, uint256 val) external auth not_stopped {
+    function set(bytes32 key, uint256 val) external auth live {
         if (key == "par") {
             par = val;
         } else {
@@ -48,7 +52,11 @@ contract Spotter is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, uint256 val) external auth not_stopped {
+    function set(bytes32 col_type, bytes32 key, uint256 val)
+        external
+        auth
+        live
+    {
         if (key == "liquidation_ratio") {
             cols[col_type].liquidation_ratio = val;
         } else {
@@ -61,7 +69,9 @@ contract Spotter is Auth, CircuitBreaker {
         // TODO: should require ok?
         uint256 spot = ok
             // TODO: what?
-            ? Math.rdiv(Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio)
+            ? Math.rdiv(
+                Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio
+            )
             : 0;
         cdp_engine.set(col_type, "spot", spot);
         emit Poke(col_type, val, spot);

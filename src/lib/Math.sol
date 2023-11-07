@@ -54,7 +54,11 @@ library Math {
         z = x * RAY / y;
     }
 
-    function rpow(uint256 x, uint256 n, uint256 b) internal pure returns (uint256 z) {
+    function rpow(uint256 x, uint256 n, uint256 b)
+        internal
+        pure
+        returns (uint256 z)
+    {
         assembly {
             switch x
             // x = 0
@@ -87,7 +91,9 @@ library Math {
                     if mod(n, 2) {
                         let zx := mul(z, x)
                         // revert if x != 0 and zx / x != z
-                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) { revert(0, 0) }
+                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
+                            revert(0, 0)
+                        }
                         // Round (zx + half) / b
                         let zxRound := add(zx, half)
                         // Check overflow - revert if zxRound < zx

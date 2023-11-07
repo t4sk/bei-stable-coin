@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ICoin} from "../interfaces/ICoin.sol";
-import {RAY} from "../lib/Math.sol";
+import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
@@ -30,8 +30,7 @@ contract CoinJoin is Auth, CircuitBreaker {
         emit Join(user, wad);
     }
 
-    function exit(address user, uint256 wad) external {
-        require(live, "not live");
+    function exit(address user, uint256 wad) external live {
         cdp_engine.transfer_coin(msg.sender, address(this), wad * RAY);
         dai.mint(user, wad);
         emit Exit(user, wad);
