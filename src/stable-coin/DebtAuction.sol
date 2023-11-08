@@ -20,30 +20,37 @@ contract DebtAuction is Auth, CircuitBreaker {
     // --- Data ---
     struct Bid {
         // bid - dai paid [rad]
-        uint256 bid;
+        uint256 amount;
         // lot - gems in return for bid [wad]
         // An individual object or group of objects offered for sale at auction as a single unit.
         uint256 lot;
         // guy - high bidder
-        address guy;
+        address highest_bidder;
         // tic - bid expiry time [unix epoch time]
-        uint48 tic;
+        uint48 bid_expiry_time;
         // end - auction expiry time [unix epoch time]
-        uint48 end;
+        uint48 auction_end_time;
     }
 
     mapping(uint256 => Bid) public bids;
 
+    // vat
     ICDPEngine public immutable cdp_engine;
     // gem - MKR
     IGem public immutable gem;
 
-    uint256 public beg = 1.05e18; // 5% minimum bid increase
-    uint256 public pad = 1.5e18; // 50% lot increase for tick
-    uint48 public ttl = 3 hours; // 3 hours bid lifetime         [seconds]
-    uint48 public tau = 2 days; // 2 days total auction length  [seconds]
-    uint256 public kicks = 0;
-    address public debt_engine; // not used until shutdown
+    // beg - minimum bid decrease
+    uint256 public min_bid_decrease = 1.05e18; // 5% minimum bid increase
+    // pad - increase for lot size during tick (default to 50%)
+    uint256 public lot_increase = 1.5e18; // 50% lot increase for tick
+    // ttl - bid lifetime (Max bid duration / single bid lifetime)
+    uint48 public bid_duration = 3 hours; // 3 hours bid lifetime [seconds]
+    // tau - maximum auction duration
+    uint48 public auction_duration = 2 days; // 2 days total auction length [seconds]
+    // kicks - Total auction count, used to track auction ids
+    uint256 public last_auction_id = 0;
+    // vow
+    address public debt_engine; // not used until shutdown TODO: why?
 
     constructor(address _cdp_engine, address _gem) {
         cdp_engine = ICDPEngine(_cdp_engine);
@@ -52,14 +59,14 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // --- Admin ---
     function set(bytes32 key, uint256 val) external auth {
-        if (key == "beg") {
-            beg = val;
-        } else if (key == "pad") {
-            pad = val;
-        } else if (key == "ttl") {
-            ttl = uint48(val);
-        } else if (key == "tau") {
-            tau = uint48(val);
+        if (key == "min_bid_decrease") {
+            min_bid_decrease = val;
+        } else if (key == "lot_increase") {
+            lot_increase = val;
+        } else if (key == "bid_duration") {
+            bid_duration = uint48(val);
+        } else if (key == "auction_duration") {
+            auction_duration = uint48(val);
         } else {
             revert("invalid param");
         }
@@ -67,74 +74,87 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // --- Auction ---
     // kick
-    function start(address guy, uint256 lot, uint256 bid)
+    // start an auction / Put up a new MKR bid for auction
+    function start(address highest_bidder, uint256 lot, uint256 bid_amount)
         external
         auth
         live
         returns (uint256 id)
     {
-        id = ++kicks;
+        id = ++last_auction_id;
 
         bids[id] = Bid({
-            bid: bid,
+            amount: bid_amount,
             lot: lot,
-            guy: guy,
-            tic: 0,
-            end: uint48(block.timestamp) + tau
+            highest_bidder: highest_bidder,
+            bid_expiry_time: 0,
+            auction_end_time: uint48(block.timestamp) + auction_duration
         });
 
-        emit Start(id, lot, bid, guy);
+        emit Start(id, lot, bid_amount, highest_bidder);
     }
 
     // tick
-    function tick(uint256 id) external {
-        Bid storage bid = bids[id];
-        require(bid.end < block.timestamp, "not finished");
-        require(bid.tic == 0, "bid already placed");
-        bid.lot = pad * bid.lot / WAD;
-        bid.end = uint48(block.timestamp) + tau;
+    // restarts an auction
+    function restart(uint256 id) external {
+        Bid storage b = bids[id];
+        require(b.auction_end_time < block.timestamp, "not finished");
+        require(b.bid_expiry_time == 0, "bid already placed");
+        b.lot = lot_increase * b.lot / WAD;
+        b.auction_end_time = uint48(block.timestamp) + auction_duration;
     }
 
     // dent
-    function dent(uint256 id, uint256 lot, uint256 _bid) external live {
-        Bid storage bid = bids[id];
-        require(bid.guy != address(0), "guy-not-set");
+    // make a bid, decreasing the lot size (Submit a fixed DAI bid with decreasing lot size)
+    function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
+        Bid storage b = bids[id];
+        require(b.highest_bidder != address(0), "bidder not set");
+        // bid not expired or no one has bid yet
         require(
-            bid.tic > block.timestamp || bid.tic == 0, "already-finished-tic"
+            block.timestamp < b.bid_expiry_time || b.bid_expiry_time == 0,
+            "already finished bid"
         );
-        require(bid.end > block.timestamp, "already-finished-end");
+        require(
+            block.timestamp < b.auction_end_time, "already finished auction"
+        );
 
-        require(_bid == bid.bid, "not-matching-bid");
-        require(lot < bid.lot, "lot-not-lower");
-        require(beg * lot <= bids[id].lot * WAD, "insufficient-decrease");
+        require(bid_amount == b.amount, "not matching bid");
+        require(lot < b.lot, "lot not lower");
+        // lot <= b.lot / min_bid_decrease
+        require(min_bid_decrease * lot <= b.lot * WAD, "insufficient decrease");
 
-        if (msg.sender != bid.guy) {
-            cdp_engine.transfer_coin(msg.sender, bid.guy, _bid);
+        if (msg.sender != b.highest_bidder) {
+            // Refund previous highest bidder
+            cdp_engine.transfer_coin(msg.sender, b.highest_bidder, bid_amount);
 
             // on first dent, clear as much Ash as possible
-            if (bid.tic == 0) {
-                uint256 debt = IDebtEngine(bid.guy).total_debt_on_auction();
-                IDebtEngine(bid.guy).cancel_auctioned_debt_with_surplus(
-                    Math.min(_bid, debt)
+            if (b.bid_expiry_time == 0) {
+                uint256 debt =
+                    IDebtEngine(b.highest_bidder).total_debt_on_auction();
+                IDebtEngine(b.highest_bidder).cancel_auctioned_debt_with_surplus(
+                    Math.min(bid_amount, debt)
                 );
             }
 
-            bid.guy = msg.sender;
+            b.highest_bidder = msg.sender;
         }
 
-        bid.lot = lot;
-        bid.tic = uint48(block.timestamp) + ttl;
+        b.lot = lot;
+        b.bid_expiry_time = uint48(block.timestamp) + bid_duration;
     }
 
-    // deal
-    function deal(uint256 id) external live {
-        Bid storage bid = bids[id];
+    // deal - claim a winning bid / settles a completed auction
+    function claim(uint256 id) external live {
+        Bid storage b = bids[id];
         require(
-            bid.tic != 0
-                && (bid.tic < block.timestamp || bid.end < block.timestamp),
+            b.bid_expiry_time != 0
+                && (
+                    b.bid_expiry_time < block.timestamp
+                        || b.auction_end_time < block.timestamp
+                ),
             "not finished"
         );
-        gem.mint(bid.guy, bid.lot);
+        gem.mint(b.highest_bidder, b.lot);
         delete bids[id];
     }
 
@@ -146,9 +166,9 @@ contract DebtAuction is Auth, CircuitBreaker {
     }
 
     function yank(uint256 id) external live {
-        Bid storage bid = bids[id];
-        require(bid.guy != address(0), "guy-not-set");
-        cdp_engine.mint(debt_engine, bid.guy, bid.bid);
+        Bid storage b = bids[id];
+        require(b.highest_bidder != address(0), "bidder not set");
+        cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
         delete bids[id];
     }
 }
