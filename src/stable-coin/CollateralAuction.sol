@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IAuctionPriceCalculator} from
@@ -16,7 +16,7 @@ import {Guard} from "../lib/Guard.sol";
 // Clipper
 contract CollateralAuction is Auth, Guard {
     bytes32 public immutable collateral_type;
-    ICDPEngine public immutable cdp_engine;
+    ISafeEngine public immutable safe_engine;
 
     // dog
     ILiquidationEngine public liquidation_engine;
@@ -107,7 +107,7 @@ contract CollateralAuction is Auth, Guard {
         address liquidation_engine_,
         bytes32 collateral_type_
     ) {
-        cdp_engine = ICDPEngine(vat_);
+        safe_engine = ISafeEngine(vat_);
         spotter = ISpotter(spotter_);
         liquidation_engine = ILiquidationEngine(liquidation_engine_);
         collateral_type = collateral_type_;
@@ -162,7 +162,7 @@ contract CollateralAuction is Auth, Guard {
 
     // --- Auction ---
     // get the price directly from the OSM
-    // Could get this from rmul(CDPEngine.ilks(collateral_type).spot, Spotter.mat()) instead, but
+    // Could get this from rmul(SafeEngine.ilks(collateral_type).spot, Spotter.mat()) instead, but
     // if mat has changed since the last poke, the resulting value will be
     // incorrect.
     function get_price() internal returns (uint256 price) {
@@ -211,7 +211,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             // TODO: check units
             fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-            cdp_engine.mint(debt_engine, keeper, fee);
+            safe_engine.mint(debt_engine, keeper, fee);
         }
 
         emit Start(
@@ -258,7 +258,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             if (coin_amount >= cache && collateral_amount * price >= cache) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-                cdp_engine.mint(debt_engine, keeper, fee);
+                safe_engine.mint(debt_engine, keeper, fee);
             }
         }
 
@@ -282,7 +282,7 @@ contract CollateralAuction is Auth, Guard {
     // To avoid partial purchases resulting in very small leftover auctions that will
     // never be cleared, any partial purchase must leave at least `Clipper.chost`
     // remaining DAI target. `chost` is an asynchronously updated value equal to
-    // (CDPEngine.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
+    // (SafeEngine.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
     // by whatever they were when Clipper.upchost() was last called. Purchase amounts
     // will be minimally decreased when necessary to respect this limit; i.e., if the
     // specified `amt` would leave `coin_amount < chost` but `coin_amount > 0`, the amount actually
@@ -358,7 +358,7 @@ contract CollateralAuction is Auth, Guard {
             collateral_amount -= slice;
 
             // Send collateral to receiver
-            cdp_engine.transfer_collateral(
+            safe_engine.transfer_collateral(
                 collateral_type, address(this), receiver, slice
             );
 
@@ -366,7 +366,7 @@ contract CollateralAuction is Auth, Guard {
             // extremely careful we don't allow to do it to the two
             // contracts which the Clipper needs to be authorized
             if (
-                data.length > 0 && receiver != address(cdp_engine)
+                data.length > 0 && receiver != address(safe_engine)
                     && receiver != address(liquidation_engine)
             ) {
                 ICollateralAuctionCallee(receiver).callback(
@@ -375,7 +375,7 @@ contract CollateralAuction is Auth, Guard {
             }
 
             // Get DAI from caller
-            cdp_engine.transfer_coin(msg.sender, debt_engine, owe);
+            safe_engine.transfer_coin(msg.sender, debt_engine, owe);
 
             // Removes Dai out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
@@ -387,7 +387,7 @@ contract CollateralAuction is Auth, Guard {
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {
-            cdp_engine.transfer_collateral(
+            safe_engine.transfer_collateral(
                 collateral_type, address(this), user, collateral_amount
             );
             _remove(id);
@@ -468,8 +468,8 @@ contract CollateralAuction is Auth, Guard {
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
-        ICDPEngine.CollateralType memory col =
-            ICDPEngine(cdp_engine).cols(collateral_type);
+        ISafeEngine.CollateralType memory col =
+            ISafeEngine(safe_engine).cols(collateral_type);
         cache =
             Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
     }
@@ -478,7 +478,7 @@ contract CollateralAuction is Auth, Guard {
     function yank(uint256 id) external auth lock {
         require(sales[id].user != address(0), "Clipper/not-running-auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
-        cdp_engine.transfer_collateral(
+        safe_engine.transfer_collateral(
             collateral_type,
             address(this),
             msg.sender,

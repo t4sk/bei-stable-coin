@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -22,12 +22,12 @@ contract Spotter is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => CollateralType) public cols;
 
-    ICDPEngine public immutable cdp_engine;
+    ISafeEngine public immutable safe_engine;
     // par - value of DAI in the reference asset (e.g. $1 per DAI)
     uint256 public par; // ref per dai [ray]
 
     constructor(address _cdp_engine) {
-        cdp_engine = ICDPEngine(_cdp_engine);
+        safe_engine = ISafeEngine(_cdp_engine);
         par = RAY;
     }
 
@@ -73,7 +73,7 @@ contract Spotter is Auth, CircuitBreaker {
                 Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio
             )
             : 0;
-        cdp_engine.set(col_type, "spot", spot);
+        safe_engine.set(col_type, "spot", spot);
         emit Poke(col_type, val, spot);
     }
 

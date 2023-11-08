@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
@@ -23,7 +23,7 @@ contract Pot is Auth, CircuitBreaker {
     // chi
     uint256 public chi; // Rate accumulator [ray]
 
-    ICDPEngine public cdp_engine; // CDP Engine
+    ISafeEngine public safe_engine; // CDP Engine
     address public debt_engine; // Debt Engine
     // rho
     uint256 public updated_at; // Time of last drip [unix epoch time]
@@ -31,7 +31,7 @@ contract Pot is Auth, CircuitBreaker {
     //        collateral type when it is called
 
     constructor(address _cdp_engine) {
-        cdp_engine = ICDPEngine(_cdp_engine);
+        safe_engine = ISafeEngine(_cdp_engine);
         dsr = RAY;
         chi = RAY;
         updated_at = block.timestamp;
@@ -74,7 +74,7 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = chi * total
         // new  total = new chi * total
         // mint = new total - prev total = (new chi - chi) * total
-        cdp_engine.mint(debt_engine, address(this), total * delta_chi);
+        safe_engine.mint(debt_engine, address(this), total * delta_chi);
         return tmp;
     }
 
@@ -83,12 +83,12 @@ contract Pot is Auth, CircuitBreaker {
         require(block.timestamp == updated_at, "updated_at != now");
         balances[msg.sender] += wad;
         total += wad;
-        cdp_engine.transfer_coin(msg.sender, address(this), chi * wad);
+        safe_engine.transfer_coin(msg.sender, address(this), chi * wad);
     }
 
     function exit(uint256 wad) external {
         balances[msg.sender] -= wad;
         total -= wad;
-        cdp_engine.transfer_coin(address(this), msg.sender, chi * wad);
+        safe_engine.transfer_coin(address(this), msg.sender, chi * wad);
     }
 }

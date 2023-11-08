@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
@@ -13,11 +13,11 @@ dart: change in debt.
 */
 
 // Vat - CDP Engine
-contract CDPEngine is Auth, CircuitBreaker, Account {
+contract SafeEngine is Auth, CircuitBreaker, Account {
     // ilks
-    mapping(bytes32 => ICDPEngine.CollateralType) public cols;
+    mapping(bytes32 => ISafeEngine.CollateralType) public cols;
     // urns - collateral type => account => safe
-    mapping(bytes32 => mapping(address => ICDPEngine.Safe)) public safes;
+    mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // collateral type => account => balance (wad)
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // account => coin balance (rad)
@@ -117,8 +117,8 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ICDPEngine.Safe memory safe = safes[col_type][safe_addr];
-        ICDPEngine.CollateralType memory col = cols[col_type];
+        ISafeEngine.Safe memory safe = safes[col_type][safe_addr];
+        ISafeEngine.CollateralType memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -166,7 +166,7 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         );
 
         // safe has no debt, or a non-dusty amount
-        require(safe.debt == 0 || total_coin >= col.floor, "CDPEngine/dust");
+        require(safe.debt == 0 || total_coin >= col.floor, "SafeEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
@@ -186,9 +186,9 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         int256 delta_col,
         int256 delta_debt
     ) external {
-        ICDPEngine.Safe storage u = safes[col_type][src];
-        ICDPEngine.Safe storage v = safes[col_type][dst];
-        ICDPEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.Safe storage u = safes[col_type][src];
+        ISafeEngine.Safe storage v = safes[col_type][dst];
+        ISafeEngine.CollateralType storage col = cols[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
         u.debt = Math.sub(u.debt, delta_debt);
@@ -230,8 +230,8 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ICDPEngine.Safe storage safe = safes[col_type][src];
-        ICDPEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.Safe storage safe = safes[col_type][src];
+        ISafeEngine.CollateralType storage col = cols[col_type];
 
         // TODO: flip operations? add -> sub
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -272,7 +272,7 @@ contract CDPEngine is Auth, CircuitBreaker, Account {
         auth
         live
     {
-        ICDPEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.CollateralType storage col = cols[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);

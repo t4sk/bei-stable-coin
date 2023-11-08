@@ -3,8 +3,8 @@ pragma solidity 0.8.19;
 
 import "./SafeHandler.sol";
 
-contract CDPManager {
-    address public immutable cdp_engine;
+contract SafeManager {
+    address public immutable safe_engine;
     uint256 public cdp_id;
 
     struct List {
@@ -29,7 +29,7 @@ contract CDPManager {
     mapping(address => uint256) public count;
 
     constructor(address _cdp_engine) {
-        cdp_engine = _cdp_engine;
+        safe_engine = _cdp_engine;
     }
 
     function open(bytes32 col_type, address user) public returns (uint256) {
@@ -38,7 +38,7 @@ contract CDPManager {
         uint256 id = cdp_id + 1;
         cdp_id = id;
 
-        safes[id] = address(new SafeHandler(cdp_engine));
+        safes[id] = address(new SafeHandler(safe_engine));
         owners[id] = user;
         cols[id] = col_type;
 

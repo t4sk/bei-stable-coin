@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import "../lib/Math.sol";
@@ -32,7 +32,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         uint256 amount;
     }
 
-    ICDPEngine public immutable cdp_engine;
+    ISafeEngine public immutable safe_engine;
     mapping(bytes32 => CollateralType) public cols;
     // debt_engine
     IDebtEngine public debt_engine;
@@ -44,7 +44,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     uint256 public total;
 
     constructor(address _cdp_engine) {
-        cdp_engine = ICDPEngine(_cdp_engine);
+        safe_engine = ISafeEngine(_cdp_engine);
     }
 
     // --- Administration ---
@@ -109,8 +109,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         live
         returns (uint256 id)
     {
-        ICDPEngine.Safe memory s = cdp_engine.safes(col_type, safe);
-        ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
+        ISafeEngine.Safe memory s = safe_engine.safes(col_type, safe);
+        ISafeEngine.CollateralType memory c = safe_engine.cols(col_type);
         CollateralType memory col = cols[col_type];
         uint256 delta_debt;
         {
@@ -154,7 +154,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
         // NOTE: collateral sent to aution, debt sent to debt engine
-        cdp_engine.grab({
+        safe_engine.grab({
             col_type: col_type,
             src: safe,
             col_dst: col.auction,

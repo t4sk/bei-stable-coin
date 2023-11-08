@@ -3,8 +3,8 @@ pragma solidity 0.8.19;
 
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
-import {ICDPManager} from "../interfaces/ICDPManager.sol";
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeManager} from "../interfaces/ISafeManager.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
 import {Math, WAD, RAY, RAD} from "../lib/Math.sol";
 
@@ -23,7 +23,7 @@ contract ProxyActions is Common {
         public
         returns (uint256 cdp)
     {
-        cdp = ICDPManager(manager).open(collateral_type, user);
+        cdp = ISafeManager(manager).open(collateral_type, user);
     }
 
     function gemJoin_join(
@@ -52,7 +52,7 @@ contract ProxyActions is Common {
 
     // _getDrawDart
     function getDeltaDebt(
-        address cdp_engine,
+        address safe_engine,
         address jug,
         address safe,
         bytes32 collateral_type,
@@ -61,15 +61,15 @@ contract ProxyActions is Common {
         // Updates stability fee rate
         uint256 rate = IJug(jug).drip(collateral_type);
 
-        // Gets DAI balance of the safe in the cdp_engine
-        uint256 dai = ICDPEngine(cdp_engine).coin(safe);
+        // Gets DAI balance of the safe in the safe_engine
+        uint256 dai = ISafeEngine(safe_engine).coin(safe);
 
         // TODO:?
-        // If there was already enough DAI in the cdp_engine balance,
+        // If there was already enough DAI in the safe_engine balance,
         // just exits it without adding more debt
         if (dai < wad * RAY) {
             // Calculates the needed delta debt so together with the existing dai
-            // in the cdp_engine is enough to exit wad amount of DAI tokens
+            // in the safe_engine is enough to exit wad amount of DAI tokens
             deltaDebt = Math.to_int((wad * RAY - dai) / rate);
             // This is neeeded due lack of precision.
             // It might need to sum an extra delta debt wei (for the given DAI wad amount)
@@ -83,7 +83,7 @@ contract ProxyActions is Common {
     function move(address manager, uint256 cdp, address dst, uint256 rad)
         public
     {
-        ICDPManager(manager).move(cdp, dst, rad);
+        ISafeManager(manager).move(cdp, dst, rad);
     }
 
     function frob(
@@ -92,7 +92,7 @@ contract ProxyActions is Common {
         int256 deltaCollateral,
         int256 deltaDebt
     ) public {
-        ICDPManager(manager).modify_safe(cdp, deltaCollateral, deltaDebt);
+        ISafeManager(manager).modify_safe(cdp, deltaCollateral, deltaDebt);
     }
 
     // Lock collateral, generate debt and send DAI to msg.sender
@@ -106,18 +106,18 @@ contract ProxyActions is Common {
         uint256 wad,
         bool isTransferFrom
     ) public {
-        address safe = ICDPManager(manager).safes(cdp);
-        address cdp_engine = ICDPManager(manager).cdp_engine();
-        bytes32 collateral_type = ICDPManager(manager).cols(cdp);
+        address safe = ISafeManager(manager).safes(cdp);
+        address safe_engine = ISafeManager(manager).safe_engine();
+        bytes32 collateral_type = ISafeManager(manager).cols(cdp);
 
         gemJoin_join(gemJoin, safe, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
-        // frob(manager, cdp, to_int(to18Decimals(gemJoin, amount)), _getDrawDart(cdp_engine, jug, urn, ilk, wadD));
-        // // Moves the DAI amount (balance in the cdp_engine in rad) to proxy's address
+        // frob(manager, cdp, to_int(to18Decimals(gemJoin, amount)), _getDrawDart(safe_engine, jug, urn, ilk, wadD));
+        // // Moves the DAI amount (balance in the safe_engine in rad) to proxy's address
         move(manager, cdp, address(this), Math.to_rad(wad));
-        // // Allows adapter to access to proxy's DAI balance in the cdp_engine
-        // if (VatLike(cdp_engine).can(address(this), address(daiJoin)) == 0) {
-        //     VatLike(cdp_engine).hope(daiJoin);
+        // // Allows adapter to access to proxy's DAI balance in the safe_engine
+        // if (VatLike(safe_engine).can(address(this), address(daiJoin)) == 0) {
+        //     VatLike(safe_engine).hope(daiJoin);
         // }
         // Exits DAI to the user's wallet as a token
         ICoinJoin(daiJoin).exit(msg.sender, wad);

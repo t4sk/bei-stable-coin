@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 // vow
 interface IDebtEngine {
     // vat
-    function cdp_engine() external view returns (address);
+    function safe_engine() external view returns (address);
     // flapper
     function surplus_auction() external view returns (address);
     // flopper

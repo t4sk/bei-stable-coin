@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import "../lib/Math.sol";
@@ -35,7 +35,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     mapping(uint256 => Bid) public bids;
 
     // vat
-    ICDPEngine public immutable cdp_engine;
+    ISafeEngine public immutable safe_engine;
     // gem - MKR
     IGem public immutable gem;
 
@@ -53,7 +53,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     address public debt_engine; // not used until shutdown TODO: why?
 
     constructor(address _cdp_engine, address _gem) {
-        cdp_engine = ICDPEngine(_cdp_engine);
+        safe_engine = ISafeEngine(_cdp_engine);
         gem = IGem(_gem);
     }
 
@@ -125,7 +125,7 @@ contract DebtAuction is Auth, CircuitBreaker {
 
         if (msg.sender != b.highest_bidder) {
             // Refund previous highest bidder
-            cdp_engine.transfer_coin(msg.sender, b.highest_bidder, bid_amount);
+            safe_engine.transfer_coin(msg.sender, b.highest_bidder, bid_amount);
 
             // on first dent, clear as much Ash as possible
             if (b.bid_expiry_time == 0) {
@@ -168,7 +168,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     function yank(uint256 id) external live {
         Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
-        cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
+        safe_engine.mint(debt_engine, b.highest_bidder, b.amount);
         delete bids[id];
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
@@ -20,14 +20,14 @@ contract Jug is Auth {
 
     mapping(bytes32 => CollateralType) public cols;
     // CDP engine
-    ICDPEngine public immutable cdp_engine;
+    ISafeEngine public immutable safe_engine;
     // Debt engine
     address public debt_engine;
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
 
     constructor(address _cdp_engine) {
-        cdp_engine = ICDPEngine(_cdp_engine);
+        safe_engine = ISafeEngine(_cdp_engine);
     }
 
     // --- Administration ---
@@ -71,12 +71,12 @@ contract Jug is Auth {
     function drip(bytes32 col_type) external returns (uint256 rate) {
         CollateralType storage col = cols[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
-        ICDPEngine.CollateralType memory c = cdp_engine.cols(col_type);
+        ISafeEngine.CollateralType memory c = safe_engine.cols(col_type);
         rate = Math.rmul(
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
             c.rate
         );
-        cdp_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.rate));
+        safe_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.rate));
         col.updated_at = block.timestamp;
     }
 }
