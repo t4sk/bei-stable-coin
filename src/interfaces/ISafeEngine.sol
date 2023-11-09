@@ -2,26 +2,27 @@
 pragma solidity 0.8.19;
 
 interface ISafeEngine {
-    // Ilk: a collateral type.
+    // Ilk: a collateral type
     struct CollateralType {
-        // Art: total normalized stablecoin debt.
-        uint256 debt; // wad
-        // rate: stablecoin debt multiplier (accumulated stability fees).
-        uint256 rate; // ray
-        // spot: collateral price with safety margin, i.e. the maximum stablecoin allowed per unit of collateral.
-        uint256 spot; // ray
-        // line: the debt ceiling for a specific collateral type.
-        uint256 max_debt; // rad
-        // dust: the debt floor for a specific collateral type.
-        uint256 min_debt; // rad
+        // Art [wad] total normalized stablecoin debt
+        uint256 debt;
+        // rate [ray] stablecoin debt multiplier (accumulated stability fees)
+        uint256 rate;
+        // spot [ray] collateral price with safety margin,
+        //            i.e. the maximum stablecoin allowed per unit of collateral
+        uint256 spot;
+        // line [rad] debt ceiling for a specific collateral type
+        uint256 max_debt;
+        // dust [rad] debt floor for a specific collateral type
+        uint256 min_debt;
     }
 
-    // Urn: a specific safe.
+    // Urn: a specific vault (CDP)
     struct Safe {
-        // ink: collateral balance.
-        uint256 collateral; // wad
-        // art: normalized outstanding stablecoin debt.
-        uint256 debt; // wad
+        // ink [wad] collateral balance
+        uint256 collateral;
+        // art [wad] normalized outstanding stablecoin debt
+        uint256 debt;
     }
 
     function coin(address safe) external view returns (uint256);
