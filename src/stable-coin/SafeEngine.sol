@@ -7,30 +7,25 @@ import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import {Account} from "../lib/Account.sol";
 
-/*
-dink: change in collateral.
-dart: change in debt.
-*/
-
 // Vat - CDP Engine
 contract SafeEngine is Auth, CircuitBreaker, Account {
     // ilks
     mapping(bytes32 => ISafeEngine.Collateral) public cols;
     // urns - collateral type => account => safe
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
-    // collateral type => account => balance (wad)
+    // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
-    // account => coin balance (rad)
+    // dai - account => coin balance [rad]
     mapping(address => uint256) public coin;
-    // sin - account => debt balance (rad)
+    // sin - account => debt balance [rad]
     mapping(address => uint256) public debts;
 
-    // debt- Total coin issued (rad)
-    uint256 public global_debt;
-    // vice -Total unbacked coin (rad)
-    uint256 public global_unbacked_debt;
-    // Line - Total debt ceiling (rad)
-    uint256 public max_global_debt;
+    // debt - total coin issued [rad]
+    uint256 public total_debt;
+    // vice - total unbacked coin [rad]
+    uint256 public total_unbacked_debt;
+    // Line - total debt ceiling [rad]
+    uint256 public max_total_debt;
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
@@ -40,8 +35,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // file
     function set(bytes32 key, uint256 val) external auth live {
-        if (key == "max_global_debt") {
-            max_global_debt = val;
+        if (key == "max_total_debt") {
+            max_total_debt = val;
         } else {
             revert("invalid param");
         }
@@ -111,47 +106,47 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     // dart: change in debt.
     function modify_safe(
         bytes32 col_type,
-        address safe_addr,
+        address safe,
         address col_src,
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ISafeEngine.Safe memory safe = safes[col_type][safe_addr];
+        ISafeEngine.Safe memory s = safes[col_type][safe];
         ISafeEngine.Collateral memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
-        safe.collateral = Math.add(safe.collateral, delta_col);
-        safe.debt = Math.add(safe.debt, delta_debt);
+        s.collateral = Math.add(s.collateral, delta_col);
+        s.debt = Math.add(s.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         // delta_debt = delta coin / col.rate
         // delta coin = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
         // total coin + compound interest that the safe owes to protocol
-        uint256 total_coin = col.rate * safe.debt;
-        global_debt = Math.add(global_debt, delta_coin);
+        uint256 total_coin = col.rate * s.debt;
+        total_debt = Math.add(total_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
             delta_debt <= 0
                 || (
                     col.debt * col.rate <= col.max_debt
-                        && global_debt <= max_global_debt
+                        && total_debt <= max_total_debt
                 ),
             "debt ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || total_coin <= safe.collateral * col.spot,
+                || total_coin <= s.collateral * col.spot,
             "not safe"
         );
 
         // safe is either more safe, or the owner consents
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(safe_addr, msg.sender),
+                || can_modify_account(safe, msg.sender),
             "not allowed safe addr"
         );
         // collateral src consents
@@ -166,12 +161,12 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         );
 
         // safe has no debt, or a non-dusty amount
-        require(safe.debt == 0 || total_coin >= col.min_debt, "SafeEngine/dust");
+        require(s.debt == 0 || total_coin >= col.min_debt, "SafeEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
 
-        safes[col_type][safe_addr] = safe;
+        safes[col_type][safe] = s;
         cols[col_type] = col;
     }
 
@@ -242,7 +237,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
         gem[col_type][col_dst] = Math.sub(gem[col_type][col_dst], delta_col);
         debts[debt_dst] = Math.sub(debts[debt_dst], delta_coin);
-        global_unbacked_debt = Math.sub(global_unbacked_debt, delta_coin);
+        total_unbacked_debt = Math.sub(total_unbacked_debt, delta_coin);
     }
 
     // --- Settlement ---
@@ -250,8 +245,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     function burn(uint256 rad) external {
         debts[msg.sender] -= rad;
         coin[msg.sender] -= rad;
-        global_unbacked_debt -= rad;
-        global_debt -= rad;
+        total_unbacked_debt -= rad;
+        total_debt -= rad;
     }
 
     // suck: mint unbacked stablecoin (accounted for with vice).
@@ -261,13 +256,13 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     {
         debts[debt_dst] += rad;
         coin[coin_dst] += rad;
-        global_unbacked_debt += rad;
-        global_debt += rad;
+        total_unbacked_debt += rad;
+        total_debt += rad;
     }
 
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
-    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
+    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
         external
         auth
         live
@@ -278,6 +273,6 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         col.rate = Math.add(col.rate, delta_rate);
         int256 delta_debt = Math.mul(col.debt, delta_rate);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_debt);
-        global_debt = Math.add(global_debt, delta_debt);
+        total_debt = Math.add(total_debt, delta_debt);
     }
 }

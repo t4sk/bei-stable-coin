@@ -25,23 +25,36 @@ interface ISafeEngine {
         uint256 debt;
     }
 
-    function coin(address safe) external view returns (uint256);
-    function debts(address account) external view returns (uint256);
-    function safes(bytes32 col_type, address safe)
+    // ilks
+    function cols(bytes32 col_type) external view returns (Collateral memory);
+    // urns
+    function safes(bytes32 col_type, address account)
         external
         view
         returns (Safe memory);
-    // ilks
-    function cols(bytes32 col_type) external view returns (Collateral memory);
+    // gem [wad]
+    function gem(bytes32 col_type, address account)
+        external
+        view
+        returns (uint256);
+    // dai [rad]
+    function coin(address account) external view returns (uint256);
+    // sin [rad]
+    function debts(address account) external view returns (uint256);
+    // debt [rad]
+    function total_debt() external view returns (uint256);
+    // vice [rad]
+    function total_unbacked_debt() external view returns (uint256);
+    // Line [rad]
+    function max_total_debt() external view returns (uint256);
+
     // rely
     function add_auth(address user) external;
     // deny
     function remove_auth(address user) external;
     // wards
-    function authorized(address owner, address user)
-        external
-        view
-        returns (bool);
+    function authorized(address user) external view returns (bool);
+
     // hope
     function allow_account_modification(address user) external;
     // nope
@@ -51,9 +64,16 @@ interface ISafeEngine {
         external
         view
         returns (bool);
+
+    // --- Administration ---
+    function init(bytes32 col_type) external;
     // file
     function set(bytes32 key, uint256 val) external;
     function set(bytes32 col_type, bytes32 key, uint256 val) external;
+    // cage
+    function stop() external;
+
+    // --- Fungibility ---
     // slip
     function modify_collateral_balance(
         bytes32 col_type,
@@ -69,6 +89,19 @@ interface ISafeEngine {
     ) external;
     // move
     function transfer_coin(address src, address dst, uint256 rad) external;
+
+    // --- CDP Manipulation ---
+    // frob
+    function modify_safe(
+        bytes32 col_type,
+        address safe,
+        address col_src,
+        address debt_dst,
+        int256 delta_col,
+        int256 delta_debt
+    ) external;
+
+    // --- CDP Fungibility ---
     function fork(
         bytes32 col_type,
         address src,
@@ -84,11 +117,15 @@ interface ISafeEngine {
         int256 delta_col,
         int256 delta_debt
     ) external;
-    // suck
-    function mint(address debt_dst, address coin_dst, uint256 rad) external;
+
+    // --- Settlement ---
     // heal
     function burn(uint256 rad) external;
+    // suck
+    function mint(address debt_dst, address coin_dst, uint256 rad) external;
+
+    // --- Rates ---
     // fold
-    function update_rate(bytes32 col_type, address debt_engine, int256 rate)
+    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
         external;
 }

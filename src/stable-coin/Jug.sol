@@ -76,7 +76,7 @@ contract Jug is Auth {
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
             c.rate
         );
-        safe_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.rate));
+        safe_engine.sync(col_type, debt_engine, Math.diff(rate, c.rate));
         col.updated_at = block.timestamp;
     }
 }
