@@ -11,7 +11,7 @@ interface ISafeEngine {
         // spot: collateral price with safety margin, i.e. the maximum stablecoin allowed per unit of collateral.
         uint256 spot; // ray
         // line: the debt ceiling for a specific collateral type.
-        uint256 debt_ceiling; // rad
+        uint256 max_debt; // rad
         // dust: the debt floor for a specific collateral type.
         uint256 min_debt; // rad
     }
