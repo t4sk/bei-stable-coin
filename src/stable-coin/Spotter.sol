@@ -26,8 +26,8 @@ contract Spotter is Auth, CircuitBreaker {
     // par - value of DAI in the reference asset (e.g. $1 per DAI)
     uint256 public par; // ref per dai [ray]
 
-    constructor(address _cdp_engine) {
-        safe_engine = ISafeEngine(_cdp_engine);
+    constructor(address _safe_engine) {
+        safe_engine = ISafeEngine(_safe_engine);
         par = RAY;
     }
 

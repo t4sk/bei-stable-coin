@@ -60,4 +60,16 @@ contract Coin is Auth {
         emit Approval(msg.sender, user, wad);
         return true;
     }
+
+    function push(address usr, uint256 amount) external {
+        transferFrom(msg.sender, usr, amount);
+    }
+
+    function pull(address usr, uint256 amount) external {
+        transferFrom(usr, msg.sender, amount);
+    }
+
+    function move(address src, address dst, uint256 amount) external {
+        transferFrom(src, dst, amount);
+    }
 }

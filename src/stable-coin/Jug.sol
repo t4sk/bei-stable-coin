@@ -26,8 +26,8 @@ contract Jug is Auth {
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
 
-    constructor(address _cdp_engine) {
-        safe_engine = ISafeEngine(_cdp_engine);
+    constructor(address _safe_engine) {
+        safe_engine = ISafeEngine(_safe_engine);
     }
 
     // --- Administration ---

@@ -43,8 +43,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // Amount DAI needed to cover debt+fees of active auctions [rad]
     uint256 public total;
 
-    constructor(address _cdp_engine) {
-        safe_engine = ISafeEngine(_cdp_engine);
+    constructor(address _safe_engine) {
+        safe_engine = ISafeEngine(_safe_engine);
     }
 
     // --- Administration ---

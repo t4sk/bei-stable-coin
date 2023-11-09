@@ -10,4 +10,7 @@ interface IGem {
     function withdraw(uint256) external;
     function mint(address, uint256) external;
     function burn(address, uint256) external;
+    function push(address usr, uint256 amount) external;
+    function pull(address usr, uint256 amount) external;
+    function move(address src, address dst, uint256 amount) external;
 }

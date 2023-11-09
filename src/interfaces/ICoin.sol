@@ -10,4 +10,7 @@ interface ICoin {
     function transferFrom(address, address, uint256) external returns (bool);
     // function deposit() external payable;
     // function withdraw(uint256) external;
+    function push(address usr, uint256 amount) external;
+    function pull(address usr, uint256 amount) external;
+    function move(address src, address dst, uint256 amount) external;
 }

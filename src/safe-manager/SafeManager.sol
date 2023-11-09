@@ -28,8 +28,8 @@ contract SafeManager {
     // Owner => CDP count
     mapping(address => uint256) public count;
 
-    constructor(address _cdp_engine) {
-        safe_engine = _cdp_engine;
+    constructor(address _safe_engine) {
+        safe_engine = _safe_engine;
     }
 
     function open(bytes32 col_type, address user) public returns (uint256) {

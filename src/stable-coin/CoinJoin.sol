@@ -14,8 +14,8 @@ contract CoinJoin is Auth, CircuitBreaker {
     ISafeEngine public immutable safe_engine;
     ICoin public immutable dai;
 
-    constructor(address _cdp_engine, address _dai) {
-        safe_engine = ISafeEngine(_cdp_engine);
+    constructor(address _safe_engine, address _dai) {
+        safe_engine = ISafeEngine(_safe_engine);
         dai = ICoin(_dai);
     }
 

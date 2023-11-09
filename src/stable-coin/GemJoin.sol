@@ -17,8 +17,8 @@ contract GemJoin is Auth, CircuitBreaker {
     // decimals
     uint256 public immutable dec;
 
-    constructor(address _cdp_engine, bytes32 _collateralType, address _gem) {
-        safe_engine = ISafeEngine(_cdp_engine);
+    constructor(address _safe_engine, bytes32 _collateralType, address _gem) {
+        safe_engine = ISafeEngine(_safe_engine);
         collateral_type = _collateralType;
         gem = IGem(_gem);
         dec = gem.decimals();
