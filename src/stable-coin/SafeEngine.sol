@@ -54,8 +54,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     {
         if (key == "spot") {
             cols[col_type].spot = val;
-        } else if (key == "ceiling") {
-            cols[col_type].ceiling = val;
+        } else if (key == "debt_ceiling") {
+            cols[col_type].debt_ceiling = val;
         } else if (key == "floor") {
             cols[col_type].floor = val;
         } else {
@@ -136,10 +136,10 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         require(
             delta_debt <= 0
                 || (
-                    col.debt * col.rate <= col.ceiling
+                    col.debt * col.rate <= col.debt_ceiling
                         && global_debt <= global_debt_ceiling
                 ),
-            "ceiling exceeded"
+            "debt ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
         require(
