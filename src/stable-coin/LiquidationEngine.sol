@@ -131,7 +131,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
             // Partial liquidation edge case logic
             if (s.debt > delta_debt) {
-                if ((s.debt - delta_debt) * c.rate < c.floor) {
+                if ((s.debt - delta_debt) * c.rate < c.min_debt) {
                     // If the leftover s would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
@@ -141,7 +141,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
                     require(
-                        delta_debt * c.rate >= c.floor,
+                        delta_debt * c.rate >= c.min_debt,
                         "dusty auction from partial liquidation"
                     );
                 }

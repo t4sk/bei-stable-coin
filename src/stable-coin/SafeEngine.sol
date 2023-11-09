@@ -30,7 +30,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     // vice -Total unbacked coin (rad)
     uint256 public global_unbacked_debt;
     // Line - Total debt ceiling (rad)
-    uint256 public global_debt_ceiling;
+    uint256 public max_global_debt;
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
@@ -40,8 +40,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // file
     function set(bytes32 key, uint256 val) external auth live {
-        if (key == "global_debt_ceiling") {
-            global_debt_ceiling = val;
+        if (key == "max_global_debt") {
+            max_global_debt = val;
         } else {
             revert("invalid param");
         }
@@ -56,8 +56,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
             cols[col_type].spot = val;
         } else if (key == "debt_ceiling") {
             cols[col_type].debt_ceiling = val;
-        } else if (key == "floor") {
-            cols[col_type].floor = val;
+        } else if (key == "min_debt") {
+            cols[col_type].min_debt = val;
         } else {
             revert("invalid param");
         }
@@ -137,7 +137,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
             delta_debt <= 0
                 || (
                     col.debt * col.rate <= col.debt_ceiling
-                        && global_debt <= global_debt_ceiling
+                        && global_debt <= max_global_debt
                 ),
             "debt ceiling exceeded"
         );
@@ -166,7 +166,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         );
 
         // safe has no debt, or a non-dusty amount
-        require(safe.debt == 0 || total_coin >= col.floor, "SafeEngine/dust");
+        require(safe.debt == 0 || total_coin >= col.min_debt, "SafeEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
@@ -210,8 +210,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         require(v_total_coin <= v.collateral * col.spot, "not safe dst");
 
         // both sides non-dusty
-        require(u_total_coin >= col.floor || u.debt == 0, "dust src");
-        require(v_total_coin >= col.floor || v.debt == 0, "dust dst");
+        require(u_total_coin >= col.min_debt || u.debt == 0, "dust src");
+        require(v_total_coin >= col.min_debt || v.debt == 0, "dust dst");
     }
 
     // --- CDP Confiscation ---

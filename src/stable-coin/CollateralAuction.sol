@@ -471,7 +471,7 @@ contract CollateralAuction is Auth, Guard {
         ISafeEngine.CollateralType memory col =
             ISafeEngine(safe_engine).cols(collateral_type);
         cache =
-            Math.wmul(col.floor, liquidation_engine.penalty(collateral_type));
+            Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }
 
     // Cancel an auction during ES or via governance action.

@@ -13,8 +13,7 @@ interface ISafeEngine {
         // line: the debt ceiling for a specific collateral type.
         uint256 debt_ceiling; // rad
         // dust: the debt floor for a specific collateral type.
-        // TODO: rename to min_debt?
-        uint256 floor; // rad
+        uint256 min_debt; // rad
     }
 
     // Urn: a specific safe.
