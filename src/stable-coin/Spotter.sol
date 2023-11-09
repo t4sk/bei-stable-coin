@@ -12,7 +12,7 @@ contract Spotter is Auth, CircuitBreaker {
     event Poke(bytes32 col_type, uint256 val, uint256 spot);
 
     // Ilk
-    struct CollateralType {
+    struct Collateral {
         // pip
         IPriceFeed price_feed;
         // mat [ray]
@@ -20,7 +20,7 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // ilks
-    mapping(bytes32 => CollateralType) public cols;
+    mapping(bytes32 => Collateral) public cols;
 
     ISafeEngine public immutable safe_engine;
     // par - value of DAI in the reference asset (e.g. $1 per DAI)

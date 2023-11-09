@@ -15,7 +15,7 @@ dart: change in debt.
 // Vat - CDP Engine
 contract SafeEngine is Auth, CircuitBreaker, Account {
     // ilks
-    mapping(bytes32 => ISafeEngine.CollateralType) public cols;
+    mapping(bytes32 => ISafeEngine.Collateral) public cols;
     // urns - collateral type => account => safe
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // collateral type => account => balance (wad)
@@ -118,7 +118,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         int256 delta_debt
     ) external live {
         ISafeEngine.Safe memory safe = safes[col_type][safe_addr];
-        ISafeEngine.CollateralType memory col = cols[col_type];
+        ISafeEngine.Collateral memory col = cols[col_type];
         require(col.rate != 0, "collateral not init");
 
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -188,7 +188,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     ) external {
         ISafeEngine.Safe storage u = safes[col_type][src];
         ISafeEngine.Safe storage v = safes[col_type][dst];
-        ISafeEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = cols[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
         u.debt = Math.sub(u.debt, delta_debt);
@@ -231,7 +231,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         int256 delta_debt
     ) external auth {
         ISafeEngine.Safe storage safe = safes[col_type][src];
-        ISafeEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = cols[col_type];
 
         // TODO: flip operations? add -> sub
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -272,7 +272,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         auth
         live
     {
-        ISafeEngine.CollateralType storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = cols[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);

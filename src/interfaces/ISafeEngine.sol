@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 interface ISafeEngine {
     // Ilk: a collateral type
-    struct CollateralType {
+    struct Collateral {
         // Art [wad] total normalized stablecoin debt
         uint256 debt;
         // rate [ray] stablecoin debt multiplier (accumulated stability fees)
@@ -32,10 +32,7 @@ interface ISafeEngine {
         view
         returns (Safe memory);
     // ilks
-    function cols(bytes32 col_type)
-        external
-        view
-        returns (CollateralType memory);
+    function cols(bytes32 col_type) external view returns (Collateral memory);
     // rely
     function add_auth(address user) external;
     // deny

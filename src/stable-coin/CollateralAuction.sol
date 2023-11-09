@@ -468,7 +468,7 @@ contract CollateralAuction is Auth, Guard {
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
-        ISafeEngine.CollateralType memory col =
+        ISafeEngine.Collateral memory col =
             ISafeEngine(safe_engine).cols(collateral_type);
         cache =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));

@@ -10,7 +10,7 @@ The primary function of the Jug smart contract is to accumulate stability fees
 for a particular collateral type whenever its drip() method is called.
 */
 contract Jug is Auth {
-    struct CollateralType {
+    struct Collateral {
         // Per second stability fee
         // duty - Collateral-specific, per-second stability fee contribution [ray]
         uint256 fee;
@@ -18,7 +18,7 @@ contract Jug is Auth {
         uint256 updated_at;
     }
 
-    mapping(bytes32 => CollateralType) public cols;
+    mapping(bytes32 => Collateral) public cols;
     // CDP engine
     ISafeEngine public immutable safe_engine;
     // Debt engine
@@ -32,7 +32,7 @@ contract Jug is Auth {
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
-        CollateralType storage col = cols[col_type];
+        Collateral storage col = cols[col_type];
         require(col.fee == 0, "already initialized");
         col.fee = RAY;
         col.updated_at = block.timestamp;
@@ -69,9 +69,9 @@ contract Jug is Auth {
     // --- Stability Fee Collection ---
     // drip
     function drip(bytes32 col_type) external returns (uint256 rate) {
-        CollateralType storage col = cols[col_type];
+        Collateral storage col = cols[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
-        ISafeEngine.CollateralType memory c = safe_engine.cols(col_type);
+        ISafeEngine.Collateral memory c = safe_engine.cols(col_type);
         rate = Math.rmul(
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
             c.rate

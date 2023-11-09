@@ -21,7 +21,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     );
     event Remove(bytes32 col_type, uint256 rad);
 
-    struct CollateralType {
+    struct Collateral {
         // clip - Address of collateral auction house
         address auction;
         // chop - Liquidation penalty [wad]
@@ -33,7 +33,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     }
 
     ISafeEngine public immutable safe_engine;
-    mapping(bytes32 => CollateralType) public cols;
+    mapping(bytes32 => Collateral) public cols;
     // debt_engine
     IDebtEngine public debt_engine;
     // Hole
@@ -110,8 +110,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         returns (uint256 id)
     {
         ISafeEngine.Safe memory s = safe_engine.safes(col_type, safe);
-        ISafeEngine.CollateralType memory c = safe_engine.cols(col_type);
-        CollateralType memory col = cols[col_type];
+        ISafeEngine.Collateral memory c = safe_engine.cols(col_type);
+        Collateral memory col = cols[col_type];
         uint256 delta_debt;
         {
             require(
