@@ -40,7 +40,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     IGem public immutable gem;
 
     // beg - minimum bid decrease
-    uint256 public min_bid_decrease = 1.05e18; // 5% minimum bid increase
+    uint256 public min_lot_decrease = 1.05e18; // 5% minimum bid increase
     // pad - increase for lot size during tick (default to 50%)
     uint256 public lot_increase = 1.5e18; // 50% lot increase for tick
     // ttl - bid lifetime (Max bid duration / single bid lifetime)
@@ -59,8 +59,8 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // --- Admin ---
     function set(bytes32 key, uint256 val) external auth {
-        if (key == "min_bid_decrease") {
-            min_bid_decrease = val;
+        if (key == "min_lot_decrease") {
+            min_lot_decrease = val;
         } else if (key == "lot_increase") {
             lot_increase = val;
         } else if (key == "bid_duration") {
@@ -120,8 +120,8 @@ contract DebtAuction is Auth, CircuitBreaker {
 
         require(bid_amount == b.amount, "not matching bid");
         require(lot < b.lot, "lot not lower");
-        // lot <= b.lot / min_bid_decrease
-        require(min_bid_decrease * lot <= b.lot * WAD, "insufficient decrease");
+        // lot <= b.lot / min_lot_decrease
+        require(min_lot_decrease * lot <= b.lot * WAD, "insufficient decrease");
 
         if (msg.sender != b.highest_bidder) {
             // Refund previous highest bidder

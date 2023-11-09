@@ -61,15 +61,15 @@ contract Coin is Auth {
         return true;
     }
 
-    function push(address usr, uint256 amount) external {
-        transferFrom(msg.sender, usr, amount);
+    function push(address user, uint256 wad) external {
+        transferFrom(msg.sender, user, wad);
     }
 
-    function pull(address usr, uint256 amount) external {
-        transferFrom(usr, msg.sender, amount);
+    function pull(address user, uint256 wad) external {
+        transferFrom(user, msg.sender, wad);
     }
 
-    function move(address src, address dst, uint256 amount) external {
-        transferFrom(src, dst, amount);
+    function move(address src, address dst, uint256 wad) external {
+        transferFrom(src, dst, wad);
     }
 }
