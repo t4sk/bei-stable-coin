@@ -469,7 +469,7 @@ contract CollateralAuction is Auth, Guard {
     // upchost
     function update_cache() external {
         ISafeEngine.Collateral memory col =
-            ISafeEngine(safe_engine).cols(collateral_type);
+            ISafeEngine(safe_engine).collaterals(collateral_type);
         cache =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }

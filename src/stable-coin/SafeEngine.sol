@@ -10,7 +10,7 @@ import {Account} from "../lib/Account.sol";
 // Vat - CDP Engine
 contract SafeEngine is Auth, CircuitBreaker, Account {
     // ilks
-    mapping(bytes32 => ISafeEngine.Collateral) public cols;
+    mapping(bytes32 => ISafeEngine.Collateral) public collaterals;
     // urns - collateral type => account => safe
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // gem - collateral type => account => balance [wad]
@@ -29,8 +29,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
-        require(cols[col_type].rate == 0, "already init");
-        cols[col_type].rate = RAY;
+        require(collaterals[col_type].rate == 0, "already init");
+        collaterals[col_type].rate = RAY;
     }
 
     // file
@@ -48,11 +48,11 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         live
     {
         if (key == "spot") {
-            cols[col_type].spot = val;
+            collaterals[col_type].spot = val;
         } else if (key == "max_debt") {
-            cols[col_type].max_debt = val;
+            collaterals[col_type].max_debt = val;
         } else if (key == "min_debt") {
-            cols[col_type].min_debt = val;
+            collaterals[col_type].min_debt = val;
         } else {
             revert("invalid param");
         }
@@ -113,7 +113,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         int256 delta_debt
     ) external live {
         ISafeEngine.Safe memory s = safes[col_type][safe];
-        ISafeEngine.Collateral memory col = cols[col_type];
+        ISafeEngine.Collateral memory col = collaterals[col_type];
         require(col.rate != 0, "collateral not init");
 
         s.collateral = Math.add(s.collateral, delta_col);
@@ -142,7 +142,6 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
                 || total_coin <= s.collateral * col.spot,
             "not safe"
         );
-
         // safe is either more safe, or the owner consents
         require(
             (delta_debt <= 0 && delta_col >= 0)
@@ -167,7 +166,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
 
         safes[col_type][safe] = s;
-        cols[col_type] = col;
+        collaterals[col_type] = col;
     }
 
     // --- CDP Fungibility ---
@@ -183,7 +182,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     ) external {
         ISafeEngine.Safe storage u = safes[col_type][src];
         ISafeEngine.Safe storage v = safes[col_type][dst];
-        ISafeEngine.Collateral storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = collaterals[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
         u.debt = Math.sub(u.debt, delta_debt);
@@ -226,7 +225,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         int256 delta_debt
     ) external auth {
         ISafeEngine.Safe storage safe = safes[col_type][src];
-        ISafeEngine.Collateral storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = collaterals[col_type];
 
         // TODO: flip operations? add -> sub
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -267,7 +266,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         auth
         live
     {
-        ISafeEngine.Collateral storage col = cols[col_type];
+        ISafeEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);

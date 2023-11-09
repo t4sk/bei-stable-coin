@@ -20,7 +20,7 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // ilks
-    mapping(bytes32 => Collateral) public cols;
+    mapping(bytes32 => Collateral) public collaterals;
 
     ISafeEngine public immutable safe_engine;
     // par - value of DAI in the reference asset (e.g. $1 per DAI)
@@ -38,7 +38,7 @@ contract Spotter is Auth, CircuitBreaker {
         live
     {
         if (key == "price_feed") {
-            cols[col_type].price_feed = IPriceFeed(addr);
+            collaterals[col_type].price_feed = IPriceFeed(addr);
         } else {
             revert("invalid param");
         }
@@ -58,19 +58,20 @@ contract Spotter is Auth, CircuitBreaker {
         live
     {
         if (key == "liquidation_ratio") {
-            cols[col_type].liquidation_ratio = val;
+            collaterals[col_type].liquidation_ratio = val;
         } else {
             revert("invalid param");
         }
     }
 
     function poke(bytes32 col_type) external {
-        (uint256 val, bool ok) = cols[col_type].price_feed.peek();
+        (uint256 val, bool ok) = collaterals[col_type].price_feed.peek();
         // TODO: should require ok?
         uint256 spot = ok
             // TODO: what?
             ? Math.rdiv(
-                Math.rdiv(val * 10 ** 9, par), cols[col_type].liquidation_ratio
+                Math.rdiv(val * 10 ** 9, par),
+                collaterals[col_type].liquidation_ratio
             )
             : 0;
         safe_engine.set(col_type, "spot", spot);

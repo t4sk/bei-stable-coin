@@ -33,7 +33,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     }
 
     ISafeEngine public immutable safe_engine;
-    mapping(bytes32 => Collateral) public cols;
+    mapping(bytes32 => Collateral) public collaterals;
     // debt_engine
     IDebtEngine public debt_engine;
     // Hole
@@ -68,9 +68,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     function set(bytes32 col_type, bytes32 key, uint256 val) external auth {
         if (key == "penalty") {
             require(val >= WAD, "penalty < WAD");
-            cols[col_type].penalty = val;
+            collaterals[col_type].penalty = val;
         } else if (key == "max") {
-            cols[col_type].max = val;
+            collaterals[col_type].max = val;
         } else {
             revert("invalid param");
         }
@@ -85,7 +85,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                 col_type == ICollateralAuction(auction).collateral_type(),
                 "col type != auction col type"
             );
-            cols[col_type].auction = auction;
+            collaterals[col_type].auction = auction;
         } else {
             revert("invalid param");
         }
@@ -110,8 +110,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         returns (uint256 id)
     {
         ISafeEngine.Safe memory s = safe_engine.safes(col_type, safe);
-        ISafeEngine.Collateral memory c = safe_engine.cols(col_type);
-        Collateral memory col = cols[col_type];
+        ISafeEngine.Collateral memory c = safe_engine.collaterals(col_type);
+        Collateral memory col = collaterals[col_type];
         uint256 delta_debt;
         {
             require(
@@ -171,7 +171,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // This calcuation will overflow if delta_debt*rate exceeds ~10^14
             uint256 target_coin_amount = due * col.penalty / WAD;
             total += target_coin_amount;
-            cols[col_type].amount += target_coin_amount;
+            collaterals[col_type].amount += target_coin_amount;
 
             id = ICollateralAuction(col.auction).start({
                 // tab - the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
@@ -194,7 +194,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         auth
     {
         total -= rad;
-        cols[col_type].amount -= rad;
+        collaterals[col_type].amount -= rad;
         emit Remove(col_type, rad);
     }
 

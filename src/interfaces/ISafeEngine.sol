@@ -26,7 +26,10 @@ interface ISafeEngine {
     }
 
     // ilks
-    function cols(bytes32 col_type) external view returns (Collateral memory);
+    function collaterals(bytes32 col_type)
+        external
+        view
+        returns (Collateral memory);
     // urns
     function safes(bytes32 col_type, address account)
         external

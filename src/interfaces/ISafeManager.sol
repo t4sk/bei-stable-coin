@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 interface ISafeManager {
     function safe_engine() external view returns (address);
     function safes(uint256) external view returns (address);
-    function cols(uint256) external view returns (bytes32);
+    function collaterals(uint256) external view returns (bytes32);
     function open(bytes32, address) external returns (uint256);
     // frob
     function modify_safe(uint256 safe, int256 deltaCollateral, int256 deltaDebt)

@@ -17,7 +17,7 @@ contract SafeManager {
     // CDP id => owner
     mapping(uint256 => address) public owners;
     // CDP id => collateral type
-    mapping(uint256 => bytes32) public cols;
+    mapping(uint256 => bytes32) public collaterals;
 
     // CDP id => List
     mapping(uint256 => List) public list;
@@ -40,7 +40,7 @@ contract SafeManager {
 
         safes[id] = address(new SafeHandler(safe_engine));
         owners[id] = user;
-        cols[id] = col_type;
+        collaterals[id] = col_type;
 
         // Add new CDP to double linked list
         if (first[user] == 0) {

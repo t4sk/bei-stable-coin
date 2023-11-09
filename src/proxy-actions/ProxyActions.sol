@@ -108,7 +108,7 @@ contract ProxyActions is Common {
     ) public {
         address safe = ISafeManager(manager).safes(cdp);
         address safe_engine = ISafeManager(manager).safe_engine();
-        bytes32 collateral_type = ISafeManager(manager).cols(cdp);
+        bytes32 collateral_type = ISafeManager(manager).collaterals(cdp);
 
         gemJoin_join(gemJoin, safe, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt

@@ -18,7 +18,7 @@ contract Jug is Auth {
         uint256 updated_at;
     }
 
-    mapping(bytes32 => Collateral) public cols;
+    mapping(bytes32 => Collateral) public collaterals;
     // CDP engine
     ISafeEngine public immutable safe_engine;
     // Debt engine
@@ -32,7 +32,7 @@ contract Jug is Auth {
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
-        Collateral storage col = cols[col_type];
+        Collateral storage col = collaterals[col_type];
         require(col.fee == 0, "already initialized");
         col.fee = RAY;
         col.updated_at = block.timestamp;
@@ -41,10 +41,11 @@ contract Jug is Auth {
     // file
     function set(bytes32 col_type, bytes32 key, uint256 data) external auth {
         require(
-            block.timestamp == cols[col_type].updated_at, "update time != now"
+            block.timestamp == collaterals[col_type].updated_at,
+            "update time != now"
         );
         if (key == "fee") {
-            cols[col_type].fee = data;
+            collaterals[col_type].fee = data;
         } else {
             revert("Unrecognized key");
         }
@@ -69,9 +70,9 @@ contract Jug is Auth {
     // --- Stability Fee Collection ---
     // drip
     function drip(bytes32 col_type) external returns (uint256 rate) {
-        Collateral storage col = cols[col_type];
+        Collateral storage col = collaterals[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
-        ISafeEngine.Collateral memory c = safe_engine.cols(col_type);
+        ISafeEngine.Collateral memory c = safe_engine.collaterals(col_type);
         rate = Math.rmul(
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
             c.rate
