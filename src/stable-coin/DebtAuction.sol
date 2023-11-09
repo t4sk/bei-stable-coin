@@ -12,6 +12,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 /*
 Debt Auctions are used to recapitalize the system by auctioning off MKR 
 for a fixed amount of DAI
+- sell MKR, buy DAI
 */
 contract DebtAuction is Auth, CircuitBreaker {
     // --- Events ---

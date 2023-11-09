@@ -10,6 +10,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 // Flapper
 /*
 Flapper is a Surplus Auction. 
+- sell DAI, buy MKR
 These auctions are used to auction off a fixed amount of the surplus Dai 
 in the system for MKR. This surplus Dai will come from the Stability Fees 
 that are accumulated from Vaults. In this auction type, bidders compete 
@@ -24,7 +25,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // --- Data ---
     struct Bid {
-        // bid - gem paid [wad]
+        // bid - MKR paid [wad]
         uint256 amount;
         // lot - dai in return for bid [rad]
         uint256 lot;
@@ -40,7 +41,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // vat
     ISafeEngine public immutable safe_engine;
-    // gem - DAI
+    // gem - MKR
     IGem public immutable gem;
 
     // beg - minimum bid increase
@@ -150,6 +151,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
             "not finished"
         );
         safe_engine.transfer_coin(address(this), b.highest_bidder, b.lot);
+        // TODO: balance of address(this) >= b.amount ?
         gem.burn(address(this), b.amount);
         delete bids[id];
         total_coin_in_auction -= b.lot;
