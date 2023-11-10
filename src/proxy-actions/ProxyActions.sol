@@ -84,7 +84,7 @@ contract ProxyActions is Common {
     function move(address manager, uint256 cdp, address dst, uint256 rad)
         public
     {
-        ISafeManager(manager).move(cdp, dst, rad);
+        ISafeManager(manager).transfer_coin(cdp, dst, rad);
     }
 
     function frob(

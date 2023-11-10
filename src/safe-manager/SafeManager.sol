@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import "../interfaces/ISafeEngine.sol";
+import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ISafeManager} from "../interfaces/ISafeManager.sol";
 import "../lib/Math.sol";
-import "./SafeHandler.sol";
+import {SafeHandler} from "./SafeHandler.sol";
 
 // DssCdpManager
 contract SafeManager {
     event NewSafe(
         address indexed user, address indexed owner, uint256 indexed safe_id
     );
-
-    struct List {
-        uint256 prev;
-        uint256 next;
-    }
 
     // vat
     address public immutable safe_engine;
@@ -25,7 +21,7 @@ contract SafeManager {
     mapping(uint256 => address) public safes;
     // list
     // safe id => prev & next safe ids (double linked list)
-    mapping(uint256 => List) public list;
+    mapping(uint256 => ISafeManager.List) public list;
     // owns
     // safe id => owner of safe
     mapping(uint256 => address) public owner_of;
@@ -91,6 +87,7 @@ contract SafeManager {
         safe_handler_can[msg.sender][user] = ok;
     }
 
+    // open
     // Open a new safe for a given user address.
     function open(bytes32 col_type, address user) public returns (uint256) {
         require(user != address(0), "user = zero address");
