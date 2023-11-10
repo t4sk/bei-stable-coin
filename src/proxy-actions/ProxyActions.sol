@@ -22,7 +22,7 @@ contract ProxyActions is Common {
     }
 
     // _getDrawDart
-    function _get_draw_delta_debt(
+    function _get_borrow_delta_debt(
         address safe_engine,
         address jug,
         address safe,
@@ -52,7 +52,7 @@ contract ProxyActions is Common {
     }
 
     // _getWipeDart
-    function _get_wipe_delta_debt(
+    function _get_repay_delta_debt(
         address safe_engine,
         // TODO: wad, ray or rad?
         uint256 coin_amount,
@@ -74,8 +74,8 @@ contract ProxyActions is Common {
             uint256(delta_debt) <= s.debt ? -delta_debt : -Math.to_int(s.debt);
     }
 
-    // _get_remove_all_debt
-    function _get_remove_all_debt(
+    // _getWipeAllWad
+    function _get_repay_all_debt(
         address safe_engine,
         address user,
         address safe,
@@ -370,8 +370,7 @@ contract ProxyActions is Common {
     }
 
     // draw
-    // TODO: rename
-    function draw(
+    function borrow(
         address safe_manager,
         address jug,
         address coin_join,
@@ -386,7 +385,7 @@ contract ProxyActions is Common {
             safe_manager,
             safe_id,
             0,
-            _get_draw_delta_debt(safe_engine, jug, safe, col_type, wad)
+            _get_borrow_delta_debt(safe_engine, jug, safe, col_type, wad)
         );
         // Moves the BEI amount (balance in the safe_engine in rad) to proxy's address
         transfer_coin(safe_manager, safe_id, address(this), Math.to_rad(wad));
@@ -400,7 +399,7 @@ contract ProxyActions is Common {
 
     // wipe
     // TODO: rename
-    function wipe(
+    function repay(
         address safe_manager,
         address coin_join,
         uint256 safe_id,
@@ -424,7 +423,7 @@ contract ProxyActions is Common {
                 safe_manager,
                 safe_id,
                 0,
-                _get_wipe_delta_debt(
+                _get_repay_delta_debt(
                     safe_engine,
                     ISafeEngine(safe_engine).coin(safe),
                     safe,
@@ -441,14 +440,14 @@ contract ProxyActions is Common {
                 col_src: address(this),
                 debt_dst: address(this),
                 delta_col: 0,
-                delta_debt: _get_wipe_delta_debt(
+                delta_debt: _get_repay_delta_debt(
                     safe_engine, wad * RAY, safe, col_type
                     )
             });
         }
     }
 
-    function safe_wipe(
+    function safe_repay(
         address safe_manager,
         address coin_join,
         uint256 safe_id,
@@ -459,10 +458,10 @@ contract ProxyActions is Common {
             ISafeManager(safe_manager).owner_of(safe_id) == owner,
             "owner-missmatch"
         );
-        wipe(safe_manager, coin_join, safe_id, wad);
+        repay(safe_manager, coin_join, safe_id, wad);
     }
 
-    function wipe_all(address safe_manager, address coin_join, uint256 safe_id)
+    function repay_all(address safe_manager, address coin_join, uint256 safe_id)
         public
     {
         address safe_engine = ISafeManager(safe_manager).safe_engine();
@@ -482,7 +481,7 @@ contract ProxyActions is Common {
             coin_join_join(
                 coin_join,
                 safe,
-                _get_remove_all_debt(safe_engine, safe, safe, col_type)
+                _get_repay_all_debt(safe_engine, safe, safe, col_type)
             );
             // Paybacks debt to the CDP
             modify_safe(safe_manager, safe_id, 0, -int256(s.debt));
@@ -491,7 +490,7 @@ contract ProxyActions is Common {
             coin_join_join(
                 coin_join,
                 address(this),
-                _get_remove_all_debt(safe_engine, address(this), safe, col_type)
+                _get_repay_all_debt(safe_engine, address(this), safe, col_type)
             );
             // Paybacks debt to the CDP
             ISafeEngine(safe_engine).modify_safe({
@@ -505,7 +504,7 @@ contract ProxyActions is Common {
         }
     }
 
-    function safe_wipe_all(
+    function safe_repay_all(
         address safe_manager,
         address coin_join,
         uint256 safe_id,
@@ -515,11 +514,11 @@ contract ProxyActions is Common {
             ISafeManager(safe_manager).owner_of(safe_id) == owner,
             "owner-missmatch"
         );
-        wipe_all(safe_manager, coin_join, safe_id);
+        repay_all(safe_manager, coin_join, safe_id);
     }
 
     // lockETHAndDraw
-    function lock_eth_and_draw(
+    function lock_eth_and_borrow(
         address safe_manager,
         address jug,
         address eth_join,
@@ -537,7 +536,9 @@ contract ProxyActions is Common {
             safe_manager,
             safe_id,
             Math.to_int(msg.value),
-            _get_draw_delta_debt(safe_engine, jug, safe, col_type, coin_amount)
+            _get_borrow_delta_debt(
+                safe_engine, jug, safe, col_type, coin_amount
+            )
         );
         // Moves the BEI amount (balance in the safe_engine in rad) to proxy's address
         transfer_coin(
@@ -552,7 +553,7 @@ contract ProxyActions is Common {
     }
 
     // openLockETHAndDraw
-    function open_lock_eth_and_draw(
+    function open_lock_eth_and_borrow(
         address safe_manager,
         address jug,
         address eth_join,
@@ -561,12 +562,12 @@ contract ProxyActions is Common {
         uint256 coin_amount
     ) public payable returns (uint256 safe_id) {
         safe_id = open(safe_manager, col_type, address(this));
-        lock_eth_and_draw(
+        lock_eth_and_borrow(
             safe_manager, jug, eth_join, coin_join, safe_id, coin_amount
         );
     }
 
-    function lock_gem_and_draw(
+    function lock_gem_and_borrow(
         address safe_manager,
         address jug,
         address gem_join,
@@ -586,7 +587,9 @@ contract ProxyActions is Common {
             safe_manager,
             safe_id,
             Math.to_int(to_18_dec(gem_join, col_amount)),
-            _get_draw_delta_debt(safe_engine, jug, safe, col_type, coin_amount)
+            _get_borrow_delta_debt(
+                safe_engine, jug, safe, col_type, coin_amount
+            )
         );
         // Moves the BEI amount (balance in the safe_engine in rad) to proxy's address
         transfer_coin(
@@ -600,7 +603,7 @@ contract ProxyActions is Common {
         ICoinJoin(coin_join).exit(msg.sender, coin_amount);
     }
 
-    function open_lock_gem_and_draw(
+    function open_lock_gem_and_borrow(
         address safe_manager,
         address jug,
         address gem_join,
@@ -611,7 +614,7 @@ contract ProxyActions is Common {
         bool is_tranfer_from
     ) public returns (uint256 safe_id) {
         safe_id = open(safe_manager, col_type, address(this));
-        lock_gem_and_draw(
+        lock_gem_and_borrow(
             safe_manager,
             jug,
             gem_join,
@@ -645,7 +648,7 @@ contract ProxyActions is Common {
     //     );
     // }
 
-    function wipe_and_free_eth(
+    function repay_and_free_eth(
         address safe_manager,
         address eth_join,
         address coin_join,
@@ -662,7 +665,7 @@ contract ProxyActions is Common {
             safe_manager,
             safe_id,
             -Math.to_int(wadC),
-            _get_wipe_delta_debt(
+            _get_repay_delta_debt(
                 safe_engine,
                 ISafeEngine(safe_engine).coin(safe),
                 safe,
@@ -679,7 +682,7 @@ contract ProxyActions is Common {
         payable(msg.sender).transfer(wadC);
     }
 
-    function wipe_all_and_free_eth(
+    function repay_all_and_free_eth(
         address safe_manager,
         address eth_join,
         address coin_join,
@@ -696,7 +699,7 @@ contract ProxyActions is Common {
         coin_join_join(
             coin_join,
             safe,
-            _get_remove_all_debt(safe_engine, safe, safe, col_type)
+            _get_repay_all_debt(safe_engine, safe, safe, col_type)
         );
         // Paybacks debt to the CDP and unlocks WETH amount from it
         modify_safe(safe_manager, safe_id, -Math.to_int(wadC), -int256(s.debt));
@@ -711,7 +714,7 @@ contract ProxyActions is Common {
     }
 
     // wipeAndFreeGem
-    function wipe_and_free_gem(
+    function repay_and_free_gem(
         address safe_manager,
         address gem_join,
         address coin_join,
@@ -728,7 +731,7 @@ contract ProxyActions is Common {
             safe_manager,
             safe_id,
             -Math.to_int(wadC),
-            _get_wipe_delta_debt(
+            _get_repay_delta_debt(
                 ISafeManager(safe_manager).safe_engine(),
                 ISafeEngine(ISafeManager(safe_manager).safe_engine()).coin(safe),
                 safe,
@@ -742,7 +745,7 @@ contract ProxyActions is Common {
     }
 
     // wipeAllAndFreeGem
-    function wipe_all_and_free_gem(
+    function repay_all_and_free_gem(
         address safe_manager,
         address gem_join,
         address coin_join,
@@ -759,7 +762,7 @@ contract ProxyActions is Common {
         coin_join_join(
             coin_join,
             safe,
-            _get_remove_all_debt(safe_engine, safe, safe, col_type)
+            _get_repay_all_debt(safe_engine, safe, safe, col_type)
         );
         uint256 wadC = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
