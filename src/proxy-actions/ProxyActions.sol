@@ -11,17 +11,7 @@ import {ISafeManager} from "../interfaces/ISafeManager.sol";
 import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
 import "../lib/Math.sol";
-
-contract Common {
-    function coin_join_join(address adapter, address user, uint256 wad)
-        public
-    {
-        ICoin coin = ICoinJoin(adapter).coin();
-        coin.transferFrom(msg.sender, address(this), wad);
-        coin.approve(adapter, wad);
-        ICoinJoin(adapter).join(user, wad);
-    }
-}
+import {Common} from "./Common.sol";
 
 contract ProxyActions is Common {
     function to_18_dec(address gem_join, uint256 amount)
@@ -256,14 +246,14 @@ contract ProxyActions is Common {
         // Receives ETH amount, converts it to WETH and joins it into the safe_engine
         eth_join_join(eth_join, address(this));
         // Locks WETH amount into the CDP
-        ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe(
-            ISafeManager(safe_manager).collaterals(safe_id),
-            ISafeManager(safe_manager).safes(safe_id),
-            address(this),
-            address(this),
-            Math.to_int(msg.value),
-            0
-        );
+        ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe({
+            col_type: ISafeManager(safe_manager).collaterals(safe_id),
+            safe: ISafeManager(safe_manager).safes(safe_id),
+            col_src: address(this),
+            debt_dst: address(this),
+            delta_col: Math.to_int(msg.value),
+            delta_debt: 0
+        });
     }
 
     function safe_lock_eth(
@@ -274,7 +264,7 @@ contract ProxyActions is Common {
     ) public payable {
         require(
             ISafeManager(safe_manager).owner_of(safe_id) == owner,
-            "owner-missmatch"
+            "owner missmatch"
         );
         lock_eth(safe_manager, eth_join, safe_id);
     }
@@ -284,19 +274,19 @@ contract ProxyActions is Common {
         address gem_join,
         uint256 safe_id,
         uint256 amt,
-        bool transferFrom
+        bool is_tranfer_from
     ) public {
         // Takes token amount from user's wallet and joins into the safe_engine
-        gem_join_join(gem_join, address(this), amt, transferFrom);
+        gem_join_join(gem_join, address(this), amt, is_tranfer_from);
         // Locks token amount into the CDP
-        ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe(
-            ISafeManager(safe_manager).collaterals(safe_id),
-            ISafeManager(safe_manager).safes(safe_id),
-            address(this),
-            address(this),
-            Math.to_int(to_18_dec(gem_join, amt)),
-            0
-        );
+        ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe({
+            col_type: ISafeManager(safe_manager).collaterals(safe_id),
+            safe: ISafeManager(safe_manager).safes(safe_id),
+            col_src: address(this),
+            debt_dst: address(this),
+            delta_col: Math.to_int(to_18_dec(gem_join, amt)),
+            delta_debt: 0
+        });
     }
 
     function safe_lock_gem(
@@ -304,14 +294,14 @@ contract ProxyActions is Common {
         address gem_join,
         uint256 safe_id,
         uint256 amt,
-        bool transferFrom,
+        bool is_tranfer_from,
         address owner
     ) public {
         require(
             ISafeManager(safe_manager).owner_of(safe_id) == owner,
-            "owner-missmatch"
+            "owner missmatch"
         );
-        lock_gem(safe_manager, gem_join, safe_id, amt, transferFrom);
+        lock_gem(safe_manager, gem_join, safe_id, amt, is_tranfer_from);
     }
 
     function free_eth(
@@ -374,7 +364,6 @@ contract ProxyActions is Common {
         transfer_collateral(
             safe_manager, safe_id, address(this), to_18_dec(gem_join, amt)
         );
-
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, amt);
     }
@@ -420,10 +409,12 @@ contract ProxyActions is Common {
         address safe = ISafeManager(safe_manager).safes(safe_id);
         bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
 
-        address own = ISafeManager(safe_manager).owner_of(safe_id);
+        address owner = ISafeManager(safe_manager).owner_of(safe_id);
         if (
-            own == address(this)
-                || ISafeManager(safe_manager).safe_can(own, safe_id, address(this))
+            owner == address(this)
+                || ISafeManager(safe_manager).safe_can(
+                    owner, safe_id, address(this)
+                )
         ) {
             // Joins DAI amount into the safe_engine
             coin_join_join(coin_join, safe, wad);
@@ -443,14 +434,16 @@ contract ProxyActions is Common {
             // Joins DAI amount into the safe_engine
             coin_join_join(coin_join, address(this), wad);
             // Paybacks debt to the CDP
-            ISafeEngine(safe_engine).modify_safe(
-                col_type,
-                safe,
-                address(this),
-                address(this),
-                0,
-                _get_remove_delta_debt(safe_engine, wad * RAY, safe, col_type)
-            );
+            ISafeEngine(safe_engine).modify_safe({
+                col_type: col_type,
+                safe: safe,
+                col_src: address(this),
+                debt_dst: address(this),
+                delta_col: 0,
+                delta_debt: _get_remove_delta_debt(
+                    safe_engine, wad * RAY, safe, col_type
+                    )
+            });
         }
     }
 
@@ -477,10 +470,12 @@ contract ProxyActions is Common {
         ISafeEngine.Safe memory s =
             ISafeEngine(safe_engine).safes(col_type, safe);
 
-        address own = ISafeManager(safe_manager).owner_of(safe_id);
+        address owner = ISafeManager(safe_manager).owner_of(safe_id);
         if (
-            own == address(this)
-                || ISafeManager(safe_manager).safe_can(own, safe_id, address(this))
+            owner == address(this)
+                || ISafeManager(safe_manager).safe_can(
+                    owner, safe_id, address(this)
+                )
         ) {
             // Joins DAI amount into the safe_engine
             coin_join_join(
@@ -498,9 +493,14 @@ contract ProxyActions is Common {
                 _get_remove_all_debt(safe_engine, address(this), safe, col_type)
             );
             // Paybacks debt to the CDP
-            ISafeEngine(safe_engine).modify_safe(
-                col_type, safe, address(this), address(this), 0, -int256(s.debt)
-            );
+            ISafeEngine(safe_engine).modify_safe({
+                col_type: col_type,
+                safe: safe,
+                col_src: address(this),
+                debt_dst: address(this),
+                delta_col: 0,
+                delta_debt: -int256(s.debt)
+            });
         }
     }
 
@@ -569,13 +569,13 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 amtC,
         uint256 wadD,
-        bool transferFrom
+        bool is_tranfer_from
     ) public {
         address safe = ISafeManager(safe_manager).safes(safe_id);
         address safe_engine = ISafeManager(safe_manager).safe_engine();
         bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
         // Takes token amount from user's wallet and joins into the safe_engine
-        gem_join_join(gem_join, safe, amtC, transferFrom);
+        gem_join_join(gem_join, safe, amtC, is_tranfer_from);
         // Locks token amount into the CDP and generates debt
         modify_safe(
             safe_manager,
@@ -601,7 +601,7 @@ contract ProxyActions is Common {
         bytes32 col_type,
         uint256 amtC,
         uint256 wadD,
-        bool transferFrom
+        bool is_tranfer_from
     ) public returns (uint256 safe_id) {
         safe_id = open(safe_manager, col_type, address(this));
         lock_gem_and_draw(
@@ -612,7 +612,7 @@ contract ProxyActions is Common {
             safe_id,
             amtC,
             wadD,
-            transferFrom
+            is_tranfer_from
         );
     }
 
@@ -647,6 +647,7 @@ contract ProxyActions is Common {
         uint256 wadD
     ) public {
         address safe = ISafeManager(safe_manager).safes(safe_id);
+        address safe_engine = ISafeManager(safe_manager).safe_engine();
         // Joins DAI amount into the safe_engine
         coin_join_join(coin_join, safe, wadD);
         // Paybacks debt to the CDP and unlocks WETH amount from it
@@ -655,8 +656,8 @@ contract ProxyActions is Common {
             safe_id,
             -Math.to_int(wadC),
             _get_remove_delta_debt(
-                ISafeManager(safe_manager).safe_engine(),
-                ISafeEngine(ISafeManager(safe_manager).safe_engine()).coin(safe),
+                safe_engine,
+                ISafeEngine(safe_engine).coin(safe),
                 safe,
                 ISafeManager(safe_manager).collaterals(safe_id)
             )
