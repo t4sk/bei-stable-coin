@@ -19,7 +19,7 @@ shell
 
 - overview
 - `wad`, `ray`, `rad`
-- `DAI`, `wards`, `rely`, `deny`
+- `BEI`, `wards`, `rely`, `deny`
 - proxy
 - proxy action
   - `Common`
@@ -54,7 +54,7 @@ shell
 
 `gem` - Collateral tokens
 
-`vat` - Core vault engine of dss. Stores vaults and tracks all the associated Dai and collateral balances
+`vat` - Core vault engine of dss. Stores vaults and tracks all the associated BEI and collateral balances
 
 `jug` - Smart contract to accumulate stability fees
 
@@ -68,10 +68,10 @@ shell
 
 `frob(i, u, v, w, dink, dart)`
 
-- Modifies the Vault of user `u`, using gem `i` from user `v` and creating dai for user `w`.
+- Modifies the Vault of user `u`, using gem `i` from user `v` and creating BEI for user `w`.
 - `dink` - change in collateral
 - `dart` - change in debt
 
 ### Omit
 
-- dai permit
+- BEI permit

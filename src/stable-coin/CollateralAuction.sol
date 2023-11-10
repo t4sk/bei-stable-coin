@@ -20,7 +20,7 @@ contract CollateralAuction is Auth, Guard {
 
     // dog
     ILiquidationEngine public liquidation_engine;
-    // debt_engine - Recipient of dai raised in auctions
+    // debt_engine - Recipient of BEI raised in auctions
     address public debt_engine;
     // Collateral price module
     ISpotter public spotter;
@@ -181,7 +181,7 @@ contract CollateralAuction is Auth, Guard {
     //
     // Where `val` is the collateral's unitary value in USD, `buf` is a
     // multiplicative factor to increase the starting price, and `par` is a
-    // reference per DAI.
+    // reference per BEI.
     function start(
         uint256 coin_amount, // tab - Debt [rad]
         uint256 collateral_amount, // lot - Collateral [wad]
@@ -275,13 +275,13 @@ contract CollateralAuction is Auth, Guard {
 
     // Buy up to `amt` of collateral from the auction indexed by `id`.
     //
-    // Auctions will not collect more DAI than their assigned DAI target,`coin_amount`;
-    // thus, if `amt` would cost more DAI than `coin_amount` at the current price, the
-    // amount of collateral purchased will instead be just enough to collect `coin_amount` DAI.
+    // Auctions will not collect more BEI than their assigned BEI target,`coin_amount`;
+    // thus, if `amt` would cost more BEI than `coin_amount` at the current price, the
+    // amount of collateral purchased will instead be just enough to collect `coin_amount` BEI.
     //
     // To avoid partial purchases resulting in very small leftover auctions that will
     // never be cleared, any partial purchase must leave at least `Clipper.chost`
-    // remaining DAI target. `chost` is an asynchronously updated value equal to
+    // remaining BEI target. `chost` is an asynchronously updated value equal to
     // (SafeEngine.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
     // by whatever they were when Clipper.upchost() was last called. Purchase amounts
     // will be minimally decreased when necessary to respect this limit; i.e., if the
@@ -293,7 +293,7 @@ contract CollateralAuction is Auth, Guard {
     function take(
         uint256 id, // Auction id
         uint256 max_collateral_amount, // Upper limit on amount of collateral to buy  [wad]
-        uint256 max_price, // Maximum acceptable price (DAI / collateral) [ray]
+        uint256 max_price, // Maximum acceptable price (BEI / collateral) [ray]
         // who
         address receiver, // Receiver of collateral and external call address
         bytes calldata data // Data to pass in external call; if length 0, no call is done
@@ -316,7 +316,7 @@ contract CollateralAuction is Auth, Guard {
 
         uint256 collateral_amount = sales[id].collateral_amount;
         uint256 coin_amount = sales[id].coin_amount;
-        // DAI needed to buy a slice of this sale
+        // BEI needed to buy a slice of this sale
         uint256 owe;
 
         {
@@ -324,10 +324,10 @@ contract CollateralAuction is Auth, Guard {
             // slice <= collateral_amount
             uint256 slice = Math.min(collateral_amount, max_collateral_amount);
 
-            // DAI needed to buy a slice of this sale
+            // BEI needed to buy a slice of this sale
             owe = slice * price;
 
-            // Don't collect more than coin_amount of DAI
+            // Don't collect more than coin_amount of BEI
             if (owe > coin_amount) {
                 // Total debt will be paid
                 // owe' <= owe
@@ -374,10 +374,10 @@ contract CollateralAuction is Auth, Guard {
                 );
             }
 
-            // Get DAI from caller
+            // Get BEI from caller
             safe_engine.transfer_coin(msg.sender, debt_engine, owe);
 
-            // Removes Dai out for liquidation from accumulator
+            // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
                 collateral_type,
                 collateral_amount == 0 ? coin_amount + owe : owe

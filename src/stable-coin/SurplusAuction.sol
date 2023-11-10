@@ -10,12 +10,12 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 // Flapper
 /*
 Flapper is a Surplus Auction. 
-- sell DAI, buy MKR
-These auctions are used to auction off a fixed amount of the surplus Dai 
-in the system for MKR. This surplus Dai will come from the Stability Fees 
+- sell BEI, buy MKR
+These auctions are used to auction off a fixed amount of the surplus BEI 
+in the system for MKR. This surplus BEI will come from the Stability Fees 
 that are accumulated from Vaults. In this auction type, bidders compete 
 with increasing amounts of MKR. Once the auction has ended, 
-the Dai auctioned off is sent to the winning bidder. 
+the BEI auctioned off is sent to the winning bidder. 
 The system then burns the MKR received from the winning bid.
 */
 
@@ -27,7 +27,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     struct Bid {
         // bid - MKR paid [wad]
         uint256 amount;
-        // lot - dai in return for bid [rad]
+        // lot - BEI in return for bid [rad]
         uint256 lot;
         // guy - high bidder
         address highest_bidder;
@@ -52,9 +52,9 @@ contract SurplusAuction is Auth, CircuitBreaker {
     uint48 public auction_duration = 2 days;
     // kicks - Total auction count, used to track auction ids
     uint256 public last_auction_id = 0;
-    // lid - max dai to be in auction at one time [rad]
+    // lid - max BEI to be in auction at one time [rad]
     uint256 public max_coin_in_auction;
-    // fill - current dai in auction [rad]
+    // fill - current BEI in auction [rad]
     uint256 public total_coin_in_auction;
 
     constructor(address _safe_engine, address _gem) {

@@ -157,7 +157,7 @@ contract SafeManager {
     }
 
     // frob
-    // Modify safe keeping the generated DAI or collateral freed in the safe address.
+    // Modify safe keeping the generated BEI or collateral freed in the safe address.
     function modify_safe(uint256 safe_id, int256 delta_col, int256 delta_debt)
         public
         safe_allowed(safe_id)
@@ -199,7 +199,7 @@ contract SafeManager {
     }
 
     // move
-    // Transfer wad amount of DAI from the safe_id address to a dst address.
+    // Transfer wad amount of BEI from the safe_id address to a dst address.
     function transfer_coin(uint256 safe_id, address dst, uint256 rad)
         public
         safe_allowed(safe_id)

@@ -11,8 +11,8 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 // Flopper
 /*
 Debt Auctions are used to recapitalize the system by auctioning off MKR 
-for a fixed amount of DAI
-- sell MKR, buy DAI
+for a fixed amount of BEI
+- sell MKR, buy BEI
 */
 contract DebtAuction is Auth, CircuitBreaker {
     // --- Events ---
@@ -20,7 +20,7 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // --- Data ---
     struct Bid {
-        // bid - dai paid [rad]
+        // bid - BEI paid [rad]
         uint256 amount;
         // lot - gems in return for bid [wad]
         // An individual object or group of objects offered for sale at auction as a single unit.
@@ -106,7 +106,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     }
 
     // dent
-    // make a bid, decreasing the lot size (Submit a fixed DAI bid with decreasing lot size)
+    // make a bid, decreasing the lot size (Submit a fixed BEI bid with decreasing lot size)
     function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
         Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");

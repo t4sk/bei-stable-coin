@@ -26,9 +26,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         address auction;
         // chop - Liquidation penalty [wad]
         uint256 penalty;
-        // hole - Max DAI needed to cover debt+fees of active auctions per collateral [rad]
+        // hole - Max BEI needed to cover debt+fees of active auctions per collateral [rad]
         uint256 max;
-        // dirt - Amountt of DAI needed to cover debt+fees of active auctions per collateral [rad]
+        // dirt - Amountt of BEI needed to cover debt+fees of active auctions per collateral [rad]
         uint256 amount;
     }
 
@@ -37,10 +37,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // debt_engine
     IDebtEngine public debt_engine;
     // Hole
-    // Max DAI needed to cover debt+fees of active auctions [rad]
+    // Max BEI needed to cover debt+fees of active auctions [rad]
     uint256 public max;
     // Dirt
-    // Amount DAI needed to cover debt+fees of active auctions [rad]
+    // Amount BEI needed to cover debt+fees of active auctions [rad]
     uint256 public total;
 
     constructor(address _safe_engine) {
@@ -93,15 +93,15 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
     // --- CDP Liquidation: all bark and no bite ---
     //
-    // Liquidate a Vault and start a Dutch auction to sell its collateral for DAI.
+    // Liquidate a Vault and start a Dutch auction to sell its collateral for BEI.
     //
     // The third argument is the address that will receive the liquidation reward, if any.
     //
-    // The entire Vault will be liquidated except when the target amount of DAI to be raised in
+    // The entire Vault will be liquidated except when the target amount of BEI to be raised in
     // the resulting auction (debt of Vault + liquidation penalty) causes either Dirt to exceed
     // Hole or ilk.dirt to exceed ilk.hole by an economically significant amount. In that
     // case, a partial liquidation is performed to respect the global and per-ilk limits on
-    // outstanding DAI target. The one exception is if the resulting auction would likely
+    // outstanding BEI target. The one exception is if the resulting auction would likely
     // have too little collateral to be interesting to Keepers (debt taken from Vault < ilk.dust),
     // in which case the function reverts.
     function liquidate(bytes32 col_type, address safe, address keeper)
@@ -136,7 +136,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
                     // This deviation is assumed to be small compared to both hole_i and Hole, so that
-                    // the extra amount of target DAI over the limits intended is not of economic concern.
+                    // the extra amount of target BEI over the limits intended is not of economic concern.
                     delta_debt = s.debt;
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
@@ -174,7 +174,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             collaterals[col_type].amount += target_coin_amount;
 
             id = ICollateralAuction(col.auction).start({
-                // tab - the target DAI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
+                // tab - the target BEI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
                 coin_amount: target_coin_amount,
                 // lot - the amount of collateral available for purchase [wad]
                 collateral_amount: delta_col,

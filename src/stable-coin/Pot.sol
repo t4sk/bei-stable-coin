@@ -7,21 +7,25 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
 
 /*
-Pot is the core of the Dai Savings Rate. 
-It allows users to deposit dai and activate the Dai Savings Rate and 
-earning savings on their dai.  The DSR is set by Maker Governance, and will 
+Pot is the core of the BEI Savings Rate. 
+It allows users to deposit BEI and activate the BEI Savings Rate and 
+earning savings on their BEI.  The DSR is set by Maker Governance, and will 
 typically be less than the base stability fee to remain sustainable. 
-The purpose of Pot is to offer another incentive for holding Dai.
+The purpose of Pot is to offer another incentive for holding BEI.
 */
 contract Pot is Auth, CircuitBreaker {
     // pie
-    mapping(address => uint256) public balances; // Normalised savings Dai [wad]
+    // Normalised savings BEI [wad]
+    mapping(address => uint256) public balances;
     // Pie
-    uint256 public total; // Total normalised savings Dai [wad]
+    // Total normalised savings BEI [wad]
+    uint256 public total;
     // dsr
-    uint256 public dsr; // Dai savings rate [ray]
+    // BEI savings rate [ray]
+    uint256 public savings_rate;
     // chi
-    uint256 public chi; // Rate accumulator [ray]
+    // Rate accumulator [ray]
+    uint256 public chi;
 
     ISafeEngine public safe_engine; // CDP Engine
     address public debt_engine; // Debt Engine
@@ -32,7 +36,7 @@ contract Pot is Auth, CircuitBreaker {
 
     constructor(address _safe_engine) {
         safe_engine = ISafeEngine(_safe_engine);
-        dsr = RAY;
+        savings_rate = RAY;
         chi = RAY;
         updated_at = block.timestamp;
     }
@@ -41,8 +45,8 @@ contract Pot is Auth, CircuitBreaker {
     // file
     function set(bytes32 key, uint256 val) external auth live {
         require(block.timestamp == updated_at, "updated_at != now");
-        if (key == "dsr") {
-            dsr = val;
+        if (key == "savings_rate") {
+            savings_rate = val;
         } else {
             revert("invalid param");
         }
@@ -60,14 +64,15 @@ contract Pot is Auth, CircuitBreaker {
     // cage
     function stop() external auth {
         _stop();
-        dsr = RAY;
+        savings_rate = RAY;
     }
 
     // --- Savings Rate Accumulation ---
     function drip() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
-        uint256 tmp =
-            Math.rmul(Math.rpow(dsr, block.timestamp - updated_at, RAY), chi);
+        uint256 tmp = Math.rmul(
+            Math.rpow(savings_rate, block.timestamp - updated_at, RAY), chi
+        );
         uint256 delta_chi = tmp - chi;
         chi = tmp;
         updated_at = block.timestamp;
@@ -78,7 +83,7 @@ contract Pot is Auth, CircuitBreaker {
         return tmp;
     }
 
-    // --- Savings Dai Management ---
+    // --- Savings BEI Management ---
     function join(uint256 wad) external {
         require(block.timestamp == updated_at, "updated_at != now");
         balances[msg.sender] += wad;

@@ -15,7 +15,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
-    // dai - account => coin balance [rad]
+    // BEI - account => coin balance [rad]
     mapping(address => uint256) public coin;
     // sin - account => debt balance [rad]
     mapping(address => uint256) public debts;

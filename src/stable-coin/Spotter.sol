@@ -23,8 +23,8 @@ contract Spotter is Auth, CircuitBreaker {
     mapping(bytes32 => Collateral) public collaterals;
 
     ISafeEngine public immutable safe_engine;
-    // par - value of DAI in the reference asset (e.g. $1 per DAI)
-    uint256 public par; // ref per dai [ray]
+    // par - value of BEI in the reference asset (e.g. $1 per BEI)
+    uint256 public par; // ref per BEI [ray]
 
     constructor(address _safe_engine) {
         safe_engine = ISafeEngine(_safe_engine);
