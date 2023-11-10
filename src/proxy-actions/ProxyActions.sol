@@ -273,18 +273,18 @@ contract ProxyActions is Common {
         address safe_manager,
         address gem_join,
         uint256 safe_id,
-        uint256 amt,
+        uint256 amount,
         bool is_tranfer_from
     ) public {
         // Takes token amount from user's wallet and joins into the safe_engine
-        gem_join_join(gem_join, address(this), amt, is_tranfer_from);
+        gem_join_join(gem_join, address(this), amount, is_tranfer_from);
         // Locks token amount into the CDP
         ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe({
             col_type: ISafeManager(safe_manager).collaterals(safe_id),
             safe: ISafeManager(safe_manager).safes(safe_id),
             col_src: address(this),
             debt_dst: address(this),
-            delta_col: Math.to_int(to_18_dec(gem_join, amt)),
+            delta_col: Math.to_int(to_18_dec(gem_join, amount)),
             delta_debt: 0
         });
     }
@@ -293,7 +293,7 @@ contract ProxyActions is Common {
         address safe_manager,
         address gem_join,
         uint256 safe_id,
-        uint256 amt,
+        uint256 amount,
         bool is_tranfer_from,
         address owner
     ) public {
@@ -301,7 +301,7 @@ contract ProxyActions is Common {
             ISafeManager(safe_manager).owner_of(safe_id) == owner,
             "owner missmatch"
         );
-        lock_gem(safe_manager, gem_join, safe_id, amt, is_tranfer_from);
+        lock_gem(safe_manager, gem_join, safe_id, amount, is_tranfer_from);
     }
 
     function free_eth(
@@ -326,15 +326,15 @@ contract ProxyActions is Common {
         address safe_manager,
         address gem_join,
         uint256 safe_id,
-        uint256 amt
+        uint256 amount
     ) public {
-        uint256 wad = to_18_dec(gem_join, amt);
+        uint256 wad = to_18_dec(gem_join, amount);
         // Unlocks token amount from the CDP
         modify_safe(safe_manager, safe_id, -Math.to_int(wad), 0);
         // Moves the amount from the CDP safe to proxy's address
         transfer_collateral(safe_manager, safe_id, address(this), wad);
         // Exits token amount to the user's wallet as a token
-        IGemJoin(gem_join).exit(msg.sender, amt);
+        IGemJoin(gem_join).exit(msg.sender, amount);
     }
 
     function exit_eth(
@@ -358,14 +358,14 @@ contract ProxyActions is Common {
         address safe_manager,
         address gem_join,
         uint256 safe_id,
-        uint256 amt
+        uint256 amount
     ) public {
         // Moves the amount from the CDP safe to proxy's address
         transfer_collateral(
-            safe_manager, safe_id, address(this), to_18_dec(gem_join, amt)
+            safe_manager, safe_id, address(this), to_18_dec(gem_join, amount)
         );
         // Exits token amount to the user's wallet as a token
-        IGemJoin(gem_join).exit(msg.sender, amt);
+        IGemJoin(gem_join).exit(msg.sender, amount);
     }
 
     // draw
