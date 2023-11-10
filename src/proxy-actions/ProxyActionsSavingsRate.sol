@@ -40,9 +40,7 @@ contract ProxyActionsSavingsRate is Common {
         }
         // It is necessary to check if due rounding the exact wad amount can be exited by the adapter.
         // Otherwise it will do the maximum BEI balance in the safe_engine
-        ICoinJoin(coin_join).exit(
-            msg.sender, bal >= wad * RAY ? wad : bal / RAY
-        );
+        ICoinJoin(coin_join).exit(msg.sender, bal >= wad * RAY ? wad : bal / RAY);
     }
 
     function exit_all(address coin_join, address pot) public {

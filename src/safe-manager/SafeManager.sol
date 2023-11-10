@@ -8,9 +8,7 @@ import {SafeHandler} from "./SafeHandler.sol";
 
 // DssCdpManager
 contract SafeManager {
-    event NewSafe(
-        address indexed user, address indexed owner, uint256 indexed safe_id
-    );
+    event NewSafe(address indexed user, address indexed owner, uint256 indexed safe_id);
 
     // vat
     address public immutable safe_engine;
@@ -41,8 +39,7 @@ contract SafeManager {
 
     // cdpCan - permission to modify safe by addr
     // owner => safe id => addr => allowed
-    mapping(address => mapping(uint256 => mapping(address => bool))) public
-        safe_can;
+    mapping(address => mapping(uint256 => mapping(address => bool))) public safe_can;
 
     // urnCan
     // SafeHandler => addr => allowed
@@ -51,10 +48,7 @@ contract SafeManager {
     // cdpAllowed - msg.sender is safe owner or safe owner has given permission to msg.sender
     modifier safe_allowed(uint256 safe_id) {
         address owner = owner_of[safe_id];
-        require(
-            msg.sender == owner || safe_can[owner][safe_id][msg.sender],
-            "safe not allowed"
-        );
+        require(msg.sender == owner || safe_can[owner][safe_id][msg.sender], "safe not allowed");
         _;
     }
 
@@ -62,8 +56,7 @@ contract SafeManager {
     // urnAllowed
     modifier safe_handler_allowed(address user) {
         require(
-            msg.sender == user || safe_handler_can[user][msg.sender],
-            "safe handler not allowed"
+            msg.sender == user || safe_handler_can[user][msg.sender], "safe handler not allowed"
         );
         _;
     }
@@ -74,10 +67,7 @@ contract SafeManager {
 
     // cdpAllow
     // Allow / disallow user to manage the safe.
-    function allow_safe(uint256 safe_id, address user, bool ok)
-        public
-        safe_allowed(safe_id)
-    {
+    function allow_safe(uint256 safe_id, address user, bool ok) public safe_allowed(safe_id) {
         safe_can[owner_of[safe_id]][safe_id][user] = ok;
     }
 
@@ -179,23 +169,17 @@ contract SafeManager {
         public
         safe_allowed(safe_id)
     {
-        ISafeEngine(safe_engine).transfer_collateral(
-            collaterals[safe_id], safes[safe_id], dst, wad
-        );
+        ISafeEngine(safe_engine).transfer_collateral(collaterals[safe_id], safes[safe_id], dst, wad);
     }
 
     // flux
     // Transfer wad amount of any type of collateral (col_type) from the safe_id address to a dst address.
     // This function has the purpose to take away collateral from the system that doesn't correspond to the safe_id but was sent there wrongly.
-    function transfer_collateral(
-        bytes32 col_type,
-        uint256 safe_id,
-        address dst,
-        uint256 wad
-    ) public safe_allowed(safe_id) {
-        ISafeEngine(safe_engine).transfer_collateral(
-            col_type, safes[safe_id], dst, wad
-        );
+    function transfer_collateral(bytes32 col_type, uint256 safe_id, address dst, uint256 wad)
+        public
+        safe_allowed(safe_id)
+    {
+        ISafeEngine(safe_engine).transfer_collateral(col_type, safes[safe_id], dst, wad);
     }
 
     // move
@@ -216,8 +200,7 @@ contract SafeManager {
         bytes32 col_type = collaterals[safe_id];
         address safe = safes[safe_id];
 
-        ISafeEngine.Safe memory s =
-            ISafeEngine(safe_engine).safes(col_type, safe);
+        ISafeEngine.Safe memory s = ISafeEngine(safe_engine).safes(col_type, safe);
 
         ISafeEngine(safe_engine).fork({
             col_type: col_type,
@@ -236,8 +219,7 @@ contract SafeManager {
     {
         bytes32 col_type = collaterals[safe_id];
 
-        ISafeEngine.Safe memory s =
-            ISafeEngine(safe_engine).safes(col_type, src);
+        ISafeEngine.Safe memory s = ISafeEngine(safe_engine).safes(col_type, src);
 
         ISafeEngine(safe_engine).fork({
             col_type: col_type,
@@ -254,13 +236,9 @@ contract SafeManager {
         safe_allowed(safe_src)
         safe_allowed(safe_dst)
     {
-        require(
-            collaterals[safe_src] == collaterals[safe_dst],
-            "not matching collaterals"
-        );
-        ISafeEngine.Safe memory s = ISafeEngine(safe_engine).safes(
-            collaterals[safe_src], safes[safe_src]
-        );
+        require(collaterals[safe_src] == collaterals[safe_dst], "not matching collaterals");
+        ISafeEngine.Safe memory s =
+            ISafeEngine(safe_engine).safes(collaterals[safe_src], safes[safe_src]);
         ISafeEngine(safe_engine).fork({
             col_type: collaterals[safe_src],
             src: safes[safe_src],

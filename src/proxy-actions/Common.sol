@@ -5,9 +5,7 @@ import {ICoin} from "../interfaces/ICoin.sol";
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 
 contract Common {
-    function coin_join_join(address adapter, address user, uint256 wad)
-        public
-    {
+    function coin_join_join(address adapter, address user, uint256 wad) public {
         ICoin coin = ICoinJoin(adapter).coin();
         coin.transferFrom(msg.sender, address(this), wad);
         coin.approve(adapter, wad);

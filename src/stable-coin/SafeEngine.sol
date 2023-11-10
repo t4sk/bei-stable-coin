@@ -15,7 +15,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
-    // BEI - account => coin balance [rad]
+    // dai - account => coin balance [rad]
     mapping(address => uint256) public coin;
     // sin - account => debt balance [rad]
     mapping(address => uint256) public debts;
@@ -42,11 +42,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, uint256 val)
-        external
-        auth
-        live
-    {
+    function set(bytes32 col_type, bytes32 key, uint256 val) external auth live {
         if (key == "spot") {
             collaterals[col_type].spot = val;
         } else if (key == "max_debt") {
@@ -65,21 +61,14 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // --- Fungibility ---
     // slip: modify a user's collateral balance.
-    function modify_collateral_balance(
-        bytes32 col_type,
-        address user,
-        int256 wad
-    ) external auth {
+    function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external auth {
         gem[col_type][user] = Math.add(gem[col_type][user], wad);
     }
 
     // flux: transfer collateral between users.
-    function transfer_collateral(
-        bytes32 col_type,
-        address src,
-        address dst,
-        uint256 wad
-    ) external {
+    function transfer_collateral(bytes32 col_type, address src, address dst, uint256 wad)
+        external
+    {
         require(can_modify_account(src, msg.sender), "not authorized");
         gem[col_type][src] -= wad;
         gem[col_type][dst] += wad;
@@ -129,35 +118,24 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
-            delta_debt <= 0
-                || (
-                    col.debt * col.rate <= col.max_debt
-                        && total_debt <= max_total_debt
-                ),
+            delta_debt <= 0 || (col.debt * col.rate <= col.max_debt && total_debt <= max_total_debt),
             "debt ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
         require(
-            (delta_debt <= 0 && delta_col >= 0)
-                || total_coin <= s.collateral * col.spot,
-            "not safe"
+            (delta_debt <= 0 && delta_col >= 0) || total_coin <= s.collateral * col.spot, "not safe"
         );
         // safe is either more safe, or the owner consents
         require(
-            (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(safe, msg.sender),
+            (delta_debt <= 0 && delta_col >= 0) || can_modify_account(safe, msg.sender),
             "not allowed safe addr"
         );
         // collateral src consents
         require(
-            delta_col <= 0 || can_modify_account(col_src, msg.sender),
-            "not allowed collateral src"
+            delta_col <= 0 || can_modify_account(col_src, msg.sender), "not allowed collateral src"
         );
         // debt dst consents
-        require(
-            delta_debt >= 0 || can_modify_account(debt_dst, msg.sender),
-            "not allowed debt dst"
-        );
+        require(delta_debt >= 0 || can_modify_account(debt_dst, msg.sender), "not allowed debt dst");
 
         // safe has no debt, or a non-dusty amount
         require(s.debt == 0 || total_coin >= col.min_debt, "SafeEngine/dust");
@@ -173,13 +151,9 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     // fork: to split a safe - binary approval or splitting/merging safes.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
-    function fork(
-        bytes32 col_type,
-        address src,
-        address dst,
-        int256 delta_col,
-        int256 delta_debt
-    ) external {
+    function fork(bytes32 col_type, address src, address dst, int256 delta_col, int256 delta_debt)
+        external
+    {
         ISafeEngine.Safe storage u = safes[col_type][src];
         ISafeEngine.Safe storage v = safes[col_type][dst];
         ISafeEngine.Collateral storage col = collaterals[col_type];
@@ -194,8 +168,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
         // both sides consent
         require(
-            can_modify_account(src, msg.sender)
-                && can_modify_account(dst, msg.sender),
+            can_modify_account(src, msg.sender) && can_modify_account(dst, msg.sender),
             "not allowed"
         );
 
@@ -249,10 +222,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
     }
 
     // suck: mint unbacked stablecoin (accounted for with vice).
-    function mint(address debt_dst, address coin_dst, uint256 rad)
-        external
-        auth
-    {
+    function mint(address debt_dst, address coin_dst, uint256 rad) external auth {
         debts[debt_dst] += rad;
         coin[coin_dst] += rad;
         total_unbacked_debt += rad;
@@ -261,11 +231,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // --- Rates ---
     // fold: modify the debt multiplier, creating / destroying corresponding debt.
-    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
-        external
-        auth
-        live
-    {
+    function sync(bytes32 col_type, address coin_dst, int256 delta_rate) external auth live {
         ISafeEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)

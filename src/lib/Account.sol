@@ -17,11 +17,7 @@ contract Account {
     }
 
     // wish
-    function can_modify_account(address account, address user)
-        public
-        view
-        returns (bool)
-    {
+    function can_modify_account(address account, address user) public view returns (bool) {
         return account == user || can[account][user];
     }
 }

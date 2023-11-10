@@ -20,13 +20,8 @@ contract Coin is Auth {
         return transferFrom(msg.sender, dst, wad);
     }
 
-    function transferFrom(address src, address dst, uint256 wad)
-        public
-        returns (bool)
-    {
-        if (
-            src != msg.sender && allowance[src][msg.sender] != type(uint256).max
-        ) {
+    function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
             allowance[src][msg.sender] -= wad;
         }
 
@@ -44,9 +39,7 @@ contract Coin is Auth {
     }
 
     function burn(address src, uint256 wad) external {
-        if (
-            src != msg.sender && allowance[src][msg.sender] != type(uint256).max
-        ) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
             allowance[src][msg.sender] -= wad;
         }
 
