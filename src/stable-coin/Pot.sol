@@ -14,12 +14,12 @@ typically be less than the base stability fee to remain sustainable.
 The purpose of Pot is to offer another incentive for holding BEI.
 */
 contract Pot is Auth, CircuitBreaker {
-    // pie
+    // pie = sum(coin / chi)
     // Normalised savings BEI [wad]
-    mapping(address => uint256) public balances;
+    mapping(address => uint256) public pie;
     // Pie
     // Total normalised savings BEI [wad]
-    uint256 public total;
+    uint256 public total_pie;
     // dsr
     // BEI savings rate [ray]
     uint256 public savings_rate;
@@ -79,21 +79,22 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = chi * total
         // new  total = new chi * total
         // mint = new total - prev total = (new chi - chi) * total
-        safe_engine.mint(debt_engine, address(this), total * delta_chi);
+        safe_engine.mint(debt_engine, address(this), total_pie * delta_chi);
         return tmp;
     }
 
     // --- Savings BEI Management ---
     function join(uint256 wad) external {
         require(block.timestamp == updated_at, "updated_at != now");
-        balances[msg.sender] += wad;
-        total += wad;
+        // TODO: check math for multiple deposits
+        pie[msg.sender] += wad;
+        total_pie += wad;
         safe_engine.transfer_coin(msg.sender, address(this), chi * wad);
     }
 
     function exit(uint256 wad) external {
-        balances[msg.sender] -= wad;
-        total -= wad;
+        pie[msg.sender] -= wad;
+        total_pie -= wad;
         safe_engine.transfer_coin(address(this), msg.sender, chi * wad);
     }
 }

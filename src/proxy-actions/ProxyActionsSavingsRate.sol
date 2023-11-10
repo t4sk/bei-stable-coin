@@ -45,12 +45,12 @@ contract ProxyActionsSavingsRate is Common {
         );
     }
 
-    function exitAll(address coin_join, address pot) public {
+    function exit_all(address coin_join, address pot) public {
         ISafeEngine safe_engine = ICoinJoin(coin_join).safe_engine();
         // Executes drip to count the savings accumulated until this moment
         uint256 chi = IPot(pot).drip();
         // Gets the total pie belonging to the proxy address
-        uint256 pie = IPot(pot).balances(address(this));
+        uint256 pie = IPot(pot).pie(address(this));
         // Exits BEI from the pot
         IPot(pot).exit(pie);
         // Allows adapter to access to proxy's BEI balance in the safe_engine
