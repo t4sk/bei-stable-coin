@@ -14,6 +14,7 @@ import "../lib/Math.sol";
 import {Common} from "./Common.sol";
 
 contract ProxyActions is Common {
+    // convertTo18
     function to_18_dec(address gem_join, uint256 amount)
         internal
         returns (uint256 wad)
@@ -101,6 +102,7 @@ contract ProxyActions is Common {
         IGem(gem).transfer(dst, amount);
     }
 
+    // ethJoin_join
     function eth_join_join(address gem_join, address safe) public payable {
         IWETH weth = IWETH(address(IGemJoin(gem_join).gem()));
         // Wraps ETH in WETH
@@ -111,6 +113,7 @@ contract ProxyActions is Common {
         IGemJoin(gem_join).join(safe, msg.value);
     }
 
+    // gemJoin_join
     function gem_join_join(
         address gem_join,
         address safe,
@@ -240,6 +243,7 @@ contract ProxyActions is Common {
     //     bag = GNTJoinLike(gem_join).make(address(this));
     // }
 
+    // lockETH
     function lock_eth(address safe_manager, address eth_join, uint256 safe_id)
         public
         payable
@@ -257,6 +261,7 @@ contract ProxyActions is Common {
         });
     }
 
+    // safeLockETH
     function safe_lock_eth(
         address safe_manager,
         address eth_join,
@@ -270,6 +275,7 @@ contract ProxyActions is Common {
         lock_eth(safe_manager, eth_join, safe_id);
     }
 
+    // lockGem
     function lock_gem(
         address safe_manager,
         address gem_join,
@@ -290,6 +296,7 @@ contract ProxyActions is Common {
         });
     }
 
+    // safeLockGem
     function safe_lock_gem(
         address safe_manager,
         address gem_join,
@@ -305,6 +312,7 @@ contract ProxyActions is Common {
         lock_gem(safe_manager, gem_join, safe_id, amount, is_tranfer_from);
     }
 
+    // freeETH
     function free_eth(
         address safe_manager,
         address eth_join,
@@ -323,6 +331,7 @@ contract ProxyActions is Common {
         payable(msg.sender).transfer(wad);
     }
 
+    // freeGem
     function free_gem(
         address safe_manager,
         address gem_join,
@@ -338,6 +347,7 @@ contract ProxyActions is Common {
         IGemJoin(gem_join).exit(msg.sender, amount);
     }
 
+    // exitETH
     function exit_eth(
         address safe_manager,
         address eth_join,
@@ -355,6 +365,7 @@ contract ProxyActions is Common {
         payable(msg.sender).transfer(wad);
     }
 
+    // exitGem
     function exit_gem(
         address safe_manager,
         address gem_join,
@@ -398,7 +409,6 @@ contract ProxyActions is Common {
     }
 
     // wipe
-    // TODO: rename
     function repay(
         address safe_manager,
         address coin_join,
@@ -447,6 +457,7 @@ contract ProxyActions is Common {
         }
     }
 
+    // safeWipe
     function safe_repay(
         address safe_manager,
         address coin_join,
@@ -461,6 +472,7 @@ contract ProxyActions is Common {
         repay(safe_manager, coin_join, safe_id, wad);
     }
 
+    // wipeAll
     function repay_all(address safe_manager, address coin_join, uint256 safe_id)
         public
     {
@@ -504,6 +516,7 @@ contract ProxyActions is Common {
         }
     }
 
+    // safeWipeAll
     function safe_repay_all(
         address safe_manager,
         address coin_join,
@@ -567,6 +580,7 @@ contract ProxyActions is Common {
         );
     }
 
+    // lockGemAndDraw
     function lock_gem_and_borrow(
         address safe_manager,
         address jug,
@@ -603,6 +617,7 @@ contract ProxyActions is Common {
         ICoinJoin(coin_join).exit(msg.sender, coin_amount);
     }
 
+    // openLockGemAndDraw
     function open_lock_gem_and_borrow(
         address safe_manager,
         address jug,
@@ -648,6 +663,7 @@ contract ProxyActions is Common {
     //     );
     // }
 
+    // wipeAndFreeETH
     function repay_and_free_eth(
         address safe_manager,
         address eth_join,
@@ -682,6 +698,7 @@ contract ProxyActions is Common {
         payable(msg.sender).transfer(wadC);
     }
 
+    // wipeAllAndFreeETH
     function repay_all_and_free_eth(
         address safe_manager,
         address eth_join,
