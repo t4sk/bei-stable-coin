@@ -32,6 +32,11 @@ interface ISafeEngine {
     function add_auth(address user) external;
     // deny
     function remove_auth(address user) external;
+    // can
+    function can(address account, address caller)
+        external
+        view
+        returns (bool);
     // hope
     function allow_account_modification(address user) external;
     // nope
