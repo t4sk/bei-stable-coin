@@ -7,6 +7,6 @@ import {ICoin} from "./ICoin.sol";
 interface ICoinJoin {
     function safe_engine() external returns (ISafeEngine);
     function coin() external returns (ICoin);
-    function join(address, uint256) external payable;
-    function exit(address, uint256) external;
+    function join(address user, uint256 wad) external payable;
+    function exit(address user, uint256 wad) external;
 }

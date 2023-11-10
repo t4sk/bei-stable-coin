@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
+import {IWETH} from "../interfaces/IWETH.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {ISafeManager} from "../interfaces/ISafeManager.sol";
 import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
-import {Math, WAD, RAY, RAD} from "../lib/Math.sol";
+import "../lib/Math.sol";
 
 contract Common {
-    function daiJoin_join(address adapter, address account, uint256 wad)
+    function coin_join_join(address adapter, address account, uint256 wad)
         public
     {
         ICoinJoin(adapter).coin().transferFrom(msg.sender, address(this), wad);
@@ -20,35 +21,49 @@ contract Common {
 }
 
 contract ProxyActions is Common {
-    function open(address manager, bytes32 collateral_type, address user)
-        public
-        returns (uint256 cdp)
-    {
-        cdp = ISafeManager(manager).open(collateral_type, user);
-    }
-
-    function gemJoin_join(
-        address adapter,
-        address safe,
-        uint256 amount,
-        bool isTransferFrom
-    ) public {
-        if (isTransferFrom) {
-            IGemJoin(adapter).gem().transferFrom(
-                msg.sender, address(this), amount
-            );
-            IGemJoin(adapter).gem().approve(adapter, amount);
-        }
-        IGemJoin(adapter).join(safe, amount);
-    }
-
-    function to18Decimals(address gemJoin, uint256 amount)
+    function to_18_dec(address gem_join, uint256 amount)
         internal
         returns (uint256 wad)
     {
         // For those collaterals that have less than 18 decimals precision we need to do the conversion before passing to frob function
         // Adapters will automatically handle the difference of precision
-        wad = amount * 10 ** (18 - IGemJoin(gemJoin).dec());
+        wad = amount * 10 ** (18 - IGemJoin(gem_join).decimals());
+    }
+
+    function transfer(address gem, address dst, uint256 amount) public {
+        IGem(gem).transfer(dst, amount);
+    }
+
+    function eth_join_join(address gem_join, address safe) public payable {
+        IWETH weth = IWETH(address(IGemJoin(gem_join).gem()));
+        // Wraps ETH in WETH
+        weth.deposit{value: msg.value}();
+        // Approves adapter to take the WETH amount
+        weth.approve(address(gem_join), msg.value);
+        // Joins WETH collateral into the vat
+        IGemJoin(gem_join).join(safe, msg.value);
+    }
+
+    function gem_join_join(
+        address gem_join,
+        address safe,
+        uint256 amount,
+        bool isTransferFrom
+    ) public {
+        if (isTransferFrom) {
+            IGemJoin(gem_join).gem().transferFrom(
+                msg.sender, address(this), amount
+            );
+            IGemJoin(gem_join).gem().approve(gem_join, amount);
+        }
+        IGemJoin(gem_join).join(safe, amount);
+    }
+
+    function open(address safe_manager, bytes32 col_type, address user)
+        public
+        returns (uint256 safe_id)
+    {
+        safe_id = ISafeManager(safe_manager).open(col_type, user);
     }
 
     // _getDrawDart
@@ -111,9 +126,9 @@ contract ProxyActions is Common {
         address safe_engine = ISafeManager(manager).safe_engine();
         bytes32 collateral_type = ISafeManager(manager).collaterals(cdp);
 
-        gemJoin_join(gemJoin, safe, amount, isTransferFrom);
+        gem_join_join(gemJoin, safe, amount, isTransferFrom);
         // Locks token amount into the CDP and generates debt
-        // frob(manager, cdp, to_int(to18Decimals(gemJoin, amount)), _getDrawDart(safe_engine, jug, urn, ilk, wadD));
+        // frob(manager, cdp, to_int(to_18_dec(gemJoin, amount)), _getDrawDart(safe_engine, jug, urn, ilk, wadD));
         // // Moves the DAI amount (balance in the safe_engine in rad) to proxy's address
         move(manager, cdp, address(this), Math.to_rad(wad));
         // // Allows adapter to access to proxy's DAI balance in the safe_engine

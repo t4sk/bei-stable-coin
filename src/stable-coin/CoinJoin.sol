@@ -11,12 +11,14 @@ contract CoinJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 
+    // vat
     ISafeEngine public immutable safe_engine;
-    ICoin public immutable dai;
+    // dai
+    ICoin public immutable coin;
 
-    constructor(address _safe_engine, address _dai) {
+    constructor(address _safe_engine, address _coin) {
         safe_engine = ISafeEngine(_safe_engine);
-        dai = ICoin(_dai);
+        coin = ICoin(_coin);
     }
 
     // cage
@@ -26,13 +28,13 @@ contract CoinJoin is Auth, CircuitBreaker {
 
     function join(address user, uint256 wad) external {
         safe_engine.transfer_coin(address(this), user, wad * RAY);
-        dai.burn(msg.sender, wad);
+        coin.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external live {
         safe_engine.transfer_coin(msg.sender, address(this), wad * RAY);
-        dai.mint(user, wad);
+        coin.mint(user, wad);
         emit Exit(user, wad);
     }
 }

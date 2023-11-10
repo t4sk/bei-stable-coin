@@ -10,18 +10,20 @@ contract GemJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);
 
+    // vat
     ISafeEngine public immutable safe_engine;
     // ilk
     bytes32 public immutable collateral_type;
+    // gem
     IGem public immutable gem;
-    // decimals
-    uint256 public immutable dec;
+    // dec
+    uint8 public immutable decimals;
 
-    constructor(address _safe_engine, bytes32 _collateralType, address _gem) {
+    constructor(address _safe_engine, bytes32 _collateral_type, address _gem) {
         safe_engine = ISafeEngine(_safe_engine);
-        collateral_type = _collateralType;
+        collateral_type = _collateral_type;
         gem = IGem(_gem);
-        dec = gem.decimals();
+        decimals = gem.decimals();
     }
 
     // cage

@@ -2,15 +2,15 @@
 pragma solidity 0.8.19;
 
 interface ICoin {
-    function mint(address, uint256) external;
-    function burn(address, uint256) external;
-    function decimals() external view returns (uint256);
-    function approve(address, uint256) external;
-    function transfer(address, uint256) external returns (bool);
-    function transferFrom(address, address, uint256) external returns (bool);
-    // function deposit() external payable;
-    // function withdraw(uint256) external;
-    function push(address usr, uint256 amount) external;
-    function pull(address usr, uint256 amount) external;
-    function move(address src, address dst, uint256 amount) external;
+    function decimals() external view returns (uint8);
+    function transfer(address dst, uint256 wad) external returns (bool);
+    function transferFrom(address src, address dst, uint256 wad)
+        external
+        returns (bool);
+    function approve(address spender, uint256 wad) external;
+    function mint(address dst, uint256 wad) external;
+    function burn(address src, uint256 wad) external;
+    function push(address dst, uint256 wad) external;
+    function pull(address src, uint256 wad) external;
+    function move(address src, address dst, uint256 wad) external;
 }
