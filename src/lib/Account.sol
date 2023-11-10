@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 contract Account {
     // can
     // account => caller => can modify account
-    mapping(address => mapping(address => bool)) internal can;
+    mapping(address => mapping(address => bool)) private can;
 
     // hope
     function allow_account_modification(address user) external {

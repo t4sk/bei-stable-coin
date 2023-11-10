@@ -25,6 +25,24 @@ interface ISafeEngine {
         uint256 debt;
     }
 
+    // --- Auth ---
+    // wards
+    function authorized(address user) external view returns (bool);
+    // rely
+    function add_auth(address user) external;
+    // deny
+    function remove_auth(address user) external;
+    // hope
+    function allow_account_modification(address user) external;
+    // nope
+    function deny_account_modification(address user) external;
+    // wish
+    function can_modify_account(address account, address user)
+        external
+        view
+        returns (bool);
+
+    // --- Data ---
     // ilks
     function collaterals(bytes32 col_type)
         external
@@ -50,23 +68,6 @@ interface ISafeEngine {
     function total_unbacked_debt() external view returns (uint256);
     // Line [rad]
     function max_total_debt() external view returns (uint256);
-
-    // rely
-    function add_auth(address user) external;
-    // deny
-    function remove_auth(address user) external;
-    // wards
-    function authorized(address user) external view returns (bool);
-
-    // hope
-    function allow_account_modification(address user) external;
-    // nope
-    function deny_account_modification(address user) external;
-    // wish
-    function can_modify_account(address account, address user)
-        external
-        view
-        returns (bool);
 
     // --- Administration ---
     function init(bytes32 col_type) external;

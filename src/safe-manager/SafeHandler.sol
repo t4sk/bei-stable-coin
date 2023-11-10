@@ -5,6 +5,6 @@ import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 
 contract SafeHandler {
     constructor(address safe_engine) {
-        ISafeEngine(safe_engine).add_auth(msg.sender);
+        ISafeEngine(safe_engine).allow_account_modification(msg.sender);
     }
 }
