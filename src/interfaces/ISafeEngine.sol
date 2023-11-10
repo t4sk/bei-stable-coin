@@ -33,13 +33,13 @@ interface ISafeEngine {
     // deny
     function remove_auth(address user) external;
     // can
-    function can(address account, address caller) external view returns (bool);
+    function can(address owner, address user) external view returns (bool);
     // hope
     function allow_account_modification(address user) external;
     // nope
     function deny_account_modification(address user) external;
     // wish
-    function can_modify_account(address account, address user) external view returns (bool);
+    function can_modify_account(address owner, address user) external view returns (bool);
 
     // --- Data ---
     // ilks
@@ -69,7 +69,7 @@ interface ISafeEngine {
 
     // --- Fungibility ---
     // slip
-    function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external;
+    function modify_collateral_balance(bytes32 col_type, address src, int256 wad) external;
     // flux
     function transfer_collateral(bytes32 col_type, address src, address dst, uint256 wad)
         external;

@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 contract Account {
     // can
-    // account => caller => can modify account
+    // owner => user => can modify account
     mapping(address => mapping(address => bool)) public can;
 
     // hope
@@ -17,7 +17,7 @@ contract Account {
     }
 
     // wish
-    function can_modify_account(address account, address user) public view returns (bool) {
-        return account == user || can[account][user];
+    function can_modify_account(address owner, address user) public view returns (bool) {
+        return owner == user || can[owner][user];
     }
 }

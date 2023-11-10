@@ -61,8 +61,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
 
     // --- Fungibility ---
     // slip: modify a user's collateral balance.
-    function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external auth {
-        gem[col_type][user] = Math.add(gem[col_type][user], wad);
+    function modify_collateral_balance(bytes32 col_type, address src, int256 wad) external auth {
+        gem[col_type][src] = Math.add(gem[col_type][src], wad);
     }
 
     // flux: transfer collateral between users.
