@@ -2,6 +2,5 @@
 pragma solidity 0.8.19;
 
 interface IJug {
-    // TODO: what does it do?
-    function drip(bytes32) external returns (uint256);
+    function drip(bytes32 col_type) external returns (uint256 rate);
 }

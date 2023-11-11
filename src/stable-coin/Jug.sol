@@ -5,11 +5,13 @@ import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
+// TODO: dynamic fee where jug fee < stability fee
 /*
 The primary function of the Jug smart contract is to accumulate stability fees
 for a particular collateral type whenever its drip() method is called.
 */
 contract Jug is Auth {
+    // Ilk
     struct Collateral {
         // Per second stability fee
         // duty - Collateral-specific, per-second stability fee contribution [ray]
@@ -18,10 +20,11 @@ contract Jug is Auth {
         uint256 updated_at;
     }
 
+    // ilks
     mapping(bytes32 => Collateral) public collaterals;
-    // CDP engine
+    // vat
     ISafeEngine public immutable safe_engine;
-    // Debt engine
+    // vow
     address public debt_engine;
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
@@ -39,28 +42,28 @@ contract Jug is Auth {
     }
 
     // file
-    function set(bytes32 col_type, bytes32 key, uint256 data) external auth {
+    function set(bytes32 col_type, bytes32 key, uint256 val) external auth {
         require(block.timestamp == collaterals[col_type].updated_at, "update time != now");
         if (key == "fee") {
-            collaterals[col_type].fee = data;
+            collaterals[col_type].fee = val;
         } else {
-            revert("Unrecognized key");
+            revert("invalid param");
         }
     }
 
-    function set(bytes32 key, uint256 data) external auth {
+    function set(bytes32 key, uint256 val) external auth {
         if (key == "base_fee") {
-            base_fee = data;
+            base_fee = val;
         } else {
-            revert("Unrecognized key");
+            revert("invalid param");
         }
     }
 
-    function set(bytes32 key, address data) external auth {
+    function set(bytes32 key, address val) external auth {
         if (key == "debt_engine") {
-            debt_engine = data;
+            debt_engine = val;
         } else {
-            revert("Unrecognized key");
+            revert("invalid param");
         }
     }
 
