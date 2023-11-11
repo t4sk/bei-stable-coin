@@ -218,6 +218,7 @@ contract ProxyActions is Common {
     function lock_eth(address safe_manager, address eth_join, uint256 safe_id) public payable {
         // Receives ETH amount, converts it to WETH and joins it into the safe_engine
         eth_join_join(eth_join, address(this));
+        // TODO: why 2 ways to call modify_safe -> from SafeManager and directly to SafeEngine
         // Locks WETH amount into the CDP
         ISafeEngine(ISafeManager(safe_manager).safe_engine()).modify_safe({
             col_type: ISafeManager(safe_manager).collaterals(safe_id),
@@ -234,7 +235,7 @@ contract ProxyActions is Common {
         public
         payable
     {
-        require(ISafeManager(safe_manager).owner_of(safe_id) == owner, "owner missmatch");
+        require(ISafeManager(safe_manager).owner_of(safe_id) == owner, "owner mismatch");
         lock_eth(safe_manager, eth_join, safe_id);
     }
 
@@ -268,7 +269,7 @@ contract ProxyActions is Common {
         bool is_tranfer_from,
         address owner
     ) public {
-        require(ISafeManager(safe_manager).owner_of(safe_id) == owner, "owner missmatch");
+        require(ISafeManager(safe_manager).owner_of(safe_id) == owner, "owner mismatch");
         lock_gem(safe_manager, gem_join, safe_id, amount, is_tranfer_from);
     }
 
@@ -307,7 +308,6 @@ contract ProxyActions is Common {
     {
         // Moves the amount from the CDP safe to proxy's address
         transfer_collateral(safe_manager, safe_id, address(this), wad);
-
         // Exits WETH amount to proxy address as a token
         IGemJoin(eth_join).exit(address(this), wad);
         // Converts WETH to ETH
@@ -572,7 +572,7 @@ contract ProxyActions is Common {
         address eth_join,
         address coin_join,
         uint256 safe_id,
-        uint256 wadC,
+        uint256 col_amount,
         uint256 coin_amount
     ) public {
         address safe = ISafeManager(safe_manager).safes(safe_id);
@@ -583,7 +583,7 @@ contract ProxyActions is Common {
         modify_safe(
             safe_manager,
             safe_id,
-            -Math.to_int(wadC),
+            -Math.to_int(col_amount),
             _get_repay_delta_debt(
                 safe_engine,
                 ISafeEngine(safe_engine).coin(safe),
@@ -592,13 +592,13 @@ contract ProxyActions is Common {
             )
         );
         // Moves the amount from the CDP safe to proxy's address
-        transfer_collateral(safe_manager, safe_id, address(this), wadC);
+        transfer_collateral(safe_manager, safe_id, address(this), col_amount);
         // Exits WETH amount to proxy address as a token
-        IGemJoin(eth_join).exit(address(this), wadC);
+        IGemJoin(eth_join).exit(address(this), col_amount);
         // Converts WETH to ETH
-        IWETH(address(IGemJoin(eth_join).gem())).withdraw(wadC);
+        IWETH(address(IGemJoin(eth_join).gem())).withdraw(col_amount);
         // Sends ETH back to the user's wallet
-        payable(msg.sender).transfer(wadC);
+        payable(msg.sender).transfer(col_amount);
     }
 
     // wipeAllAndFreeETH
@@ -607,7 +607,7 @@ contract ProxyActions is Common {
         address eth_join,
         address coin_join,
         uint256 safe_id,
-        uint256 wadC
+        uint256 col_amount
     ) public {
         address safe_engine = ISafeManager(safe_manager).safe_engine();
         address safe = ISafeManager(safe_manager).safes(safe_id);
@@ -617,15 +617,15 @@ contract ProxyActions is Common {
         // Joins BEI amount into the safe_engine
         coin_join_join(coin_join, safe, _get_repay_all_debt(safe_engine, safe, safe, col_type));
         // Paybacks debt to the CDP and unlocks WETH amount from it
-        modify_safe(safe_manager, safe_id, -Math.to_int(wadC), -int256(s.debt));
+        modify_safe(safe_manager, safe_id, -Math.to_int(col_amount), -int256(s.debt));
         // Moves the amount from the CDP safe to proxy's address
-        transfer_collateral(safe_manager, safe_id, address(this), wadC);
+        transfer_collateral(safe_manager, safe_id, address(this), col_amount);
         // Exits WETH amount to proxy address as a token
-        IGemJoin(eth_join).exit(address(this), wadC);
+        IGemJoin(eth_join).exit(address(this), col_amount);
         // Converts WETH to ETH
-        IWETH(address(IGemJoin(eth_join).gem())).withdraw(wadC);
+        IWETH(address(IGemJoin(eth_join).gem())).withdraw(col_amount);
         // Sends ETH back to the user's wallet
-        payable(msg.sender).transfer(wadC);
+        payable(msg.sender).transfer(col_amount);
     }
 
     // wipeAndFreeGem
@@ -640,12 +640,12 @@ contract ProxyActions is Common {
         address safe = ISafeManager(safe_manager).safes(safe_id);
         // Joins BEI amount into the safe_engine
         coin_join_join(coin_join, safe, coin_amount);
-        uint256 wadC = to_18_dec(gem_join, col_amount);
+        uint256 col_wad = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
         modify_safe(
             safe_manager,
             safe_id,
-            -Math.to_int(wadC),
+            -Math.to_int(col_wad),
             _get_repay_delta_debt(
                 ISafeManager(safe_manager).safe_engine(),
                 ISafeEngine(ISafeManager(safe_manager).safe_engine()).coin(safe),
@@ -654,7 +654,7 @@ contract ProxyActions is Common {
             )
         );
         // Moves the amount from the CDP safe to proxy's address
-        transfer_collateral(safe_manager, safe_id, address(this), wadC);
+        transfer_collateral(safe_manager, safe_id, address(this), col_wad);
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, col_amount);
     }
@@ -674,11 +674,11 @@ contract ProxyActions is Common {
 
         // Joins BEI amount into the safe_engine
         coin_join_join(coin_join, safe, _get_repay_all_debt(safe_engine, safe, safe, col_type));
-        uint256 wadC = to_18_dec(gem_join, col_amount);
+        uint256 col_wad = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
-        modify_safe(safe_manager, safe_id, -Math.to_int(wadC), -int256(s.debt));
+        modify_safe(safe_manager, safe_id, -Math.to_int(col_wad), -int256(s.debt));
         // Moves the amount from the CDP safe to proxy's address
-        transfer_collateral(safe_manager, safe_id, address(this), wadC);
+        transfer_collateral(safe_manager, safe_id, address(this), col_wad);
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, col_amount);
     }

@@ -13,7 +13,7 @@ contract CoinJoin is Auth, CircuitBreaker {
 
     // vat
     ISafeEngine public immutable safe_engine;
-    // dai
+    // DAI
     ICoin public immutable coin;
 
     constructor(address _safe_engine, address _coin) {

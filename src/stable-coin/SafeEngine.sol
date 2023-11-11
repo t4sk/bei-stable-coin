@@ -112,8 +112,8 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         // delta_debt = delta coin / col.rate
         // delta coin = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
-        // total coin + compound interest that the safe owes to protocol
-        uint256 total_coin = col.rate * s.debt;
+        // coin balance + compound interest that the safe owes to protocol
+        uint256 debt = col.rate * s.debt;
         total_debt = Math.add(total_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
@@ -122,9 +122,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
             "debt ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
-        require(
-            (delta_debt <= 0 && delta_col >= 0) || total_coin <= s.collateral * col.spot, "not safe"
-        );
+        require((delta_debt <= 0 && delta_col >= 0) || debt <= s.collateral * col.spot, "not safe");
         // safe is either more safe, or the owner consents
         require(
             (delta_debt <= 0 && delta_col >= 0) || can_modify_account(safe, msg.sender),
@@ -138,7 +136,7 @@ contract SafeEngine is Auth, CircuitBreaker, Account {
         require(delta_debt >= 0 || can_modify_account(debt_dst, msg.sender), "not allowed debt dst");
 
         // safe has no debt, or a non-dusty amount
-        require(s.debt == 0 || total_coin >= col.min_debt, "SafeEngine/dust");
+        require(s.debt == 0 || debt >= col.min_debt, "SafeEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
