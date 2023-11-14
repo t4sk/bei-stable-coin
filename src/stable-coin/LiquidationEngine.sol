@@ -8,6 +8,7 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
+// TODO: study how liquidation works
 // Dog
 contract LiquidationEngine is Auth, CircuitBreaker {
     event Liquidate(

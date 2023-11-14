@@ -5,10 +5,10 @@ import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
-import {Account} from "../lib/Account.sol";
+import {AccessControl} from "../lib/AccessControl.sol";
 
 // Vat - CDP Engine
-contract SafeEngine is Auth, CircuitBreaker, Account {
+contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
     mapping(bytes32 => ISafeEngine.Collateral) public collaterals;
     // urns - collateral type => account => safe

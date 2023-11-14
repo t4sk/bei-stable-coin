@@ -6,7 +6,7 @@ import {IGem} from "../interfaces/IGem.sol";
 import {ICoin} from "../interfaces/ICoin.sol";
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
-import {IAccount} from "../interfaces/IAccount.sol";
+import {IAccessControl} from "../interfaces/IAccessControl.sol";
 import {ISafeManager} from "../interfaces/ISafeManager.sol";
 import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
@@ -116,12 +116,12 @@ contract ProxyActions is Common {
 
     // hope
     function allow_account_modification(address acc, address user) public {
-        IAccount(acc).allow_account_modification(user);
+        IAccessControl(acc).allow_account_modification(user);
     }
 
     // nope
     function deny_account_modification(address acc, address user) public {
-        IAccount(acc).deny_account_modification(user);
+        IAccessControl(acc).deny_account_modification(user);
     }
 
     function open(address safe_manager, bytes32 col_type, address user)
