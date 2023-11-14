@@ -41,5 +41,5 @@ contract AuthTest is Test {
 
         auth.remove_auth(user);
         assertTrue(!auth.authorized(user));
-   }
+    }
 }

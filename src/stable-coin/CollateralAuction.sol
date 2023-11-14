@@ -209,7 +209,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             // TODO: check units
             fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-            safe_engine.mint(debt_engine, keeper, fee);
+            safe_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
         }
 
         emit Start(id, starting_price, coin_amount, collateral_amount, user, keeper, fee);
@@ -248,7 +248,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             if (coin_amount >= cache && collateral_amount * price >= cache) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-                safe_engine.mint(debt_engine, keeper, fee);
+                safe_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
             }
         }
 
