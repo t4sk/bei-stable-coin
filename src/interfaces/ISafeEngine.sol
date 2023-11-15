@@ -39,15 +39,27 @@ interface ISafeEngine {
     // nope
     function deny_account_modification(address user) external;
     // wish
-    function can_modify_account(address owner, address user) external view returns (bool);
+    function can_modify_account(address owner, address user)
+        external
+        view
+        returns (bool);
 
     // --- Data ---
     // ilks
-    function collaterals(bytes32 col_type) external view returns (Collateral memory);
+    function collaterals(bytes32 col_type)
+        external
+        view
+        returns (Collateral memory);
     // urns
-    function safes(bytes32 col_type, address account) external view returns (Safe memory);
+    function safes(bytes32 col_type, address account)
+        external
+        view
+        returns (Safe memory);
     // gem [wad]
-    function gem(bytes32 col_type, address account) external view returns (uint256);
+    function gem(bytes32 col_type, address account)
+        external
+        view
+        returns (uint256);
     // dai [rad]
     function coin(address account) external view returns (uint256);
     // sin [rad]
@@ -69,10 +81,18 @@ interface ISafeEngine {
 
     // --- Fungibility ---
     // slip
-    function modify_collateral_balance(bytes32 col_type, address src, int256 wad) external;
+    function modify_collateral_balance(
+        bytes32 col_type,
+        address src,
+        int256 wad
+    ) external;
     // flux
-    function transfer_collateral(bytes32 col_type, address src, address dst, uint256 wad)
-        external;
+    function transfer_collateral(
+        bytes32 col_type,
+        address src,
+        address dst,
+        uint256 wad
+    ) external;
     // move
     function transfer_coin(address src, address dst, uint256 rad) external;
 
@@ -88,8 +108,13 @@ interface ISafeEngine {
     ) external;
 
     // --- CDP Fungibility ---
-    function fork(bytes32 col_type, address src, address dst, int256 delta_col, int256 delta_debt)
-        external;
+    function fork(
+        bytes32 col_type,
+        address src,
+        address dst,
+        int256 delta_col,
+        int256 delta_debt
+    ) external;
     function grab(
         bytes32 col_type,
         address src,
@@ -107,5 +132,6 @@ interface ISafeEngine {
 
     // --- Rates ---
     // fold
-    function sync(bytes32 col_type, address coin_dst, int256 delta_rate) external;
+    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
+        external;
 }

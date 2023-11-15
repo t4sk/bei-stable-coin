@@ -5,7 +5,9 @@ interface IGem {
     function decimals() external view returns (uint8);
     function approve(address spender, uint256 amount) external;
     function transfer(address dst, uint256 amount) external returns (bool);
-    function transferFrom(address src, address dst, uint256 amount) external returns (bool);
+    function transferFrom(address src, address dst, uint256 amount)
+        external
+        returns (bool);
     // TODO: split interface for MKR
     function mint(address dst, uint256 amount) external;
     function burn(address src, uint256 amount) external;

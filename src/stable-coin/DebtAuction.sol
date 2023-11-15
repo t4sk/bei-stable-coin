@@ -112,9 +112,12 @@ contract DebtAuction is Auth, CircuitBreaker {
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or no one has bid yet
         require(
-            block.timestamp < b.bid_expiry_time || b.bid_expiry_time == 0, "already finished bid"
+            block.timestamp < b.bid_expiry_time || b.bid_expiry_time == 0,
+            "already finished bid"
         );
-        require(block.timestamp < b.auction_end_time, "already finished auction");
+        require(
+            block.timestamp < b.auction_end_time, "already finished auction"
+        );
 
         require(bid_amount == b.amount, "not matching bid");
         require(lot < b.lot, "lot not lower");
@@ -127,7 +130,8 @@ contract DebtAuction is Auth, CircuitBreaker {
 
             // on first dent, clear as much Ash as possible
             if (b.bid_expiry_time == 0) {
-                uint256 debt = IDebtEngine(b.highest_bidder).total_debt_on_auction();
+                uint256 debt =
+                    IDebtEngine(b.highest_bidder).total_debt_on_auction();
                 IDebtEngine(b.highest_bidder).cancel_auctioned_debt_with_surplus(
                     Math.min(bid_amount, debt)
                 );
@@ -145,7 +149,10 @@ contract DebtAuction is Auth, CircuitBreaker {
         Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
-                && (b.bid_expiry_time < block.timestamp || b.auction_end_time < block.timestamp),
+                && (
+                    b.bid_expiry_time < block.timestamp
+                        || b.auction_end_time < block.timestamp
+                ),
             "not finished"
         );
         gem.mint(b.highest_bidder, b.lot);

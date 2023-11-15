@@ -2,5 +2,10 @@
 pragma solidity 0.8.19;
 
 interface ICollateralAuctionCallee {
-    function callback(address, uint256, uint256, bytes calldata) external;
+    function callback(
+        address caller,
+        uint256 owe,
+        uint256 slice,
+        bytes calldata data
+    ) external;
 }

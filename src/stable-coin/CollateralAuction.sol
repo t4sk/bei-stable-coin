@@ -5,8 +5,10 @@ import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
-import {IAuctionPriceCalculator} from "../interfaces/IAuctionPriceCalculator.sol";
-import {ICollateralAuctionCallee} from "../interfaces/ICollateralAuctionCallee.sol";
+import {IAuctionPriceCalculator} from
+    "../interfaces/IAuctionPriceCalculator.sol";
+import {ICollateralAuctionCallee} from
+    "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -213,7 +215,15 @@ contract CollateralAuction is Auth, Guard {
             safe_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
         }
 
-        emit Start(id, starting_price, coin_amount, collateral_amount, user, keeper, fee);
+        emit Start(
+            id,
+            starting_price,
+            coin_amount,
+            collateral_amount,
+            user,
+            keeper,
+            fee
+        );
     }
 
     // Reset an auction
@@ -249,11 +259,23 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             if (coin_amount >= cache && collateral_amount * price >= cache) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-                safe_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
+                safe_engine.mint({
+                    debt_dst: debt_engine,
+                    coin_dst: keeper,
+                    rad: fee
+                });
             }
         }
 
-        emit Redo(id, starting_price, coin_amount, collateral_amount, user, keeper, fee);
+        emit Redo(
+            id,
+            starting_price,
+            coin_amount,
+            collateral_amount,
+            user,
+            keeper,
+            fee
+        );
     }
 
     // Buy up to `amt` of collateral from the auction indexed by `id`.
@@ -341,7 +363,9 @@ contract CollateralAuction is Auth, Guard {
             collateral_amount -= slice;
 
             // Send collateral to receiver
-            safe_engine.transfer_collateral(collateral_type, address(this), receiver, slice);
+            safe_engine.transfer_collateral(
+                collateral_type, address(this), receiver, slice
+            );
 
             // Do external call (if data is defined) but to be
             // extremely careful we don't allow to do it to the two
@@ -350,7 +374,9 @@ contract CollateralAuction is Auth, Guard {
                 data.length > 0 && receiver != address(safe_engine)
                     && receiver != address(liquidation_engine)
             ) {
-                ICollateralAuctionCallee(receiver).callback(msg.sender, owe, slice, data);
+                ICollateralAuctionCallee(receiver).callback(
+                    msg.sender, owe, slice, data
+                );
             }
 
             // Get BEI from caller
@@ -358,21 +384,32 @@ contract CollateralAuction is Auth, Guard {
 
             // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
-                collateral_type, collateral_amount == 0 ? coin_amount + owe : owe
+                collateral_type,
+                collateral_amount == 0 ? coin_amount + owe : owe
             );
         }
 
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {
-            safe_engine.transfer_collateral(collateral_type, address(this), user, collateral_amount);
+            safe_engine.transfer_collateral(
+                collateral_type, address(this), user, collateral_amount
+            );
             _remove(id);
         } else {
             sales[id].coin_amount = coin_amount;
             sales[id].collateral_amount = collateral_amount;
         }
 
-        emit Take(id, max_collateral_amount, price, owe, coin_amount, collateral_amount, user);
+        emit Take(
+            id,
+            max_collateral_amount,
+            price,
+            owe,
+            coin_amount,
+            collateral_amount,
+            user
+        );
     }
 
     function _remove(uint256 id) internal {
@@ -401,7 +438,12 @@ contract CollateralAuction is Auth, Guard {
     function get_status(uint256 id)
         external
         view
-        returns (bool needs_redo, uint256 price, uint256 collateral_amount, uint256 coin_amount)
+        returns (
+            bool needs_redo,
+            uint256 price,
+            uint256 collateral_amount,
+            uint256 coin_amount
+        )
     {
         // Read auction data
         address user = sales[id].user;
@@ -431,8 +473,10 @@ contract CollateralAuction is Auth, Guard {
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
-        ISafeEngine.Collateral memory col = ISafeEngine(safe_engine).collaterals(collateral_type);
-        cache = Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
+        ISafeEngine.Collateral memory col =
+            ISafeEngine(safe_engine).collaterals(collateral_type);
+        cache =
+            Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }
 
     // Cancel an auction during ES or via governance action.
@@ -440,7 +484,10 @@ contract CollateralAuction is Auth, Guard {
         require(sales[id].user != address(0), "Clipper/not-running-auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
         safe_engine.transfer_collateral(
-            collateral_type, address(this), msg.sender, sales[id].collateral_amount
+            collateral_type,
+            address(this),
+            msg.sender,
+            sales[id].collateral_amount
         );
         _remove(id);
         emit Yank(id);

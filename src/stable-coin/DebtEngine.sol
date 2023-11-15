@@ -40,7 +40,11 @@ contract DebtEngine is Auth, CircuitBreaker {
     // surplus auction can start
     uint256 public min_surplus;
 
-    constructor(address _safe_engine, address _surplus_auction, address _debt_auction) {
+    constructor(
+        address _safe_engine,
+        address _surplus_auction,
+        address _debt_auction
+    ) {
         safe_engine = ISafeEngine(_safe_engine);
         surplus_auction = ISurplusAuction(_surplus_auction);
         debt_auction = IDebtAuction(_debt_auction);
@@ -49,7 +53,7 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // --- Administration ---
     function set(bytes32 key, uint256 val) external auth {
-        if (key == "wait") {
+        if (key == "pop_debt_delay") {
             pop_debt_delay = val;
         } else if (key == "surplus_auction_lot_size") {
             surplus_auction_lot_size = val;
@@ -64,13 +68,13 @@ contract DebtEngine is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 key, address addr) external auth {
+    function set(bytes32 key, address val) external auth {
         if (key == "surplus_auction") {
             safe_engine.deny_account_modification(address(surplus_auction));
-            surplus_auction = ISurplusAuction(addr);
-            safe_engine.allow_account_modification(addr);
+            surplus_auction = ISurplusAuction(val);
+            safe_engine.allow_account_modification(val);
         } else if (key == "debt_auction") {
-            debt_auction = IDebtAuction(addr);
+            debt_auction = IDebtAuction(val);
         } else {
             revert("invalid param");
         }
@@ -84,7 +88,7 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // flog - Pop from debt-queue
     function pop_debt_from_queue(uint256 t) external {
-        require(t + pop_debt_delay <= block.timestamp, "wait not finished");
+        require(t + pop_debt_delay <= block.timestamp, "delay not finished");
         total_debt_on_queue -= debt_queue[t];
         debt_queue[t] = 0;
     }
@@ -94,7 +98,9 @@ contract DebtEngine is Auth, CircuitBreaker {
         require(rad <= safe_engine.coin(address(this)), "insufficient surplus");
         // TODO: what?
         require(
-            rad <= safe_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction,
+            rad
+                <= safe_engine.debts(address(this)) - total_debt_on_queue
+                    - total_debt_on_auction,
             "insufficient debt"
         );
         safe_engine.burn(rad);
@@ -115,12 +121,15 @@ contract DebtEngine is Auth, CircuitBreaker {
         // TODO: what?
         require(
             debt_auction_bid_size
-                <= safe_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction,
+                <= safe_engine.debts(address(this)) - total_debt_on_queue
+                    - total_debt_on_auction,
             "insufficient debt"
         );
         require(safe_engine.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction.start(address(this), debt_auction_lot_size, debt_auction_bid_size);
+        id = debt_auction.start(
+            address(this), debt_auction_lot_size, debt_auction_bid_size
+        );
     }
 
     // flap
@@ -128,11 +137,13 @@ contract DebtEngine is Auth, CircuitBreaker {
     function start_surplus_auction() external returns (uint256 id) {
         require(
             safe_engine.coin(address(this))
-                >= safe_engine.debts(address(this)) + surplus_auction_lot_size + min_surplus,
+                >= safe_engine.debts(address(this)) + surplus_auction_lot_size
+                    + min_surplus,
             "insufficient surplus"
         );
         require(
-            safe_engine.debts(address(this)) - total_debt_on_queue - total_debt_on_auction == 0,
+            safe_engine.debts(address(this)) - total_debt_on_queue
+                - total_debt_on_auction == 0,
             "debt not zero"
         );
         id = surplus_auction.start(surplus_auction_lot_size, 0);
@@ -145,7 +156,10 @@ contract DebtEngine is Auth, CircuitBreaker {
         surplus_auction.stop(safe_engine.coin(address(surplus_auction)));
         debt_auction.stop();
         safe_engine.burn(
-            Math.min(safe_engine.coin(address(this)), safe_engine.debts(address(this)))
+            Math.min(
+                safe_engine.coin(address(this)),
+                safe_engine.debts(address(this))
+            )
         );
     }
 }

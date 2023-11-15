@@ -10,7 +10,7 @@ interface IDebtEngine {
     // flopper
     function debt_auction() external view returns (address);
     // sin
-    function debt_queue(uint256) external view returns (uint256);
+    function debt_queue(uint256 timestamp) external view returns (uint256);
     // Sin
     function total_debt_on_queue() external view returns (uint256);
     // Ash
@@ -28,7 +28,7 @@ interface IDebtEngine {
     // fess
     function push_debt_to_queue(uint256 debt) external;
     // flog
-    function pop_debt_from_queue(uint256 t) external;
+    function pop_debt_from_queue(uint256 timestamp) external;
     // heal
     function settle_debt(uint256 rad) external;
     // kiss

@@ -77,7 +77,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, address auction) external auth {
+    function set(bytes32 col_type, bytes32 key, address auction)
+        external
+        auth
+    {
         if (key == "auction") {
             require(
                 col_type == ICollateralAuction(auction).collateral_type(),
@@ -112,7 +115,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         Collateral memory col = collaterals[col_type];
         uint256 delta_debt;
         {
-            require(c.spot > 0 && s.collateral * c.spot < s.debt * c.rate, "not unsafe");
+            require(
+                c.spot > 0 && s.collateral * c.spot < s.debt * c.rate,
+                "not unsafe"
+            );
 
             // Get the minimum value between:
             // 1) Remaining space in the general Hole
@@ -136,7 +142,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
                     require(
-                        delta_debt * c.rate >= c.min_debt, "dusty auction from partial liquidation"
+                        delta_debt * c.rate >= c.min_debt,
+                        "dusty auction from partial liquidation"
                     );
                 }
             }
@@ -177,11 +184,16 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             });
         }
 
-        emit Liquidate(col_type, safe, delta_col, delta_debt, due, col.auction, id);
+        emit Liquidate(
+            col_type, safe, delta_col, delta_debt, due, col.auction, id
+        );
     }
 
     // digs
-    function remove_coin_from_auction(bytes32 col_type, uint256 rad) external auth {
+    function remove_coin_from_auction(bytes32 col_type, uint256 rad)
+        external
+        auth
+    {
         total -= rad;
         collaterals[col_type].amount -= rad;
         emit Remove(col_type, rad);

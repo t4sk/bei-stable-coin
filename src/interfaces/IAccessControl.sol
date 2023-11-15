@@ -9,5 +9,8 @@ interface IAccessControl {
     // nope
     function deny_account_modification(address user) external;
     // wish
-    function can_modify_account(address owner, address user) external view returns (bool);
+    function can_modify_account(address owner, address user)
+        external
+        view
+        returns (bool);
 }

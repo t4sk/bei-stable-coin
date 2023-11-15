@@ -79,7 +79,12 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // --- Auction ---
     // kick
-    function start(uint256 lot, uint256 bid_amount) external auth live returns (uint256 id) {
+    function start(uint256 lot, uint256 bid_amount)
+        external
+        auth
+        live
+        returns (uint256 id)
+    {
         total_coin_in_auction += lot;
         require(total_coin_in_auction <= max_coin_in_auction, "total > max");
         id = ++last_auction_id;
@@ -110,13 +115,19 @@ contract SurplusAuction is Auth, CircuitBreaker {
         Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or first bid
-        require(b.bid_expiry_time > block.timestamp || b.bid_expiry_time == 0, "bid expired");
+        require(
+            b.bid_expiry_time > block.timestamp || b.bid_expiry_time == 0,
+            "bid expired"
+        );
         require(b.auction_end_time > block.timestamp, "auction ended");
 
         require(lot == b.lot, "lot not matching");
         require(bid_amount > b.amount, "bid <= current");
         // bid amount >= min bid increase * current bid
-        require(bid_amount * WAD >= min_bid_increase * b.amount, "insufficient increase");
+        require(
+            bid_amount * WAD >= min_bid_increase * b.amount,
+            "insufficient increase"
+        );
 
         if (msg.sender != b.highest_bidder) {
             gem.move(msg.sender, b.highest_bidder, b.amount);
@@ -133,7 +144,10 @@ contract SurplusAuction is Auth, CircuitBreaker {
         Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
-                && (b.bid_expiry_time < block.timestamp || b.auction_end_time < block.timestamp),
+                && (
+                    b.bid_expiry_time < block.timestamp
+                        || b.auction_end_time < block.timestamp
+                ),
             "not finished"
         );
         safe_engine.transfer_coin(address(this), b.highest_bidder, b.lot);

@@ -70,7 +70,9 @@ contract Pot is Auth, CircuitBreaker {
     // --- Savings Rate Accumulation ---
     function drip() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
-        uint256 tmp = Math.rmul(Math.rpow(savings_rate, block.timestamp - updated_at, RAY), chi);
+        uint256 tmp = Math.rmul(
+            Math.rpow(savings_rate, block.timestamp - updated_at, RAY), chi
+        );
         uint256 delta_chi = tmp - chi;
         chi = tmp;
         updated_at = block.timestamp;

@@ -25,7 +25,11 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // file
-    function set(bytes32 col_type, bytes32 key, address addr) external auth live {
+    function set(bytes32 col_type, bytes32 key, address addr)
+        external
+        auth
+        live
+    {
         if (key == "price_feed") {
             collaterals[col_type].price_feed = addr;
         } else {
@@ -41,7 +45,11 @@ contract Spotter is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, uint256 val) external auth live {
+    function set(bytes32 col_type, bytes32 key, uint256 val)
+        external
+        auth
+        live
+    {
         if (key == "liquidation_ratio") {
             collaterals[col_type].liquidation_ratio = val;
         } else {
@@ -50,11 +58,15 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     function poke(bytes32 col_type) external {
-        (uint256 val, bool ok) = IPriceFeed(collaterals[col_type].price_feed).peek();
+        (uint256 val, bool ok) =
+            IPriceFeed(collaterals[col_type].price_feed).peek();
         // TODO: should require ok?
         uint256 spot = ok
             // TODO: what?
-            ? Math.rdiv(Math.rdiv(val * 10 ** 9, par), collaterals[col_type].liquidation_ratio)
+            ? Math.rdiv(
+                Math.rdiv(val * 10 ** 9, par),
+                collaterals[col_type].liquidation_ratio
+            )
             : 0;
         safe_engine.set(col_type, "spot", spot);
         emit Poke(col_type, val, spot);

@@ -2,9 +2,8 @@
 pragma solidity 0.8.19;
 
 interface IDebtAuction {
-    function start(address incomeReceiver, uint256 amountToSell, uint256 initialBid)
+    function start(address highest_bidder, uint256 lot, uint256 bid_amount)
         external
-        returns (uint256);
-    function protocolToken() external view returns (address);
+        returns (uint256 id);
     function stop() external;
 }

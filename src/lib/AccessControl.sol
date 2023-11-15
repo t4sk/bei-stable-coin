@@ -17,7 +17,11 @@ contract AccessControl {
     }
 
     // wish
-    function can_modify_account(address owner, address user) public view returns (bool) {
+    function can_modify_account(address owner, address user)
+        public
+        view
+        returns (bool)
+    {
         return owner == user || can[owner][user];
     }
 }
