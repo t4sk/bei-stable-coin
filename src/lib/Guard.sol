@@ -5,7 +5,7 @@ abstract contract Guard {
     uint256 private locked;
 
     modifier lock() {
-        require(locked == 0, "Clipper/system-locked");
+        require(locked == 0, "locked");
         locked = 1;
         _;
         locked = 0;
