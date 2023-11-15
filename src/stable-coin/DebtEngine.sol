@@ -40,11 +40,11 @@ contract DebtEngine is Auth, CircuitBreaker {
     // surplus auction can start
     uint256 public min_surplus;
 
-    constructor(address _safe_engine, address _surplus_auction_house, address _debt_auction_house) {
+    constructor(address _safe_engine, address _surplus_auction, address _debt_auction) {
         safe_engine = ISafeEngine(_safe_engine);
-        surplus_auction = ISurplusAuction(_surplus_auction_house);
-        debt_auction = IDebtAuction(_debt_auction_house);
-        safe_engine.allow_account_modification(_surplus_auction_house);
+        surplus_auction = ISurplusAuction(_surplus_auction);
+        debt_auction = IDebtAuction(_debt_auction);
+        safe_engine.allow_account_modification(_surplus_auction);
     }
 
     // --- Administration ---
