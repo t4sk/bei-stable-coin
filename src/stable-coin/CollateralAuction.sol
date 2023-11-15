@@ -164,8 +164,8 @@ contract CollateralAuction is Auth, Guard {
     // if mat has changed since the last poke, the resulting value will be
     // incorrect.
     function get_price() internal returns (uint256 price) {
-        (IPriceFeed price_feed,) = spotter.collateral_types(collateral_type);
-        (uint256 val, bool ok) = price_feed.peek();
+        ISpotter.Collateral memory col = spotter.collaterals(collateral_type);
+        (uint256 val, bool ok) = col.price_feed.peek();
         require(ok, "invalid price");
         // TODO: math?
         price = Math.rdiv(val * BLN, spotter.par());
