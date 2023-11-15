@@ -171,7 +171,7 @@ contract CollateralAuction is Auth, Guard {
         (uint256 val, bool ok) = IPriceFeed(col.price_feed).peek();
         require(ok, "invalid price");
         // TODO: math?
-        price = Math.rdiv(val * BLN, spotter.par());
+        price = Math.rdiv(val * 1e9, spotter.par());
     }
 
     // kick - start an auction

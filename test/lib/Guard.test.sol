@@ -5,16 +5,16 @@ import "forge-std/Test.sol";
 import {Guard} from "../../src/lib/Guard.sol";
 
 contract TestGuard is Guard {
-    function call() lock public {
-        (bool ok, ) = msg.sender.call("");
+    function call() public lock {
+        (bool ok,) = msg.sender.call("");
         require(ok, "failed");
     }
 }
 
 contract GuardTest is Test {
     TestGuard private g;
-    uint private n;
-    uint private count;
+    uint256 private n;
+    uint256 private count;
 
     function setUp() public {
         g = new TestGuard();

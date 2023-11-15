@@ -9,10 +9,8 @@ contract TestCircuitBreaker is CircuitBreaker {
         _stop();
     }
 
-    function call() public live {
-    }
+    function call() public live {}
 }
-
 
 contract CircuitBreakerTest is Test {
     TestCircuitBreaker private cb;

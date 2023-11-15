@@ -38,7 +38,9 @@ contract AccessControlTest is Test {
         assertEq(ac.can_modify_account(address(this), users[1]), false);
     }
 
-    function test_fuzz_can_modify_account(address user_0, address user_1) public {
+    function test_fuzz_can_modify_account(address user_0, address user_1)
+        public
+    {
         vm.assume(user_0 != user_1);
 
         assertEq(ac.can_modify_account(user_0, user_0), true);

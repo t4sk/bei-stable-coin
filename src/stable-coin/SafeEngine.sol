@@ -29,7 +29,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
-        require(collaterals[col_type].rate == 0, "already init");
+        require(collaterals[col_type].rate == 0, "already initialized");
         collaterals[col_type].rate = RAY;
     }
 
