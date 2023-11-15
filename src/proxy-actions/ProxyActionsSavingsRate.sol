@@ -10,7 +10,7 @@ import {Common} from "./Common.sol";
 // DssProxyActionsDsr
 contract ProxyActionsSavingsRate is Common {
     function join(address coin_join, address pot, uint256 wad) public {
-        ISafeEngine safe_engine = ICoinJoin(coin_join).safe_engine();
+        ISafeEngine safe_engine = ISafeEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to get the chi rate updated to rho == now,
         // otherwise join will fail
         uint256 chi = IPot(pot).drip();
@@ -25,7 +25,7 @@ contract ProxyActionsSavingsRate is Common {
     }
 
     function exit(address coin_join, address pot, uint256 wad) public {
-        ISafeEngine safe_engine = ICoinJoin(coin_join).safe_engine();
+        ISafeEngine safe_engine = ISafeEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to count the savings accumulated until this moment
         uint256 chi = IPot(pot).drip();
         // Calculates the pie value in the pot equivalent to the BEI wad amount
@@ -33,7 +33,7 @@ contract ProxyActionsSavingsRate is Common {
         // Exits BEI from the pot
         IPot(pot).exit(pie);
         // Checks the actual balance of BEI in the safe_engine after the pot exit
-        uint256 bal = ICoinJoin(coin_join).safe_engine().coin(address(this));
+        uint256 bal = safe_engine.coin(address(this));
         // Allows adapter to access to proxy's BEI balance in the safe_engine
         if (!safe_engine.can(address(this), address(coin_join))) {
             safe_engine.allow_account_modification(coin_join);
@@ -44,7 +44,7 @@ contract ProxyActionsSavingsRate is Common {
     }
 
     function exit_all(address coin_join, address pot) public {
-        ISafeEngine safe_engine = ICoinJoin(coin_join).safe_engine();
+        ISafeEngine safe_engine = ISafeEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to count the savings accumulated until this moment
         uint256 chi = IPot(pot).drip();
         // Gets the total pie belonging to the proxy address

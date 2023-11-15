@@ -107,7 +107,7 @@ contract ProxyActions is Common {
         public
     {
         if (is_transfer_from) {
-            IGem gem = IGemJoin(gem_join).gem();
+            IGem gem = IGem(IGemJoin(gem_join).gem());
             gem.transferFrom(msg.sender, address(this), amount);
             gem.approve(gem_join, amount);
         }
