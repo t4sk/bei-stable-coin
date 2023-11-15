@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
+import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import {IAuctionPriceCalculator} from "../interfaces/IAuctionPriceCalculator.sol";
 import {ICollateralAuctionCallee} from "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
@@ -165,7 +166,7 @@ contract CollateralAuction is Auth, Guard {
     // incorrect.
     function get_price() internal returns (uint256 price) {
         ISpotter.Collateral memory col = spotter.collaterals(collateral_type);
-        (uint256 val, bool ok) = col.price_feed.peek();
+        (uint256 val, bool ok) = IPriceFeed(col.price_feed).peek();
         require(ok, "invalid price");
         // TODO: math?
         price = Math.rdiv(val * BLN, spotter.par());

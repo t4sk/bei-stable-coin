@@ -27,7 +27,7 @@ contract Spotter is Auth, CircuitBreaker {
     // file
     function set(bytes32 col_type, bytes32 key, address addr) external auth live {
         if (key == "price_feed") {
-            collaterals[col_type].price_feed = IPriceFeed(addr);
+            collaterals[col_type].price_feed = addr;
         } else {
             revert("invalid param");
         }

@@ -46,7 +46,7 @@ contract AccessControlTest is Test {
 
         vm.prank(user_0);
         ac.allow_account_modification(user_1);
-        
+
         assertEq(ac.can_modify_account(user_0, user_0), true);
         assertEq(ac.can_modify_account(user_0, user_1), true);
         assertEq(ac.can_modify_account(user_1, user_1), true);
