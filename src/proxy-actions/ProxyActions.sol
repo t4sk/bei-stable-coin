@@ -256,7 +256,7 @@ contract ProxyActions is Common {
             col_type: ISafeManager(safe_manager).collaterals(safe_id),
             safe: ISafeManager(safe_manager).safes(safe_id),
             col_src: address(this),
-            debt_dst: address(this),
+            coin_dst: address(this),
             delta_col: Math.to_int(msg.value),
             delta_debt: 0
         });
@@ -291,7 +291,7 @@ contract ProxyActions is Common {
             col_type: ISafeManager(safe_manager).collaterals(safe_id),
             safe: ISafeManager(safe_manager).safes(safe_id),
             col_src: address(this),
-            debt_dst: address(this),
+            coin_dst: address(this),
             delta_col: Math.to_int(to_18_dec(gem_join, amount)),
             delta_debt: 0
         });
@@ -448,7 +448,7 @@ contract ProxyActions is Common {
                 col_type: col_type,
                 safe: safe,
                 col_src: address(this),
-                debt_dst: address(this),
+                coin_dst: address(this),
                 delta_col: 0,
                 delta_debt: _get_repay_delta_debt(
                     safe_engine, wad * RAY, safe, col_type
@@ -509,7 +509,7 @@ contract ProxyActions is Common {
                 col_type: col_type,
                 safe: safe,
                 col_src: address(this),
-                debt_dst: address(this),
+                coin_dst: address(this),
                 delta_col: 0,
                 delta_debt: -int256(s.debt)
             });

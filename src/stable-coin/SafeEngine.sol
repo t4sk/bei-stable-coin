@@ -21,11 +21,11 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     mapping(address => uint256) public debts;
 
     // debt - total coin issued [rad]
-    uint256 public total_debt;
+    uint256 public sys_debt;
     // vice - total unbacked coin [rad]
-    uint256 public total_unbacked_debt;
+    uint256 public sys_unbacked_debt;
     // Line - total debt ceiling [rad]
-    uint256 public max_total_debt;
+    uint256 public sys_max_debt;
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
@@ -35,8 +35,8 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
 
     // file
     function set(bytes32 key, uint256 val) external auth live {
-        if (key == "max_total_debt") {
-            max_total_debt = val;
+        if (key == "sys_max_debt") {
+            sys_max_debt = val;
         } else {
             revert("invalid param");
         }
@@ -64,7 +64,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     }
 
     // --- Fungibility ---
-    // slip: modify a user's collateral balance.
+    // slip - modify a user's collateral balance.
     function modify_collateral_balance(
         bytes32 col_type,
         address src,
@@ -73,7 +73,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         gem[col_type][src] = Math.add(gem[col_type][src], wad);
     }
 
-    // flux: transfer collateral between users.
+    // flux - transfer collateral between users.
     function transfer_collateral(
         bytes32 col_type,
         address src,
@@ -85,7 +85,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         gem[col_type][dst] += wad;
     }
 
-    // move: transfer stablecoin between users.
+    // move - transfer stablecoin between users.
     function transfer_coin(address src, address dst, uint256 rad) external {
         require(can_modify_account(src, msg.sender), "not authorized");
         coin[src] -= rad;
@@ -93,28 +93,24 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     }
 
     // --- CDP Manipulation ---
-    // frob: modify a safe.
-    //     lock: transfer collateral into a safe.
-    //     free: transfer collateral from a safe.
-    //     draw: increase safe debt, creating coin.
-    //     wipe: decrease safe debt, destroying coin.
+    // frob - modify a safe.
     // frob(i, u, v, w, dink, dart) - modify a safe
     // - modify the safe of user u
     // - using gem from user v
     // - and creating coin for user w
-    // dink: change in collateral.
-    // dart: change in debt.
+    // dink: change in amount of collateral
+    // dart: change in amount of debt
     function modify_safe(
         bytes32 col_type,
         address safe,
         address col_src,
-        address debt_dst,
+        address coin_dst,
         int256 delta_col,
         int256 delta_debt
     ) external live {
         ISafeEngine.Safe memory s = safes[col_type][safe];
         ISafeEngine.Collateral memory col = collaterals[col_type];
-        require(col.rate != 0, "collateral not init");
+        require(col.rate != 0, "collateral not initialized");
 
         s.collateral = Math.add(s.collateral, delta_col);
         s.debt = Math.add(s.debt, delta_debt);
@@ -125,15 +121,12 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_coin = Math.mul(col.rate, delta_debt);
         // coin balance + compound interest that the safe owes to protocol
         uint256 debt = col.rate * s.debt;
-        total_debt = Math.add(total_debt, delta_coin);
+        sys_debt = Math.add(sys_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
             delta_debt <= 0
-                || (
-                    col.debt * col.rate <= col.max_debt
-                        && total_debt <= max_total_debt
-                ),
+                || (col.debt * col.rate <= col.max_debt && sys_debt <= sys_max_debt),
             "debt ceiling exceeded"
         );
         // safe is either less risky than before, or it is safe
@@ -146,31 +139,31 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         require(
             (delta_debt <= 0 && delta_col >= 0)
                 || can_modify_account(safe, msg.sender),
-            "not allowed safe addr"
+            "not allowed to modify safe"
         );
         // collateral src consents
         require(
             delta_col <= 0 || can_modify_account(col_src, msg.sender),
-            "not allowed collateral src"
+            "not allowed to modify collateral src"
         );
-        // debt dst consents
+        // coin dst consents
         require(
-            delta_debt >= 0 || can_modify_account(debt_dst, msg.sender),
-            "not allowed debt dst"
+            delta_debt >= 0 || can_modify_account(coin_dst, msg.sender),
+            "not allowed to modify coin dst"
         );
 
         // safe has no debt, or a non-dusty amount
         require(s.debt == 0 || debt >= col.min_debt, "SafeEngine/dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
-        coin[debt_dst] = Math.add(coin[debt_dst], delta_coin);
+        coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
         safes[col_type][safe] = s;
         collaterals[col_type] = col;
     }
 
     // --- CDP Fungibility ---
-    // fork: to split a safe - binary approval or splitting/merging safes.
+    // fork - to split a safe - binary approval or splitting/merging safes.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(
@@ -209,7 +202,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     }
 
     // --- CDP Confiscation ---
-    // grab: liquidate a safe.
+    // grab - liquidate a safe.
     // grab(i, u, v, w, dink, dart)
     // - modify the safe of user u
     // - give gem to user v
@@ -236,31 +229,31 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
 
         gem[col_type][col_dst] = Math.sub(gem[col_type][col_dst], delta_col);
         debts[debt_dst] = Math.sub(debts[debt_dst], delta_coin);
-        total_unbacked_debt = Math.sub(total_unbacked_debt, delta_coin);
+        sys_unbacked_debt = Math.sub(sys_unbacked_debt, delta_coin);
     }
 
     // --- Settlement ---
-    // heal: create / destroy equal quantities of stablecoin and system debt (vice).
+    // heal - create / destroy equal quantities of stablecoin and system debt (vice).
     function burn(uint256 rad) external {
         debts[msg.sender] -= rad;
         coin[msg.sender] -= rad;
-        total_unbacked_debt -= rad;
-        total_debt -= rad;
+        sys_unbacked_debt -= rad;
+        sys_debt -= rad;
     }
 
-    // suck: mint unbacked stablecoin (accounted for with vice).
+    // suck - mint unbacked stablecoin (accounted for with vice).
     function mint(address debt_dst, address coin_dst, uint256 rad)
         external
         auth
     {
         debts[debt_dst] += rad;
         coin[coin_dst] += rad;
-        total_unbacked_debt += rad;
-        total_debt += rad;
+        sys_unbacked_debt += rad;
+        sys_debt += rad;
     }
 
     // --- Rates ---
-    // fold: modify the debt multiplier, creating / destroying corresponding debt.
+    // fold - modify the debt multiplier, creating / destroying corresponding debt.
     function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
         external
         auth
@@ -272,6 +265,6 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         col.rate = Math.add(col.rate, delta_rate);
         int256 delta_debt = Math.mul(col.debt, delta_rate);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_debt);
-        total_debt = Math.add(total_debt, delta_debt);
+        sys_debt = Math.add(sys_debt, delta_debt);
     }
 }

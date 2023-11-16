@@ -167,7 +167,7 @@ contract SafeManager {
             col_type: collaterals[safe_id],
             safe: safe,
             col_src: safe,
-            debt_dst: safe,
+            coin_dst: safe,
             delta_col: delta_col,
             delta_debt: delta_debt
         });

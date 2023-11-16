@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-uint256 constant BLN = 10 ** 9;
 uint256 constant WAD = 10 ** 18;
 uint256 constant RAY = 10 ** 27;
 uint256 constant RAD = 10 ** 45;
@@ -16,6 +15,8 @@ library Math {
     }
 
     function add(uint256 x, int256 y) internal pure returns (uint256 z) {
+        // int256 = -2 ** 255 to 2 ** 255 - 1
+        // overflow for -y if y = -2 ** 255
         z = y >= 0 ? x + uint256(y) : x - uint256(-y);
     }
 

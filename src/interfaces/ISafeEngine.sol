@@ -65,11 +65,11 @@ interface ISafeEngine {
     // sin [rad]
     function debts(address account) external view returns (uint256);
     // debt [rad]
-    function total_debt() external view returns (uint256);
+    function sys_debt() external view returns (uint256);
     // vice [rad]
-    function total_unbacked_debt() external view returns (uint256);
+    function sys_unbacked_debt() external view returns (uint256);
     // Line [rad]
-    function max_total_debt() external view returns (uint256);
+    function sys_max_debt() external view returns (uint256);
 
     // --- Administration ---
     function init(bytes32 col_type) external;
@@ -102,7 +102,7 @@ interface ISafeEngine {
         bytes32 col_type,
         address safe,
         address col_src,
-        address debt_dst,
+        address coin_dst,
         int256 delta_col,
         int256 delta_debt
     ) external;
