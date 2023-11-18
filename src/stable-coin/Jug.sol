@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import "../lib/Math.sol";
 import "../lib/Auth.sol";
 
@@ -23,14 +23,14 @@ contract Jug is Auth {
     // ilks
     mapping(bytes32 => Collateral) public collaterals;
     // vat
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
     // vow
     address public debt_engine;
     // base - Global per-second stability fee [ray]
     uint256 public base_fee;
 
     constructor(address _safe_engine) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
     }
 
     // --- Administration ---
@@ -75,7 +75,7 @@ contract Jug is Auth {
     function drip(bytes32 col_type) external returns (uint256 rate) {
         Collateral storage col = collaterals[col_type];
         require(block.timestamp >= col.updated_at, "now < last update");
-        ISafeEngine.Collateral memory c = safe_engine.collaterals(col_type);
+        ICDPEngine.Collateral memory c = safe_engine.collaterals(col_type);
         rate = Math.rmul(
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
             c.rate

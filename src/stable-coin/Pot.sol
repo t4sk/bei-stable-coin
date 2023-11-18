@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
@@ -27,7 +27,7 @@ contract Pot is Auth, CircuitBreaker {
     // Rate accumulator [ray]
     uint256 public chi;
 
-    ISafeEngine public safe_engine; // CDP Engine
+    ICDPEngine public safe_engine; // CDP Engine
     address public debt_engine; // Debt Engine
     // rho
     uint256 public updated_at; // Time of last drip [unix epoch time]
@@ -35,7 +35,7 @@ contract Pot is Auth, CircuitBreaker {
     //        collateral type when it is called
 
     constructor(address _safe_engine) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
         savings_rate = RAY;
         chi = RAY;
         updated_at = block.timestamp;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import "../lib/Math.sol";
@@ -15,12 +15,12 @@ contract Spotter is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => ISpotter.Collateral) public collaterals;
 
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
     // par - value of BEI in the reference asset (e.g. $1 per BEI)
     uint256 public par; // ref per BEI [ray]
 
     constructor(address _safe_engine) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
         par = RAY;
     }
 

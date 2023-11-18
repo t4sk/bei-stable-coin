@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
-import {ISafeEngine} from "../../src/interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../../src/interfaces/ICDPEngine.sol";
 import "../../src/lib/Math.sol";
 import {SafeEngine} from "../../src/stable-coin/SafeEngine.sol";
 
@@ -17,16 +17,16 @@ contract SafeEngineTest is Test {
 
     function get_collateral(bytes32 col_type)
         private
-        returns (ISafeEngine.Collateral memory)
+        returns (ICDPEngine.Collateral memory)
     {
-        return ISafeEngine(address(safe_engine)).collaterals(col_type);
+        return ICDPEngine(address(safe_engine)).collaterals(col_type);
     }
 
     function get_safe(bytes32 col_type, address safe)
         private
-        returns (ISafeEngine.Safe memory)
+        returns (ICDPEngine.Safe memory)
     {
-        return ISafeEngine(address(safe_engine)).safes(col_type, safe);
+        return ICDPEngine(address(safe_engine)).safes(col_type, safe);
     }
 
     function test_constructor() public {
@@ -40,7 +40,7 @@ contract SafeEngineTest is Test {
         safe_engine.init(COL_TYPE);
 
         safe_engine.init(COL_TYPE);
-        ISafeEngine.Collateral memory col = get_collateral(COL_TYPE);
+        ICDPEngine.Collateral memory col = get_collateral(COL_TYPE);
         assertEq(col.rate, RAY);
 
         vm.expectRevert("already initialized");
@@ -69,7 +69,7 @@ contract SafeEngineTest is Test {
         safe_engine.set("sys_max_debt", 100);
         assertEq(safe_engine.sys_max_debt(), 100);
 
-        ISafeEngine.Collateral memory col;
+        ICDPEngine.Collateral memory col;
 
         safe_engine.set(COL_TYPE, "spot", 100);
         col = get_collateral(COL_TYPE);
@@ -324,8 +324,8 @@ contract SafeEngineTest is Test {
             int256 delta_col = tests[i][0];
             int256 delta_debt = tests[i][1];
 
-            ISafeEngine.Safe memory s0 = get_safe(COL_TYPE, safe);
-            ISafeEngine.Collateral memory col0 = get_collateral(COL_TYPE);
+            ICDPEngine.Safe memory s0 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
             uint256 gem0 = safe_engine.gem(COL_TYPE, col_src);
             uint256 coin0 = safe_engine.coin(coin_dst);
 
@@ -338,8 +338,8 @@ contract SafeEngineTest is Test {
                 delta_debt: delta_debt
             });
 
-            ISafeEngine.Safe memory s1 = get_safe(COL_TYPE, safe);
-            ISafeEngine.Collateral memory col1 = get_collateral(COL_TYPE);
+            ICDPEngine.Safe memory s1 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
             uint256 gem1 = safe_engine.gem(COL_TYPE, col_src);
             uint256 coin1 = safe_engine.coin(coin_dst);
 

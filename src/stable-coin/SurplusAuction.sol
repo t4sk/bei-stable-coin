@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -40,7 +40,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     mapping(uint256 => Bid) public bids;
 
     // vat
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
     // gem - MKR
     IGem public immutable gem;
 
@@ -58,7 +58,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     uint256 public total_coin_in_auction;
 
     constructor(address _safe_engine, address _gem) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
         gem = IGem(_gem);
     }
 

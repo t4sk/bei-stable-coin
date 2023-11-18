@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-interface ISafeEngine {
+interface ICDPEngine {
     // Ilk: a collateral type
     struct Collateral {
         // Art [wad] total normalized stablecoin debt

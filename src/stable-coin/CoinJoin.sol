@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ICoin} from "../interfaces/ICoin.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -12,12 +12,12 @@ contract CoinJoin is Auth, CircuitBreaker {
     event Exit(address indexed user, uint256 wad);
 
     // vat
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
     // DAI
     ICoin public immutable coin;
 
     constructor(address _safe_engine, address _coin) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
         coin = ICoin(_coin);
     }
 

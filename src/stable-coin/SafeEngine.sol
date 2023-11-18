@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
@@ -11,10 +11,10 @@ import {AccessControl} from "../lib/AccessControl.sol";
 // Vat - CDP Engine
 contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
-    mapping(bytes32 => ISafeEngine.Collateral) public collaterals;
+    mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
     // TODO: rename safe to CDP?
     // urns - collateral type => account => safe
-    mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
+    mapping(bytes32 => mapping(address => ICDPEngine.Safe)) public safes;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // dai - account => coin balance [rad]
@@ -111,8 +111,8 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ISafeEngine.Safe memory s = safes[col_type][safe];
-        ISafeEngine.Collateral memory col = collaterals[col_type];
+        ICDPEngine.Safe memory s = safes[col_type][safe];
+        ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate != 0, "collateral not initialized");
 
         s.collateral = Math.add(s.collateral, delta_col);
@@ -177,9 +177,9 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external {
-        ISafeEngine.Safe storage u = safes[col_type][src];
-        ISafeEngine.Safe storage v = safes[col_type][dst];
-        ISafeEngine.Collateral storage col = collaterals[col_type];
+        ICDPEngine.Safe storage u = safes[col_type][src];
+        ICDPEngine.Safe storage v = safes[col_type][dst];
+        ICDPEngine.Collateral storage col = collaterals[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
         u.debt = Math.sub(u.debt, delta_debt);
@@ -221,8 +221,8 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ISafeEngine.Safe storage safe = safes[col_type][src];
-        ISafeEngine.Collateral storage col = collaterals[col_type];
+        ICDPEngine.Safe storage safe = safes[col_type][src];
+        ICDPEngine.Collateral storage col = collaterals[col_type];
 
         // TODO: flip operations? add -> sub
         safe.collateral = Math.add(safe.collateral, delta_col);
@@ -263,7 +263,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         auth
         live
     {
-        ISafeEngine.Collateral storage col = collaterals[col_type];
+        ICDPEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);

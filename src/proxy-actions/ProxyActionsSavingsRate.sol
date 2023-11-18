@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IPot} from "../interfaces/IPot.sol";
 import "../lib/Math.sol";
 import {Common} from "./Common.sol";
@@ -10,8 +10,7 @@ import {Common} from "./Common.sol";
 // DssProxyActionsDsr
 contract ProxyActionsSavingsRate is Common {
     function join(address coin_join, address pot, uint256 wad) public {
-        ISafeEngine safe_engine =
-            ISafeEngine(ICoinJoin(coin_join).safe_engine());
+        ICDPEngine safe_engine = ICDPEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to get the chi rate updated to rho == now,
         // otherwise join will fail
         uint256 chi = IPot(pot).drip();
@@ -26,8 +25,7 @@ contract ProxyActionsSavingsRate is Common {
     }
 
     function exit(address coin_join, address pot, uint256 wad) public {
-        ISafeEngine safe_engine =
-            ISafeEngine(ICoinJoin(coin_join).safe_engine());
+        ICDPEngine safe_engine = ICDPEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to count the savings accumulated until this moment
         uint256 chi = IPot(pot).drip();
         // Calculates the pie value in the pot equivalent to the BEI wad amount
@@ -48,8 +46,7 @@ contract ProxyActionsSavingsRate is Common {
     }
 
     function exit_all(address coin_join, address pot) public {
-        ISafeEngine safe_engine =
-            ISafeEngine(ICoinJoin(coin_join).safe_engine());
+        ICDPEngine safe_engine = ICDPEngine(ICoinJoin(coin_join).safe_engine());
         // Executes drip to count the savings accumulated until this moment
         uint256 chi = IPot(pot).drip();
         // Gets the total pie belonging to the proxy address

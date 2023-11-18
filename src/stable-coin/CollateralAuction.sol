@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
@@ -17,7 +17,7 @@ import {Guard} from "../lib/Guard.sol";
 // Clipper
 contract CollateralAuction is Auth, Guard {
     bytes32 public immutable collateral_type;
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
 
     // dog
     ILiquidationEngine public liquidation_engine;
@@ -108,7 +108,7 @@ contract CollateralAuction is Auth, Guard {
         address liquidation_engine_,
         bytes32 collateral_type_
     ) {
-        safe_engine = ISafeEngine(vat_);
+        safe_engine = ICDPEngine(vat_);
         spotter = ISpotter(spotter_);
         liquidation_engine = ILiquidationEngine(liquidation_engine_);
         collateral_type = collateral_type_;
@@ -473,8 +473,8 @@ contract CollateralAuction is Auth, Guard {
     // Public function to update the cached dust*chop value.
     // upchost
     function update_cache() external {
-        ISafeEngine.Collateral memory col =
-            ISafeEngine(safe_engine).collaterals(collateral_type);
+        ICDPEngine.Collateral memory col =
+            ICDPEngine(safe_engine).collaterals(collateral_type);
         cache =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }

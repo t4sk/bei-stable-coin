@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {ISafeEngine} from "../interfaces/ISafeEngine.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
 import {ISurplusAuction} from "../interfaces/ISurplusAuction.sol";
 import {Math} from "../lib/Math.sol";
@@ -10,7 +10,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Vow - Debt engine
 contract DebtEngine is Auth, CircuitBreaker {
-    ISafeEngine public immutable safe_engine;
+    ICDPEngine public immutable safe_engine;
     // flapper
     ISurplusAuction public surplus_auction;
     // flopper
@@ -45,7 +45,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         address _surplus_auction,
         address _debt_auction
     ) {
-        safe_engine = ISafeEngine(_safe_engine);
+        safe_engine = ICDPEngine(_safe_engine);
         surplus_auction = ISurplusAuction(_surplus_auction);
         debt_auction = IDebtAuction(_debt_auction);
         safe_engine.allow_account_modification(_surplus_auction);
