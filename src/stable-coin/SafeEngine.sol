@@ -7,10 +7,12 @@ import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import {AccessControl} from "../lib/AccessControl.sol";
 
+// TODO: rename to CDPEngine?
 // Vat - CDP Engine
 contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
     mapping(bytes32 => ISafeEngine.Collateral) public collaterals;
+    // TODO: rename safe to CDP?
     // urns - collateral type => account => safe
     mapping(bytes32 => mapping(address => ISafeEngine.Safe)) public safes;
     // gem - collateral type => account => balance [wad]
@@ -100,6 +102,7 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
     // - and creating coin for user w
     // dink: change in amount of collateral
     // dart: change in amount of debt
+    // TODO: rename to modify_cdp?
     function modify_safe(
         bytes32 col_type,
         address safe,
@@ -116,44 +119,45 @@ contract SafeEngine is Auth, CircuitBreaker, AccessControl {
         s.debt = Math.add(s.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
-        // delta_debt = delta coin / col.rate
-        // delta coin = col.rate * delta_debt
+        // delta_debt = delta_coin / col.rate
+        // delta_coin [rad] = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
         // coin balance + compound interest that the safe owes to protocol
-        uint256 debt = col.rate * s.debt;
+        // debt [rad]
+        uint256 coin_debt = col.rate * s.debt;
         sys_debt = Math.add(sys_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
             delta_debt <= 0
                 || (col.debt * col.rate <= col.max_debt && sys_debt <= sys_max_debt),
-            "debt ceiling exceeded"
+            "delta debt > max"
         );
         // safe is either less risky than before, or it is safe
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || debt <= s.collateral * col.spot,
-            "not safe"
+                || coin_debt <= s.collateral * col.spot,
+            "undercollateralized"
         );
-        // safe is either more safe, or the owner consents
+        // safe is either more safe, or the owner consent
         require(
             (delta_debt <= 0 && delta_col >= 0)
                 || can_modify_account(safe, msg.sender),
             "not allowed to modify safe"
         );
-        // collateral src consents
+        // collateral src consent
         require(
             delta_col <= 0 || can_modify_account(col_src, msg.sender),
             "not allowed to modify collateral src"
         );
-        // coin dst consents
+        // coin dst consent
         require(
             delta_debt >= 0 || can_modify_account(coin_dst, msg.sender),
             "not allowed to modify coin dst"
         );
 
         // safe has no debt, or a non-dusty amount
-        require(s.debt == 0 || debt >= col.min_debt, "SafeEngine/dust");
+        require(s.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);

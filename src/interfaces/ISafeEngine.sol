@@ -103,7 +103,9 @@ interface ISafeEngine {
         address safe,
         address col_src,
         address coin_dst,
+        // wad
         int256 delta_col,
+        // wad
         int256 delta_debt
     ) external;
 
@@ -112,7 +114,9 @@ interface ISafeEngine {
         bytes32 col_type,
         address src,
         address dst,
+        // wad
         int256 delta_col,
+        // wad
         int256 delta_debt
     ) external;
     function grab(
@@ -120,7 +124,9 @@ interface ISafeEngine {
         address src,
         address col_dst,
         address debt_dst,
+        // wad
         int256 delta_col,
+        // wad
         int256 delta_debt
     ) external;
 

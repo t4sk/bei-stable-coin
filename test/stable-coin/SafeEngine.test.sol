@@ -16,10 +16,17 @@ contract SafeEngineTest is Test {
     }
 
     function get_collateral(bytes32 col_type)
-        internal
+        private
         returns (ISafeEngine.Collateral memory)
     {
         return ISafeEngine(address(safe_engine)).collaterals(col_type);
+    }
+
+    function get_safe(bytes32 col_type, address safe)
+        private
+        returns (ISafeEngine.Safe memory)
+    {
+        return ISafeEngine(address(safe_engine)).safes(col_type, safe);
     }
 
     function test_constructor() public {
@@ -159,13 +166,12 @@ contract SafeEngineTest is Test {
         assertEq(safe_engine.coin(dst), 20);
     }
 
-    function test_modify_safe() public {
+    function test_modify_safe_revert() public {
         address safe = address(1);
         address col_src = address(2);
         address coin_dst = address(3);
-        int256 delta_col = 0;
-        int256 delta_debt = 0;
 
+        // Test - collateral not initialized //
         vm.expectRevert("collateral not initialized");
         safe_engine.modify_safe({
             col_type: COL_TYPE,
@@ -177,15 +183,97 @@ contract SafeEngineTest is Test {
         });
 
         safe_engine.init(COL_TYPE);
+        safe_engine.set("sys_max_debt", 1000 * RAD);
+        safe_engine.set(COL_TYPE, "max_debt", 100 * RAD);
+        safe_engine.set(COL_TYPE, "spot", 11 * RAY);
+        safe_engine.set(COL_TYPE, "min_debt", RAD);
+
+        // Test - delta debt > max //
+        vm.expectRevert("delta debt > max");
         safe_engine.modify_safe({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
-            delta_debt: 0
+            delta_debt: int256(100 * WAD + 1)
         });
 
+        // Test - undercollateralized //
+        vm.expectRevert("undercollateralized");
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: int256(WAD),
+            delta_debt: int256(11 * WAD + 1)
+        });
+
+        // Test - not allowed safe //
+        vm.expectRevert("not allowed to modify safe");
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: int256(WAD),
+            delta_debt: int256(WAD)
+        });
+
+        vm.prank(safe);
+        safe_engine.allow_account_modification(address(this));
+
+        // Test - not allowed collateral src //
+        vm.expectRevert("not allowed to modify collateral src");
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: int256(WAD),
+            delta_debt: int256(WAD)
+        });
+
+        vm.prank(col_src);
+        safe_engine.allow_account_modification(address(this));
+
+        // Test - not allowed coin dst //
+        safe_engine.modify_collateral_balance(COL_TYPE, col_src, int256(WAD));
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: int256(WAD),
+            delta_debt: int256(WAD)
+        });
+
+        vm.expectRevert("not allowed to modify coin dst");
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: 0,
+            delta_debt: -int256(WAD)
+        });
+
+        vm.prank(coin_dst);
+        safe_engine.allow_account_modification(address(this));
+
+        // Test - dust //
+        vm.expectRevert("debt < dust");
+        safe_engine.modify_safe({
+            col_type: COL_TYPE,
+            safe: safe,
+            col_src: col_src,
+            coin_dst: coin_dst,
+            delta_col: 0,
+            delta_debt: -int256(WAD) + 1
+        });
+
+        // Test - stopped //
         safe_engine.stop();
         vm.expectRevert("stopped");
         safe_engine.modify_safe({
@@ -196,6 +284,71 @@ contract SafeEngineTest is Test {
             delta_col: 0,
             delta_debt: 0
         });
+    }
+
+    function test_modify_safe() public {
+        address safe = address(1);
+        address col_src = address(2);
+        address coin_dst = address(3);
+
+        safe_engine.init(COL_TYPE);
+        safe_engine.set("sys_max_debt", 1000 * RAD);
+        safe_engine.set(COL_TYPE, "max_debt", 100 * RAD);
+        safe_engine.set(COL_TYPE, "spot", 10 * RAY);
+        safe_engine.set(COL_TYPE, "min_debt", RAD);
+
+        vm.prank(safe);
+        safe_engine.allow_account_modification(address(this));
+        vm.prank(col_src);
+        safe_engine.allow_account_modification(address(this));
+        vm.prank(coin_dst);
+        safe_engine.allow_account_modification(address(this));
+
+        safe_engine.modify_collateral_balance(
+            COL_TYPE, col_src, int256(10 * WAD)
+        );
+
+        // delta_col, delta_debt
+        int256[2][8] memory tests = [
+            [int256(0), int256(0)],
+            [int256(WAD), int256(0)],
+            [int256(0), int256(WAD)],
+            [int256(WAD), int256(WAD)],
+            [-int256(WAD), int256(0)],
+            [int256(0), -int256(WAD)],
+            [int256(WAD), int256(0)],
+            [-int256(WAD), int256(WAD)]
+        ];
+
+        for (uint256 i = 0; i < tests.length; i++) {
+            int256 delta_col = tests[i][0];
+            int256 delta_debt = tests[i][1];
+
+            ISafeEngine.Safe memory s0 = get_safe(COL_TYPE, safe);
+            ISafeEngine.Collateral memory col0 = get_collateral(COL_TYPE);
+            uint256 gem0 = safe_engine.gem(COL_TYPE, col_src);
+            uint256 coin0 = safe_engine.coin(coin_dst);
+
+            safe_engine.modify_safe({
+                col_type: COL_TYPE,
+                safe: safe,
+                col_src: col_src,
+                coin_dst: coin_dst,
+                delta_col: delta_col,
+                delta_debt: delta_debt
+            });
+
+            ISafeEngine.Safe memory s1 = get_safe(COL_TYPE, safe);
+            ISafeEngine.Collateral memory col1 = get_collateral(COL_TYPE);
+            uint256 gem1 = safe_engine.gem(COL_TYPE, col_src);
+            uint256 coin1 = safe_engine.coin(coin_dst);
+
+            assertEq(s1.collateral, Math.add(s0.collateral, delta_col));
+            assertEq(s1.debt, Math.add(s0.debt, delta_debt));
+            assertEq(col1.debt, Math.add(col0.debt, delta_debt));
+            assertEq(gem1, Math.sub(gem0, delta_col));
+            assertEq(coin1, Math.add(coin0, Math.mul(col0.rate, delta_debt)));
+        }
     }
 
     function test_mint() public {
@@ -233,7 +386,7 @@ contract SafeEngineTest is Test {
         vm.prank(coin_dst);
         safe_engine.sync(COL_TYPE, coin_dst, 100);
 
-        // TODO: test
+        // TODO: test with col.debt > 0
         safe_engine.sync(COL_TYPE, coin_dst, 100);
 
         safe_engine.stop();
