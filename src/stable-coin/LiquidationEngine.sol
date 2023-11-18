@@ -110,13 +110,13 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         live
         returns (uint256 id)
     {
-        ICDPEngine.Safe memory s = cdp_engine.safes(col_type, safe);
+        ICDPEngine.Position memory pos = cdp_engine.safes(col_type, safe);
         ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         Collateral memory col = collaterals[col_type];
         uint256 delta_debt;
         {
             require(
-                c.spot > 0 && s.collateral * c.spot < s.debt * c.rate,
+                c.spot > 0 && pos.collateral * c.spot < pos.debt * c.rate,
                 "not unsafe"
             );
 
@@ -128,17 +128,17 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
             // TODO: why divide by penalty?
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
-            delta_debt = Math.min(s.debt, room * WAD / c.rate / col.penalty);
+            delta_debt = Math.min(pos.debt, room * WAD / c.rate / col.penalty);
 
             // Partial liquidation edge case logic
-            if (s.debt > delta_debt) {
-                if ((s.debt - delta_debt) * c.rate < c.min_debt) {
+            if (pos.debt > delta_debt) {
+                if ((pos.debt - delta_debt) * c.rate < c.min_debt) {
                     // If the leftover s would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
                     // This deviation is assumed to be small compared to both hole_i and Hole, so that
                     // the extra amount of target BEI over the limits intended is not of economic concern.
-                    delta_debt = s.debt;
+                    delta_debt = pos.debt;
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
                     require(
@@ -149,7 +149,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             }
         }
 
-        uint256 delta_col = (s.collateral * delta_debt) / s.debt;
+        uint256 delta_col = (pos.collateral * delta_debt) / pos.debt;
 
         require(delta_col > 0, "null-auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");

@@ -64,14 +64,16 @@ contract ProxyActions is Common {
         ICDPEngine.Collateral memory c =
             ICDPEngine(cdp_engine).collaterals(col_type);
         // Gets actual debt value of the safe
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
 
         // Uses the whole coin_amount balance in the cdp_engine to reduce the debt
         delta_debt = Math.to_int(coin_amount / c.rate);
         // Checks the calculated delta_debt is not higher than safe.debt (total debt),
         // otherwise uses its value
-        delta_debt =
-            uint256(delta_debt) <= s.debt ? -delta_debt : -Math.to_int(s.debt);
+        delta_debt = uint256(delta_debt) <= pos.debt
+            ? -delta_debt
+            : -Math.to_int(pos.debt);
     }
 
     // _getWipeAllWad
@@ -85,11 +87,12 @@ contract ProxyActions is Common {
         ICDPEngine.Collateral memory c =
             ICDPEngine(cdp_engine).collaterals(col_type);
         // Gets actual debt value of the safe
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
         // Gets actual coin amount in the safe
         uint256 coin_bal = ICDPEngine(cdp_engine).coin(user);
 
-        uint256 rad = s.debt * c.rate - coin_bal;
+        uint256 rad = pos.debt * c.rate - coin_bal;
         wad = rad / RAY;
 
         // If the rad precision has some dust, it will need to request for 1 extra wad wei
@@ -477,7 +480,8 @@ contract ProxyActions is Common {
         address cdp_engine = ISafeManager(safe_manager).cdp_engine();
         address safe = ISafeManager(safe_manager).safes(safe_id);
         bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
 
         address owner = ISafeManager(safe_manager).owner_of(safe_id);
         if (
@@ -493,7 +497,7 @@ contract ProxyActions is Common {
                 _get_repay_all_debt(cdp_engine, safe, safe, col_type)
             );
             // Paybacks debt to the CDP
-            modify_cdp(safe_manager, safe_id, 0, -int256(s.debt));
+            modify_cdp(safe_manager, safe_id, 0, -int256(pos.debt));
         } else {
             // Joins BEI amount into the cdp_engine
             coin_join_join(
@@ -508,7 +512,7 @@ contract ProxyActions is Common {
                 col_src: address(this),
                 coin_dst: address(this),
                 delta_col: 0,
-                delta_debt: -int256(s.debt)
+                delta_debt: -int256(pos.debt)
             });
         }
     }
@@ -702,7 +706,8 @@ contract ProxyActions is Common {
         address cdp_engine = ISafeManager(safe_manager).cdp_engine();
         address safe = ISafeManager(safe_manager).safes(safe_id);
         bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
 
         // Joins BEI amount into the cdp_engine
         coin_join_join(
@@ -712,7 +717,7 @@ contract ProxyActions is Common {
         );
         // Paybacks debt to the CDP and unlocks WETH amount from it
         modify_cdp(
-            safe_manager, safe_id, -Math.to_int(col_amount), -int256(s.debt)
+            safe_manager, safe_id, -Math.to_int(col_amount), -int256(pos.debt)
         );
         // Moves the amount from the CDP safe to proxy's address
         transfer_collateral(safe_manager, safe_id, address(this), col_amount);
@@ -766,7 +771,8 @@ contract ProxyActions is Common {
         address cdp_engine = ISafeManager(safe_manager).cdp_engine();
         address safe = ISafeManager(safe_manager).safes(safe_id);
         bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
 
         // Joins BEI amount into the cdp_engine
         coin_join_join(
@@ -777,7 +783,7 @@ contract ProxyActions is Common {
         uint256 col_wad = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
         modify_cdp(
-            safe_manager, safe_id, -Math.to_int(col_wad), -int256(s.debt)
+            safe_manager, safe_id, -Math.to_int(col_wad), -int256(pos.debt)
         );
         // Moves the amount from the CDP safe to proxy's address
         transfer_collateral(safe_manager, safe_id, address(this), col_wad);

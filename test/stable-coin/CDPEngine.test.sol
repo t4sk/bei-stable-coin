@@ -24,7 +24,7 @@ contract SafeEngineTest is Test {
 
     function get_safe(bytes32 col_type, address safe)
         private
-        returns (ICDPEngine.Safe memory)
+        returns (ICDPEngine.Position memory)
     {
         return ICDPEngine(address(cdp_engine)).safes(col_type, safe);
     }
@@ -324,7 +324,7 @@ contract SafeEngineTest is Test {
             int256 delta_col = tests[i][0];
             int256 delta_debt = tests[i][1];
 
-            ICDPEngine.Safe memory s0 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Position memory pos0 = get_safe(COL_TYPE, safe);
             ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
             uint256 gem0 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin0 = cdp_engine.coin(coin_dst);
@@ -338,13 +338,13 @@ contract SafeEngineTest is Test {
                 delta_debt: delta_debt
             });
 
-            ICDPEngine.Safe memory s1 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Position memory pos1 = get_safe(COL_TYPE, safe);
             ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
             uint256 gem1 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin1 = cdp_engine.coin(coin_dst);
 
-            assertEq(s1.collateral, Math.add(s0.collateral, delta_col));
-            assertEq(s1.debt, Math.add(s0.debt, delta_debt));
+            assertEq(pos1.collateral, Math.add(pos0.collateral, delta_col));
+            assertEq(pos1.debt, Math.add(pos0.debt, delta_debt));
             assertEq(col1.debt, Math.add(col0.debt, delta_debt));
             assertEq(gem1, Math.sub(gem0, delta_col));
             assertEq(coin1, Math.add(coin0, Math.mul(col0.rate, delta_debt)));

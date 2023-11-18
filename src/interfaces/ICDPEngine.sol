@@ -18,7 +18,7 @@ interface ICDPEngine {
     }
 
     // Urn: a specific vault (CDP)
-    struct Safe {
+    struct Position {
         // ink [wad] collateral balance
         uint256 collateral;
         // art [wad] normalized outstanding stablecoin debt
@@ -54,7 +54,7 @@ interface ICDPEngine {
     function safes(bytes32 col_type, address account)
         external
         view
-        returns (Safe memory);
+        returns (Position memory);
     // gem [wad]
     function gem(bytes32 col_type, address account)
         external

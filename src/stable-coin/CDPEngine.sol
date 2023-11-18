@@ -13,7 +13,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
     // TODO: rename safe to CDP?
     // urns - collateral type => account => safe
-    mapping(bytes32 => mapping(address => ICDPEngine.Safe)) public safes;
+    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public safes;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // dai - account => coin balance [rad]
@@ -110,12 +110,12 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ICDPEngine.Safe memory s = safes[col_type][safe];
+        ICDPEngine.Position memory pos = safes[col_type][safe];
         ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate != 0, "collateral not initialized");
 
-        s.collateral = Math.add(s.collateral, delta_col);
-        s.debt = Math.add(s.debt, delta_debt);
+        pos.collateral = Math.add(pos.collateral, delta_col);
+        pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         // delta_debt = delta_coin / col.rate
@@ -123,7 +123,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_coin = Math.mul(col.rate, delta_debt);
         // coin balance + compound interest that the safe owes to protocol
         // debt [rad]
-        uint256 coin_debt = col.rate * s.debt;
+        uint256 coin_debt = col.rate * pos.debt;
         sys_debt = Math.add(sys_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
@@ -135,7 +135,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         // safe is either less risky than before, or it is safe
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || coin_debt <= s.collateral * col.spot,
+                || coin_debt <= pos.collateral * col.spot,
             "undercollateralized"
         );
         // safe is either more safe, or the owner consent
@@ -156,12 +156,12 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         );
 
         // safe has no debt, or a non-dusty amount
-        require(s.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
+        require(pos.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
-        safes[col_type][safe] = s;
+        safes[col_type][safe] = pos;
         collaterals[col_type] = col;
     }
 
@@ -176,8 +176,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external {
-        ICDPEngine.Safe storage u = safes[col_type][src];
-        ICDPEngine.Safe storage v = safes[col_type][dst];
+        ICDPEngine.Position storage u = safes[col_type][src];
+        ICDPEngine.Position storage v = safes[col_type][dst];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
@@ -220,7 +220,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ICDPEngine.Safe storage safe = safes[col_type][src];
+        ICDPEngine.Position storage safe = safes[col_type][src];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         // TODO: flip operations? add -> sub

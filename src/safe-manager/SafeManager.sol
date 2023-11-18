@@ -216,14 +216,15 @@ contract SafeManager {
         bytes32 col_type = collaterals[safe_id];
         address safe = safes[safe_id];
 
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, safe);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, safe);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
             src: safe,
             dst: dst,
-            delta_col: Math.to_int(s.collateral),
-            delta_debt: Math.to_int(s.debt)
+            delta_col: Math.to_int(pos.collateral),
+            delta_debt: Math.to_int(pos.debt)
         });
     }
 
@@ -235,14 +236,15 @@ contract SafeManager {
     {
         bytes32 col_type = collaterals[safe_id];
 
-        ICDPEngine.Safe memory s = ICDPEngine(cdp_engine).safes(col_type, src);
+        ICDPEngine.Position memory pos =
+            ICDPEngine(cdp_engine).safes(col_type, src);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
             src: src,
             dst: safes[safe_id],
-            delta_col: Math.to_int(s.collateral),
-            delta_debt: Math.to_int(s.debt)
+            delta_col: Math.to_int(pos.collateral),
+            delta_debt: Math.to_int(pos.debt)
         });
     }
 
@@ -256,14 +258,14 @@ contract SafeManager {
             collaterals[safe_src] == collaterals[safe_dst],
             "not matching collaterals"
         );
-        ICDPEngine.Safe memory s =
+        ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).safes(collaterals[safe_src], safes[safe_src]);
         ICDPEngine(cdp_engine).fork({
             col_type: collaterals[safe_src],
             src: safes[safe_src],
             dst: safes[safe_dst],
-            delta_col: Math.to_int(s.collateral),
-            delta_debt: Math.to_int(s.debt)
+            delta_col: Math.to_int(pos.collateral),
+            delta_debt: Math.to_int(pos.debt)
         });
     }
 }
