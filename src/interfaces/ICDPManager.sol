@@ -64,8 +64,8 @@ interface ICDPManager {
     // move
     function transfer_coin(uint256 cdp_id, address dst, uint256 rad) external;
     // quit
-    function quit(uint256 cdp_id, address dst) external;
+    function quit(uint256 cdp_id, address cdp_dst) external;
     // enter
-    function enter(address src, uint256 cdp_id) external;
-    function shift(uint256 safe_src, uint256 safe_dst) external;
+    function enter(address cdp_src, uint256 cdp_id) external;
+    function shift(uint256 cdp_src, uint256 cdp_dst) external;
 }

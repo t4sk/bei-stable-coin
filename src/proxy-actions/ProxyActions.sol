@@ -139,22 +139,22 @@ contract ProxyActions is Common {
         IAccessControl(acc).deny_account_modification(user);
     }
 
-    function open(address safe_manager, bytes32 col_type, address user)
+    function open(address cdp_manager, bytes32 col_type, address user)
         public
         returns (uint256 cdp_id)
     {
-        cdp_id = ICDPManager(safe_manager).open(col_type, user);
+        cdp_id = ICDPManager(cdp_manager).open(col_type, user);
     }
 
     // TODO: wat dis?
-    function give(address safe_manager, uint256 cdp_id, address user) public {
-        ICDPManager(safe_manager).give(cdp_id, user);
+    function give(address cdp_manager, uint256 cdp_id, address user) public {
+        ICDPManager(cdp_manager).give(cdp_id, user);
     }
 
     // TODO:
     // function giveToProxy(
     //     address proxyRegistry,
-    //     address safe_manager,
+    //     address cdp_manager,
     //     uint cdp_id,
     //     address dst
     // ) public {
@@ -172,69 +172,69 @@ contract ProxyActions is Common {
     //         proxy = ProxyRegistryLike(proxyRegistry).build(dst);
     //     }
     //     // Transfers cdp_id to the dst proxy
-    //     give(safe_manager, cdp_id, proxy);
+    //     give(cdp_manager, cdp_id, proxy);
     // }
 
     // cdpAllow
     function allow_cdp(
-        address safe_manager,
+        address cdp_manager,
         uint256 cdp_id,
         address user,
         bool ok
     ) public {
-        ICDPManager(safe_manager).allow_cdp(cdp_id, user, ok);
+        ICDPManager(cdp_manager).allow_cdp(cdp_id, user, ok);
     }
 
     // urnAllow
-    function allow_cdp_handler(address safe_manager, address user, bool ok)
+    function allow_cdp_handler(address cdp_manager, address user, bool ok)
         public
     {
-        ICDPManager(safe_manager).allow_cdp_handler(user, ok);
+        ICDPManager(cdp_manager).allow_cdp_handler(user, ok);
     }
 
     // flux
     function transfer_collateral(
-        address safe_manager,
+        address cdp_manager,
         uint256 cdp_id,
         address dst,
         uint256 wad
     ) public {
-        ICDPManager(safe_manager).transfer_collateral(cdp_id, dst, wad);
+        ICDPManager(cdp_manager).transfer_collateral(cdp_id, dst, wad);
     }
 
     // move
     function transfer_coin(
-        address safe_manager,
+        address cdp_manager,
         uint256 cdp_id,
         address dst,
         // TODO: check units
         uint256 rad
     ) public {
-        ICDPManager(safe_manager).transfer_coin(cdp_id, dst, rad);
+        ICDPManager(cdp_manager).transfer_coin(cdp_id, dst, rad);
     }
 
     // frob
     function modify_cdp(
-        address safe_manager,
+        address cdp_manager,
         uint256 cdp_id,
         int256 delta_col,
         int256 delta_debt
     ) public {
-        ICDPManager(safe_manager).modify_cdp(cdp_id, delta_col, delta_debt);
+        ICDPManager(cdp_manager).modify_cdp(cdp_id, delta_col, delta_debt);
     }
 
-    function quit(address safe_manager, uint256 cdp_id, address dst) public {
-        ICDPManager(safe_manager).quit(cdp_id, dst);
+    function quit(address cdp_manager, uint256 cdp_id, address dst) public {
+        ICDPManager(cdp_manager).quit(cdp_id, dst);
     }
 
-    function enter(address safe_manager, address src, uint256 cdp_id) public {
-        ICDPManager(safe_manager).enter(src, cdp_id);
+    function enter(address cdp_manager, address src, uint256 cdp_id) public {
+        ICDPManager(cdp_manager).enter(src, cdp_id);
     }
 
-    function shift(address safe_manager, uint256 safe_src, uint256 safe_dst)
+    function shift(address cdp_manager, uint256 cdp_src, uint256 cdp_dst)
         public
     {
-        ICDPManager(safe_manager).shift(safe_src, safe_dst);
+        ICDPManager(cdp_manager).shift(cdp_src, cdp_dst);
     }
 
     // TODO: wat dis?
@@ -245,7 +245,7 @@ contract ProxyActions is Common {
     // }
 
     // lockETH
-    function lock_eth(address safe_manager, address eth_join, uint256 cdp_id)
+    function lock_eth(address cdp_manager, address eth_join, uint256 cdp_id)
         public
         payable
     {
@@ -253,9 +253,9 @@ contract ProxyActions is Common {
         eth_join_join(eth_join, address(this));
         // TODO: why 2 ways to call modify_cdp -> from CDPManager and directly to CDPEngine
         // Locks WETH amount into the CDP
-        ICDPEngine(ICDPManager(safe_manager).cdp_engine()).modify_cdp({
-            col_type: ICDPManager(safe_manager).collaterals(cdp_id),
-            cdp: ICDPManager(safe_manager).positions(cdp_id),
+        ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).modify_cdp({
+            col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
+            cdp: ICDPManager(cdp_manager).positions(cdp_id),
             col_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(msg.value),
@@ -265,21 +265,20 @@ contract ProxyActions is Common {
 
     // safeLockETH
     function safe_lock_eth(
-        address safe_manager,
+        address cdp_manager,
         address eth_join,
         uint256 cdp_id,
         address owner
     ) public payable {
         require(
-            ICDPManager(safe_manager).owner_of(cdp_id) == owner,
-            "owner mismatch"
+            ICDPManager(cdp_manager).owner_of(cdp_id) == owner, "owner mismatch"
         );
-        lock_eth(safe_manager, eth_join, cdp_id);
+        lock_eth(cdp_manager, eth_join, cdp_id);
     }
 
     // lockGem
     function lock_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         uint256 cdp_id,
         uint256 amount,
@@ -288,9 +287,9 @@ contract ProxyActions is Common {
         // Takes token amount from user's wallet and joins into the cdp_engine
         gem_join_join(gem_join, address(this), amount, is_tranfer_from);
         // Locks token amount into the CDP
-        ICDPEngine(ICDPManager(safe_manager).cdp_engine()).modify_cdp({
-            col_type: ICDPManager(safe_manager).collaterals(cdp_id),
-            cdp: ICDPManager(safe_manager).positions(cdp_id),
+        ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).modify_cdp({
+            col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
+            cdp: ICDPManager(cdp_manager).positions(cdp_id),
             col_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(to_18_dec(gem_join, amount)),
@@ -300,7 +299,7 @@ contract ProxyActions is Common {
 
     // safeLockGem
     function safe_lock_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         uint256 cdp_id,
         uint256 amount,
@@ -308,23 +307,22 @@ contract ProxyActions is Common {
         address owner
     ) public {
         require(
-            ICDPManager(safe_manager).owner_of(cdp_id) == owner,
-            "owner mismatch"
+            ICDPManager(cdp_manager).owner_of(cdp_id) == owner, "owner mismatch"
         );
-        lock_gem(safe_manager, gem_join, cdp_id, amount, is_tranfer_from);
+        lock_gem(cdp_manager, gem_join, cdp_id, amount, is_tranfer_from);
     }
 
     // freeETH
     function free_eth(
-        address safe_manager,
+        address cdp_manager,
         address eth_join,
         uint256 cdp_id,
         uint256 wad
     ) public {
         // Unlocks WETH amount from the CDP
-        modify_cdp(safe_manager, cdp_id, -Math.to_int(wad), 0);
+        modify_cdp(cdp_manager, cdp_id, -Math.to_int(wad), 0);
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), wad);
+        transfer_collateral(cdp_manager, cdp_id, address(this), wad);
         // Exits WETH amount to proxy address as a token
         IGemJoin(eth_join).exit(address(this), wad);
         // Converts WETH to ETH
@@ -335,29 +333,29 @@ contract ProxyActions is Common {
 
     // freeGem
     function free_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         uint256 cdp_id,
         uint256 amount
     ) public {
         uint256 wad = to_18_dec(gem_join, amount);
         // Unlocks token amount from the CDP
-        modify_cdp(safe_manager, cdp_id, -Math.to_int(wad), 0);
+        modify_cdp(cdp_manager, cdp_id, -Math.to_int(wad), 0);
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), wad);
+        transfer_collateral(cdp_manager, cdp_id, address(this), wad);
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, amount);
     }
 
     // exitETH
     function exit_eth(
-        address safe_manager,
+        address cdp_manager,
         address eth_join,
         uint256 cdp_id,
         uint256 wad
     ) public {
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), wad);
+        transfer_collateral(cdp_manager, cdp_id, address(this), wad);
         // Exits WETH amount to proxy address as a token
         IGemJoin(eth_join).exit(address(this), wad);
         // Converts WETH to ETH
@@ -368,14 +366,14 @@ contract ProxyActions is Common {
 
     // exitGem
     function exit_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         uint256 cdp_id,
         uint256 amount
     ) public {
         // Moves the amount from the CDP cdp to proxy's address
         transfer_collateral(
-            safe_manager, cdp_id, address(this), to_18_dec(gem_join, amount)
+            cdp_manager, cdp_id, address(this), to_18_dec(gem_join, amount)
         );
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, amount);
@@ -383,24 +381,24 @@ contract ProxyActions is Common {
 
     // draw
     function borrow(
-        address safe_manager,
+        address cdp_manager,
         address jug,
         address coin_join,
         uint256 cdp_id,
         uint256 wad
     ) public {
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         // Generates debt in the CDP
         modify_cdp(
-            safe_manager,
+            cdp_manager,
             cdp_id,
             0,
             _get_borrow_delta_debt(cdp_engine, jug, cdp, col_type, wad)
         );
         // Moves the BEI amount (balance in the cdp_engine in rad) to proxy's address
-        transfer_coin(safe_manager, cdp_id, address(this), Math.to_rad(wad));
+        transfer_coin(cdp_manager, cdp_id, address(this), Math.to_rad(wad));
         // Allows adapter to access to proxy's BEI balance in the cdp_engine
         if (!ICDPEngine(cdp_engine).can(address(this), address(coin_join))) {
             ICDPEngine(cdp_engine).allow_account_modification(coin_join);
@@ -411,25 +409,25 @@ contract ProxyActions is Common {
 
     // wipe
     function repay(
-        address safe_manager,
+        address cdp_manager,
         address coin_join,
         uint256 cdp_id,
         uint256 wad
     ) public {
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
 
-        address owner = ICDPManager(safe_manager).owner_of(cdp_id);
+        address owner = ICDPManager(cdp_manager).owner_of(cdp_id);
         if (
             owner == address(this)
-                || ICDPManager(safe_manager).cdp_can(owner, cdp_id, address(this))
+                || ICDPManager(cdp_manager).cdp_can(owner, cdp_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(coin_join, cdp, wad);
             // Paybacks debt to the CDP
             modify_cdp(
-                safe_manager,
+                cdp_manager,
                 cdp_id,
                 0,
                 _get_repay_delta_debt(
@@ -455,33 +453,33 @@ contract ProxyActions is Common {
 
     // safeWipe
     function safe_repay(
-        address safe_manager,
+        address cdp_manager,
         address coin_join,
         uint256 cdp_id,
         uint256 wad,
         address owner
     ) public {
         require(
-            ICDPManager(safe_manager).owner_of(cdp_id) == owner,
+            ICDPManager(cdp_manager).owner_of(cdp_id) == owner,
             "owner-missmatch"
         );
-        repay(safe_manager, coin_join, cdp_id, wad);
+        repay(cdp_manager, coin_join, cdp_id, wad);
     }
 
     // wipeAll
-    function repay_all(address safe_manager, address coin_join, uint256 cdp_id)
+    function repay_all(address cdp_manager, address coin_join, uint256 cdp_id)
         public
     {
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
-        address owner = ICDPManager(safe_manager).owner_of(cdp_id);
+        address owner = ICDPManager(cdp_manager).owner_of(cdp_id);
         if (
             owner == address(this)
-                || ICDPManager(safe_manager).cdp_can(owner, cdp_id, address(this))
+                || ICDPManager(cdp_manager).cdp_can(owner, cdp_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(
@@ -490,7 +488,7 @@ contract ProxyActions is Common {
                 _get_repay_all_debt(cdp_engine, cdp, cdp, col_type)
             );
             // Paybacks debt to the CDP
-            modify_cdp(safe_manager, cdp_id, 0, -int256(pos.debt));
+            modify_cdp(cdp_manager, cdp_id, 0, -int256(pos.debt));
         } else {
             // Joins BEI amount into the cdp_engine
             coin_join_join(
@@ -512,42 +510,42 @@ contract ProxyActions is Common {
 
     // safeWipeAll
     function safe_repay_all(
-        address safe_manager,
+        address cdp_manager,
         address coin_join,
         uint256 cdp_id,
         address owner
     ) public {
         require(
-            ICDPManager(safe_manager).owner_of(cdp_id) == owner,
+            ICDPManager(cdp_manager).owner_of(cdp_id) == owner,
             "owner-missmatch"
         );
-        repay_all(safe_manager, coin_join, cdp_id);
+        repay_all(cdp_manager, coin_join, cdp_id);
     }
 
     // lockETHAndDraw
     function lock_eth_and_borrow(
-        address safe_manager,
+        address cdp_manager,
         address jug,
         address eth_join,
         address coin_join,
         uint256 cdp_id,
         uint256 coin_amount
     ) public payable {
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         // Receives ETH amount, converts it to WETH and joins it into the cdp_engine
         eth_join_join(eth_join, cdp);
         // Locks WETH amount into the CDP and generates debt
         modify_cdp(
-            safe_manager,
+            cdp_manager,
             cdp_id,
             Math.to_int(msg.value),
             _get_borrow_delta_debt(cdp_engine, jug, cdp, col_type, coin_amount)
         );
         // Moves the BEI amount (balance in the cdp_engine in rad) to proxy's address
         transfer_coin(
-            safe_manager, cdp_id, address(this), Math.to_rad(coin_amount)
+            cdp_manager, cdp_id, address(this), Math.to_rad(coin_amount)
         );
         // Allows adapter to access to proxy's BEI balance in the cdp_engine
         if (!ICDPEngine(cdp_engine).can(address(this), address(coin_join))) {
@@ -559,22 +557,22 @@ contract ProxyActions is Common {
 
     // openLockETHAndDraw
     function open_lock_eth_and_borrow(
-        address safe_manager,
+        address cdp_manager,
         address jug,
         address eth_join,
         address coin_join,
         bytes32 col_type,
         uint256 coin_amount
     ) public payable returns (uint256 cdp_id) {
-        cdp_id = open(safe_manager, col_type, address(this));
+        cdp_id = open(cdp_manager, col_type, address(this));
         lock_eth_and_borrow(
-            safe_manager, jug, eth_join, coin_join, cdp_id, coin_amount
+            cdp_manager, jug, eth_join, coin_join, cdp_id, coin_amount
         );
     }
 
     // lockGemAndDraw
     function lock_gem_and_borrow(
-        address safe_manager,
+        address cdp_manager,
         address jug,
         address gem_join,
         address coin_join,
@@ -583,21 +581,21 @@ contract ProxyActions is Common {
         uint256 coin_amount,
         bool is_tranfer_from
     ) public {
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         // Takes token amount from user's wallet and joins into the cdp_engine
         gem_join_join(gem_join, cdp, col_amount, is_tranfer_from);
         // Locks token amount into the CDP and generates debt
         modify_cdp(
-            safe_manager,
+            cdp_manager,
             cdp_id,
             Math.to_int(to_18_dec(gem_join, col_amount)),
             _get_borrow_delta_debt(cdp_engine, jug, cdp, col_type, coin_amount)
         );
         // Moves the BEI amount (balance in the cdp_engine in rad) to proxy's address
         transfer_coin(
-            safe_manager, cdp_id, address(this), Math.to_rad(coin_amount)
+            cdp_manager, cdp_id, address(this), Math.to_rad(coin_amount)
         );
         // Allows adapter to access to proxy's BEI balance in the cdp_engine
         if (!ICDPEngine(cdp_engine).can(address(this), address(coin_join))) {
@@ -609,7 +607,7 @@ contract ProxyActions is Common {
 
     // openLockGemAndDraw
     function open_lock_gem_and_borrow(
-        address safe_manager,
+        address cdp_manager,
         address jug,
         address gem_join,
         address coin_join,
@@ -618,9 +616,9 @@ contract ProxyActions is Common {
         uint256 coin_amount,
         bool is_tranfer_from
     ) public returns (uint256 cdp_id) {
-        cdp_id = open(safe_manager, col_type, address(this));
+        cdp_id = open(cdp_manager, col_type, address(this));
         lock_gem_and_borrow(
-            safe_manager,
+            cdp_manager,
             jug,
             gem_join,
             coin_join,
@@ -633,7 +631,7 @@ contract ProxyActions is Common {
 
     // TODO:
     // function openLockGNTAndDraw(
-    //     address safe_manager,
+    //     address cdp_manager,
     //     address jug,
     //     address gntJoin,
     //     address coin_join,
@@ -649,37 +647,37 @@ contract ProxyActions is Common {
     //     // Transfer funds to the funds which previously were sent to the proxy
     //     IGem(IGemJoin(gntJoin).gem()).transfer(bag, col_amount);
     //     cdp_id = open_lock_gem_and_draw(
-    //         safe_manager, jug, gntJoin, coin_join, col_type, col_amount, coin_amount, false
+    //         cdp_manager, jug, gntJoin, coin_join, col_type, col_amount, coin_amount, false
     //     );
     // }
 
     // wipeAndFreeETH
     function repay_and_free_eth(
-        address safe_manager,
+        address cdp_manager,
         address eth_join,
         address coin_join,
         uint256 cdp_id,
         uint256 col_amount,
         uint256 coin_amount
     ) public {
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
         // Joins BEI amount into the cdp_engine
         coin_join_join(coin_join, cdp, coin_amount);
         // Paybacks debt to the CDP and unlocks WETH amount from it
         modify_cdp(
-            safe_manager,
+            cdp_manager,
             cdp_id,
             -Math.to_int(col_amount),
             _get_repay_delta_debt(
                 cdp_engine,
                 ICDPEngine(cdp_engine).coin(cdp),
                 cdp,
-                ICDPManager(safe_manager).collaterals(cdp_id)
+                ICDPManager(cdp_manager).collaterals(cdp_id)
             )
         );
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), col_amount);
+        transfer_collateral(cdp_manager, cdp_id, address(this), col_amount);
         // Exits WETH amount to proxy address as a token
         IGemJoin(eth_join).exit(address(this), col_amount);
         // Converts WETH to ETH
@@ -690,15 +688,15 @@ contract ProxyActions is Common {
 
     // wipeAllAndFreeETH
     function repay_all_and_free_eth(
-        address safe_manager,
+        address cdp_manager,
         address eth_join,
         address coin_join,
         uint256 cdp_id,
         uint256 col_amount
     ) public {
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
@@ -708,10 +706,10 @@ contract ProxyActions is Common {
         );
         // Paybacks debt to the CDP and unlocks WETH amount from it
         modify_cdp(
-            safe_manager, cdp_id, -Math.to_int(col_amount), -int256(pos.debt)
+            cdp_manager, cdp_id, -Math.to_int(col_amount), -int256(pos.debt)
         );
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), col_amount);
+        transfer_collateral(cdp_manager, cdp_id, address(this), col_amount);
         // Exits WETH amount to proxy address as a token
         IGemJoin(eth_join).exit(address(this), col_amount);
         // Converts WETH to ETH
@@ -722,46 +720,46 @@ contract ProxyActions is Common {
 
     // wipeAndFreeGem
     function repay_and_free_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         address coin_join,
         uint256 cdp_id,
         uint256 col_amount,
         uint256 coin_amount
     ) public {
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
         // Joins BEI amount into the cdp_engine
         coin_join_join(coin_join, cdp, coin_amount);
         uint256 col_wad = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
         modify_cdp(
-            safe_manager,
+            cdp_manager,
             cdp_id,
             -Math.to_int(col_wad),
             _get_repay_delta_debt(
-                ICDPManager(safe_manager).cdp_engine(),
-                ICDPEngine(ICDPManager(safe_manager).cdp_engine()).coin(cdp),
+                ICDPManager(cdp_manager).cdp_engine(),
+                ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).coin(cdp),
                 cdp,
-                ICDPManager(safe_manager).collaterals(cdp_id)
+                ICDPManager(cdp_manager).collaterals(cdp_id)
             )
         );
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), col_wad);
+        transfer_collateral(cdp_manager, cdp_id, address(this), col_wad);
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, col_amount);
     }
 
     // wipeAllAndFreeGem
     function repay_all_and_free_gem(
-        address safe_manager,
+        address cdp_manager,
         address gem_join,
         address coin_join,
         uint256 cdp_id,
         uint256 col_amount
     ) public {
-        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
-        address cdp = ICDPManager(safe_manager).positions(cdp_id);
-        bytes32 col_type = ICDPManager(safe_manager).collaterals(cdp_id);
+        address cdp_engine = ICDPManager(cdp_manager).cdp_engine();
+        address cdp = ICDPManager(cdp_manager).positions(cdp_id);
+        bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
@@ -772,10 +770,10 @@ contract ProxyActions is Common {
         uint256 col_wad = to_18_dec(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
         modify_cdp(
-            safe_manager, cdp_id, -Math.to_int(col_wad), -int256(pos.debt)
+            cdp_manager, cdp_id, -Math.to_int(col_wad), -int256(pos.debt)
         );
         // Moves the amount from the CDP cdp to proxy's address
-        transfer_collateral(safe_manager, cdp_id, address(this), col_wad);
+        transfer_collateral(cdp_manager, cdp_id, address(this), col_wad);
         // Exits token amount to the user's wallet as a token
         IGemJoin(gem_join).exit(msg.sender, col_amount);
     }

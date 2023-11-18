@@ -6,7 +6,7 @@ import {ICDPEngine} from "../../src/interfaces/ICDPEngine.sol";
 import "../../src/lib/Math.sol";
 import {CDPEngine} from "../../src/stable-coin/CDPEngine.sol";
 
-contract SafeEngineTest is Test {
+contract CDPEngineTest is Test {
     CDPEngine private cdp_engine;
 
     bytes32 private constant COL_TYPE = bytes32(uint256(1));
@@ -166,7 +166,7 @@ contract SafeEngineTest is Test {
         assertEq(cdp_engine.coin(dst), 20);
     }
 
-    function test_modify_safe_revert() public {
+    function test_modify_cdp_revert() public {
         address cdp = address(1);
         address col_src = address(2);
         address coin_dst = address(3);
@@ -286,7 +286,7 @@ contract SafeEngineTest is Test {
         });
     }
 
-    function test_modify_safe() public {
+    function test_modify_cdp() public {
         address cdp = address(1);
         address col_src = address(2);
         address coin_dst = address(3);
