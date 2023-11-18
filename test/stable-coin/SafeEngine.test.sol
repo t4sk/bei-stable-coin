@@ -4,15 +4,15 @@ pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 import {ICDPEngine} from "../../src/interfaces/ICDPEngine.sol";
 import "../../src/lib/Math.sol";
-import {SafeEngine} from "../../src/stable-coin/SafeEngine.sol";
+import {CDPEngine} from "../../src/stable-coin/CDPEngine.sol";
 
 contract SafeEngineTest is Test {
-    SafeEngine private cdp_engine;
+    CDPEngine private cdp_engine;
 
     bytes32 private constant COL_TYPE = bytes32(uint256(1));
 
     function setUp() public {
-        cdp_engine = new SafeEngine();
+        cdp_engine = new CDPEngine();
     }
 
     function get_collateral(bytes32 col_type)

@@ -163,7 +163,7 @@ contract CollateralAuction is Auth, Guard {
 
     // --- Auction ---
     // get the price directly from the OSM
-    // Could get this from rmul(SafeEngine.ilks(collateral_type).spot, Spotter.mat()) instead, but
+    // Could get this from rmul(CDPEngine.ilks(collateral_type).spot, Spotter.mat()) instead, but
     // if mat has changed since the last poke, the resulting value will be
     // incorrect.
     function get_price() internal returns (uint256 price) {
@@ -287,7 +287,7 @@ contract CollateralAuction is Auth, Guard {
     // To avoid partial purchases resulting in very small leftover auctions that will
     // never be cleared, any partial purchase must leave at least `Clipper.chost`
     // remaining BEI target. `chost` is an asynchronously updated value equal to
-    // (SafeEngine.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
+    // (CDPEngine.dust * Dog.chop(collateral_type) / WAD) where the values are understood to be determined
     // by whatever they were when Clipper.upchost() was last called. Purchase amounts
     // will be minimally decreased when necessary to respect this limit; i.e., if the
     // specified `amt` would leave `coin_amount < chost` but `coin_amount > 0`, the amount actually

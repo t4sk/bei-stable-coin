@@ -7,9 +7,8 @@ import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import {AccessControl} from "../lib/AccessControl.sol";
 
-// TODO: rename to CDPEngine?
 // Vat - CDP Engine
-contract SafeEngine is Auth, CircuitBreaker, AccessControl {
+contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
     // TODO: rename safe to CDP?

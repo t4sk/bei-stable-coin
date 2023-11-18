@@ -248,7 +248,7 @@ contract ProxyActions is Common {
     {
         // Receives ETH amount, converts it to WETH and joins it into the cdp_engine
         eth_join_join(eth_join, address(this));
-        // TODO: why 2 ways to call modify_safe -> from SafeManager and directly to SafeEngine
+        // TODO: why 2 ways to call modify_safe -> from SafeManager and directly to CDPEngine
         // Locks WETH amount into the CDP
         ICDPEngine(ISafeManager(safe_manager).cdp_engine()).modify_safe({
             col_type: ISafeManager(safe_manager).collaterals(safe_id),
