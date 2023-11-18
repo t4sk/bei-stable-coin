@@ -27,7 +27,7 @@ contract Pot is Auth, CircuitBreaker {
     // Rate accumulator [ray]
     uint256 public chi;
 
-    ICDPEngine public safe_engine; // CDP Engine
+    ICDPEngine public cdp_engine; // CDP Engine
     address public debt_engine; // Debt Engine
     // rho
     uint256 public updated_at; // Time of last drip [unix epoch time]
@@ -35,7 +35,7 @@ contract Pot is Auth, CircuitBreaker {
     //        collateral type when it is called
 
     constructor(address _safe_engine) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         savings_rate = RAY;
         chi = RAY;
         updated_at = block.timestamp;
@@ -79,7 +79,7 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = chi * total
         // new  total = new chi * total
         // mint = new total - prev total = (new chi - chi) * total
-        safe_engine.mint(debt_engine, address(this), total_pie * delta_chi);
+        cdp_engine.mint(debt_engine, address(this), total_pie * delta_chi);
         return tmp;
     }
 
@@ -89,12 +89,12 @@ contract Pot is Auth, CircuitBreaker {
         // TODO: check math for multiple deposits
         pie[msg.sender] += wad;
         total_pie += wad;
-        safe_engine.transfer_coin(msg.sender, address(this), chi * wad);
+        cdp_engine.transfer_coin(msg.sender, address(this), chi * wad);
     }
 
     function exit(uint256 wad) external {
         pie[msg.sender] -= wad;
         total_pie -= wad;
-        safe_engine.transfer_coin(address(this), msg.sender, chi * wad);
+        cdp_engine.transfer_coin(address(this), msg.sender, chi * wad);
     }
 }

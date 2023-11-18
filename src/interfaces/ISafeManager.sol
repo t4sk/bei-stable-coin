@@ -8,7 +8,7 @@ interface ISafeManager {
     }
 
     // vat
-    function safe_engine() external view returns (address);
+    function cdp_engine() external view returns (address);
     // cdpi
     function last_safe_id() external view returns (uint256);
     // urns

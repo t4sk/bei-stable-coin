@@ -15,12 +15,12 @@ contract Spotter is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => ISpotter.Collateral) public collaterals;
 
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // par - value of BEI in the reference asset (e.g. $1 per BEI)
     uint256 public par; // ref per BEI [ray]
 
     constructor(address _safe_engine) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         par = RAY;
     }
 
@@ -68,7 +68,7 @@ contract Spotter is Auth, CircuitBreaker {
                 collaterals[col_type].liquidation_ratio
             )
             : 0;
-        safe_engine.set(col_type, "spot", spot);
+        cdp_engine.set(col_type, "spot", spot);
         emit Poke(col_type, val, spot);
     }
 

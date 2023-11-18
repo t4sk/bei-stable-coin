@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 
 contract SafeHandler {
-    constructor(address safe_engine) {
-        ICDPEngine(safe_engine).allow_account_modification(msg.sender);
+    constructor(address cdp_engine) {
+        ICDPEngine(cdp_engine).allow_account_modification(msg.sender);
     }
 }

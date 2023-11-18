@@ -10,7 +10,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Vow - Debt engine
 contract DebtEngine is Auth, CircuitBreaker {
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // flapper
     ISurplusAuction public surplus_auction;
     // flopper
@@ -45,10 +45,10 @@ contract DebtEngine is Auth, CircuitBreaker {
         address _surplus_auction,
         address _debt_auction
     ) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         surplus_auction = ISurplusAuction(_surplus_auction);
         debt_auction = IDebtAuction(_debt_auction);
-        safe_engine.allow_account_modification(_surplus_auction);
+        cdp_engine.allow_account_modification(_surplus_auction);
     }
 
     // --- Administration ---
@@ -70,9 +70,9 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     function set(bytes32 key, address val) external auth {
         if (key == "surplus_auction") {
-            safe_engine.deny_account_modification(address(surplus_auction));
+            cdp_engine.deny_account_modification(address(surplus_auction));
             surplus_auction = ISurplusAuction(val);
-            safe_engine.allow_account_modification(val);
+            cdp_engine.allow_account_modification(val);
         } else if (key == "debt_auction") {
             debt_auction = IDebtAuction(val);
         } else {
@@ -95,24 +95,24 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // heal - Debt settlement
     function settle_debt(uint256 rad) external {
-        require(rad <= safe_engine.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
         // TODO: what?
         require(
             rad
-                <= safe_engine.debts(address(this)) - total_debt_on_queue
+                <= cdp_engine.debts(address(this)) - total_debt_on_queue
                     - total_debt_on_auction,
             "insufficient debt"
         );
-        safe_engine.burn(rad);
+        cdp_engine.burn(rad);
     }
 
     // kiss
     function cancel_auctioned_debt_with_surplus(uint256 rad) external {
         require(rad <= total_debt_on_auction, "not enough debt on auction");
-        require(rad <= safe_engine.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
         // TODO: what?
         total_debt_on_auction -= rad;
-        safe_engine.burn(rad);
+        cdp_engine.burn(rad);
     }
 
     // flop
@@ -121,11 +121,11 @@ contract DebtEngine is Auth, CircuitBreaker {
         // TODO: what?
         require(
             debt_auction_bid_size
-                <= safe_engine.debts(address(this)) - total_debt_on_queue
+                <= cdp_engine.debts(address(this)) - total_debt_on_queue
                     - total_debt_on_auction,
             "insufficient debt"
         );
-        require(safe_engine.coin(address(this)) == 0, "surplus not zero");
+        require(cdp_engine.coin(address(this)) == 0, "surplus not zero");
         total_debt_on_auction += debt_auction_bid_size;
         id = debt_auction.start(
             address(this), debt_auction_lot_size, debt_auction_bid_size
@@ -136,13 +136,13 @@ contract DebtEngine is Auth, CircuitBreaker {
     // Surplus auction
     function start_surplus_auction() external returns (uint256 id) {
         require(
-            safe_engine.coin(address(this))
-                >= safe_engine.debts(address(this)) + surplus_auction_lot_size
+            cdp_engine.coin(address(this))
+                >= cdp_engine.debts(address(this)) + surplus_auction_lot_size
                     + min_surplus,
             "insufficient surplus"
         );
         require(
-            safe_engine.debts(address(this)) - total_debt_on_queue
+            cdp_engine.debts(address(this)) - total_debt_on_queue
                 - total_debt_on_auction == 0,
             "debt not zero"
         );
@@ -153,12 +153,11 @@ contract DebtEngine is Auth, CircuitBreaker {
         _stop();
         total_debt_on_queue = 0;
         total_debt_on_auction = 0;
-        surplus_auction.stop(safe_engine.coin(address(surplus_auction)));
+        surplus_auction.stop(cdp_engine.coin(address(surplus_auction)));
         debt_auction.stop();
-        safe_engine.burn(
+        cdp_engine.burn(
             Math.min(
-                safe_engine.coin(address(this)),
-                safe_engine.debts(address(this))
+                cdp_engine.coin(address(this)), cdp_engine.debts(address(this))
             )
         );
     }

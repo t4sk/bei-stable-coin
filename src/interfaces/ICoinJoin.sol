@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 interface ICoinJoin {
-    function safe_engine() external returns (address);
+    function cdp_engine() external returns (address);
     function coin() external returns (address);
     function join(address user, uint256 wad) external payable;
     function exit(address user, uint256 wad) external;

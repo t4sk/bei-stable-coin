@@ -33,7 +33,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         uint256 amount;
     }
 
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     mapping(bytes32 => Collateral) public collaterals;
     // debt_engine
     IDebtEngine public debt_engine;
@@ -45,7 +45,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     uint256 public total;
 
     constructor(address _safe_engine) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
     }
 
     // --- Administration ---
@@ -110,8 +110,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         live
         returns (uint256 id)
     {
-        ICDPEngine.Safe memory s = safe_engine.safes(col_type, safe);
-        ICDPEngine.Collateral memory c = safe_engine.collaterals(col_type);
+        ICDPEngine.Safe memory s = cdp_engine.safes(col_type, safe);
+        ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         Collateral memory col = collaterals[col_type];
         uint256 delta_debt;
         {
@@ -155,7 +155,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
         // NOTE: collateral sent to aution, debt sent to debt engine
-        safe_engine.grab({
+        cdp_engine.grab({
             col_type: col_type,
             src: safe,
             col_dst: col.auction,

@@ -17,7 +17,7 @@ import {Guard} from "../lib/Guard.sol";
 // Clipper
 contract CollateralAuction is Auth, Guard {
     bytes32 public immutable collateral_type;
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
 
     // dog
     ILiquidationEngine public liquidation_engine;
@@ -108,7 +108,7 @@ contract CollateralAuction is Auth, Guard {
         address liquidation_engine_,
         bytes32 collateral_type_
     ) {
-        safe_engine = ICDPEngine(vat_);
+        cdp_engine = ICDPEngine(vat_);
         spotter = ISpotter(spotter_);
         liquidation_engine = ILiquidationEngine(liquidation_engine_);
         collateral_type = collateral_type_;
@@ -212,7 +212,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             // TODO: check units
             fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-            safe_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
+            cdp_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
         }
 
         emit Start(
@@ -259,7 +259,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             if (coin_amount >= cache && collateral_amount * price >= cache) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-                safe_engine.mint({
+                cdp_engine.mint({
                     debt_dst: debt_engine,
                     coin_dst: keeper,
                     rad: fee
@@ -363,7 +363,7 @@ contract CollateralAuction is Auth, Guard {
             collateral_amount -= slice;
 
             // Send collateral to receiver
-            safe_engine.transfer_collateral(
+            cdp_engine.transfer_collateral(
                 collateral_type, address(this), receiver, slice
             );
 
@@ -371,7 +371,7 @@ contract CollateralAuction is Auth, Guard {
             // extremely careful we don't allow to do it to the two
             // contracts which the Clipper needs to be authorized
             if (
-                data.length > 0 && receiver != address(safe_engine)
+                data.length > 0 && receiver != address(cdp_engine)
                     && receiver != address(liquidation_engine)
             ) {
                 ICollateralAuctionCallee(receiver).callback(
@@ -380,7 +380,7 @@ contract CollateralAuction is Auth, Guard {
             }
 
             // Get BEI from caller
-            safe_engine.transfer_coin(msg.sender, debt_engine, owe);
+            cdp_engine.transfer_coin(msg.sender, debt_engine, owe);
 
             // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
@@ -392,7 +392,7 @@ contract CollateralAuction is Auth, Guard {
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {
-            safe_engine.transfer_collateral(
+            cdp_engine.transfer_collateral(
                 collateral_type, address(this), user, collateral_amount
             );
             _remove(id);
@@ -474,7 +474,7 @@ contract CollateralAuction is Auth, Guard {
     // upchost
     function update_cache() external {
         ICDPEngine.Collateral memory col =
-            ICDPEngine(safe_engine).collaterals(collateral_type);
+            ICDPEngine(cdp_engine).collaterals(collateral_type);
         cache =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }
@@ -483,7 +483,7 @@ contract CollateralAuction is Auth, Guard {
     function yank(uint256 id) external auth lock {
         require(sales[id].user != address(0), "Clipper/not-running-auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
-        safe_engine.transfer_collateral(
+        cdp_engine.transfer_collateral(
             collateral_type,
             address(this),
             msg.sender,

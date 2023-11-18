@@ -40,7 +40,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     mapping(uint256 => Bid) public bids;
 
     // vat
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // gem - MKR
     IGem public immutable gem;
 
@@ -58,7 +58,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     uint256 public total_coin_in_auction;
 
     constructor(address _safe_engine, address _gem) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         gem = IGem(_gem);
     }
 
@@ -97,7 +97,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
             auction_end_time: uint48(block.timestamp) + auction_duration
         });
 
-        safe_engine.transfer_coin(msg.sender, address(this), lot);
+        cdp_engine.transfer_coin(msg.sender, address(this), lot);
 
         emit Start(id, lot, bid_amount);
     }
@@ -150,7 +150,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
                 ),
             "not finished"
         );
-        safe_engine.transfer_coin(address(this), b.highest_bidder, b.lot);
+        cdp_engine.transfer_coin(address(this), b.highest_bidder, b.lot);
         // TODO: balance of address(this) >= b.amount ?
         gem.burn(address(this), b.amount);
         delete bids[id];
@@ -160,7 +160,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     // cage
     function stop(uint256 rad) external auth {
         _stop();
-        safe_engine.transfer_coin(address(this), msg.sender, rad);
+        cdp_engine.transfer_coin(address(this), msg.sender, rad);
     }
 
     function yank(uint256 id) external live {

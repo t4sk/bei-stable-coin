@@ -11,7 +11,7 @@ contract GemJoin is Auth, CircuitBreaker {
     event Exit(address indexed user, uint256 wad);
 
     // vat
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // ilk
     bytes32 public immutable collateral_type;
     // gem
@@ -20,7 +20,7 @@ contract GemJoin is Auth, CircuitBreaker {
     uint8 public immutable decimals;
 
     constructor(address _safe_engine, bytes32 _collateral_type, address _gem) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         collateral_type = _collateral_type;
         gem = IGem(_gem);
         decimals = gem.decimals();
@@ -34,9 +34,7 @@ contract GemJoin is Auth, CircuitBreaker {
     function join(address user, uint256 wad) external live {
         // wad <= 2**255 - 1
         require(int256(wad) >= 0, "overflow");
-        safe_engine.modify_collateral_balance(
-            collateral_type, user, int256(wad)
-        );
+        cdp_engine.modify_collateral_balance(collateral_type, user, int256(wad));
         require(
             gem.transferFrom(msg.sender, address(this), wad), "transfer failed"
         );
@@ -45,7 +43,7 @@ contract GemJoin is Auth, CircuitBreaker {
 
     function exit(address user, uint256 wad) external {
         require(wad <= 2 ** 255, "overflow");
-        safe_engine.modify_collateral_balance(
+        cdp_engine.modify_collateral_balance(
             collateral_type, msg.sender, -int256(wad)
         );
         require(gem.transfer(user, wad), "transfer failed");

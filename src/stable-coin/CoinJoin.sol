@@ -12,12 +12,12 @@ contract CoinJoin is Auth, CircuitBreaker {
     event Exit(address indexed user, uint256 wad);
 
     // vat
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // DAI
     ICoin public immutable coin;
 
     constructor(address _safe_engine, address _coin) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         coin = ICoin(_coin);
     }
 
@@ -27,13 +27,13 @@ contract CoinJoin is Auth, CircuitBreaker {
     }
 
     function join(address user, uint256 wad) external {
-        safe_engine.transfer_coin(address(this), user, wad * RAY);
+        cdp_engine.transfer_coin(address(this), user, wad * RAY);
         coin.burn(msg.sender, wad);
         emit Join(user, wad);
     }
 
     function exit(address user, uint256 wad) external live {
-        safe_engine.transfer_coin(msg.sender, address(this), wad * RAY);
+        cdp_engine.transfer_coin(msg.sender, address(this), wad * RAY);
         coin.mint(user, wad);
         emit Exit(user, wad);
     }

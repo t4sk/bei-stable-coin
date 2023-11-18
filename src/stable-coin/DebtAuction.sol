@@ -36,7 +36,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     mapping(uint256 => Bid) public bids;
 
     // vat
-    ICDPEngine public immutable safe_engine;
+    ICDPEngine public immutable cdp_engine;
     // gem - MKR
     IGem public immutable gem;
 
@@ -54,7 +54,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     address public debt_engine; // not used until shutdown TODO: why?
 
     constructor(address _safe_engine, address _gem) {
-        safe_engine = ICDPEngine(_safe_engine);
+        cdp_engine = ICDPEngine(_safe_engine);
         gem = IGem(_gem);
     }
 
@@ -126,7 +126,7 @@ contract DebtAuction is Auth, CircuitBreaker {
 
         if (msg.sender != b.highest_bidder) {
             // Refund previous highest bidder
-            safe_engine.transfer_coin(msg.sender, b.highest_bidder, bid_amount);
+            cdp_engine.transfer_coin(msg.sender, b.highest_bidder, bid_amount);
 
             // on first dent, clear as much Ash as possible
             if (b.bid_expiry_time == 0) {
@@ -169,7 +169,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     function yank(uint256 id) external live {
         Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
-        safe_engine.mint(debt_engine, b.highest_bidder, b.amount);
+        cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
         delete bids[id];
     }
 }
