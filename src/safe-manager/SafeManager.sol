@@ -158,12 +158,12 @@ contract SafeManager {
 
     // frob
     // Modify safe keeping the generated BEI or collateral freed in the safe address.
-    function modify_safe(uint256 safe_id, int256 delta_col, int256 delta_debt)
+    function modify_cdp(uint256 safe_id, int256 delta_col, int256 delta_debt)
         public
         safe_allowed(safe_id)
     {
         address safe = safes[safe_id];
-        ICDPEngine(cdp_engine).modify_safe({
+        ICDPEngine(cdp_engine).modify_cdp({
             col_type: collaterals[safe_id],
             safe: safe,
             col_src: safe,

@@ -49,7 +49,7 @@ interface ISafeManager {
     // give
     function give(uint256 safe_id, address dst) external;
     // frob
-    function modify_safe(uint256 safe_id, int256 delta_col, int256 delta_debt)
+    function modify_cdp(uint256 safe_id, int256 delta_col, int256 delta_debt)
         external;
     // flux
     function transfer_collateral(uint256 safe_id, address dst, uint256 wad)

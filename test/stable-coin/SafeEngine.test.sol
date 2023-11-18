@@ -173,7 +173,7 @@ contract SafeEngineTest is Test {
 
         // Test - collateral not initialized //
         vm.expectRevert("collateral not initialized");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -190,7 +190,7 @@ contract SafeEngineTest is Test {
 
         // Test - delta debt > max //
         vm.expectRevert("delta debt > max");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -201,7 +201,7 @@ contract SafeEngineTest is Test {
 
         // Test - undercollateralized //
         vm.expectRevert("undercollateralized");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -212,7 +212,7 @@ contract SafeEngineTest is Test {
 
         // Test - not allowed safe //
         vm.expectRevert("not allowed to modify safe");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -226,7 +226,7 @@ contract SafeEngineTest is Test {
 
         // Test - not allowed collateral src //
         vm.expectRevert("not allowed to modify collateral src");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -240,7 +240,7 @@ contract SafeEngineTest is Test {
 
         // Test - not allowed coin dst //
         cdp_engine.modify_collateral_balance(COL_TYPE, col_src, int256(WAD));
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -250,7 +250,7 @@ contract SafeEngineTest is Test {
         });
 
         vm.expectRevert("not allowed to modify coin dst");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -264,7 +264,7 @@ contract SafeEngineTest is Test {
 
         // Test - dust //
         vm.expectRevert("debt < dust");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -276,7 +276,7 @@ contract SafeEngineTest is Test {
         // Test - stopped //
         cdp_engine.stop();
         vm.expectRevert("stopped");
-        cdp_engine.modify_safe({
+        cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             safe: safe,
             col_src: col_src,
@@ -329,7 +329,7 @@ contract SafeEngineTest is Test {
             uint256 gem0 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin0 = cdp_engine.coin(coin_dst);
 
-            cdp_engine.modify_safe({
+            cdp_engine.modify_cdp({
                 col_type: COL_TYPE,
                 safe: safe,
                 col_src: col_src,

@@ -98,7 +98,7 @@ interface ICDPEngine {
 
     // --- CDP Manipulation ---
     // frob
-    function modify_safe(
+    function modify_cdp(
         bytes32 col_type,
         address safe,
         address col_src,
