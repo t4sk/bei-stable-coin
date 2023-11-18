@@ -13,7 +13,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 contract LiquidationEngine is Auth, CircuitBreaker {
     event Liquidate(
         bytes32 indexed col_type,
-        address indexed safe,
+        address indexed cdp,
         uint256 delta_col,
         uint256 delta_debt,
         uint256 due,
@@ -105,12 +105,12 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // outstanding BEI target. The one exception is if the resulting auction would likely
     // have too little collateral to be interesting to Keepers (debt taken from Vault < ilk.dust),
     // in which case the function reverts.
-    function liquidate(bytes32 col_type, address safe, address keeper)
+    function liquidate(bytes32 col_type, address cdp, address keeper)
         external
         live
         returns (uint256 id)
     {
-        ICDPEngine.Position memory pos = cdp_engine.positions(col_type, safe);
+        ICDPEngine.Position memory pos = cdp_engine.positions(col_type, cdp);
         ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         Collateral memory col = collaterals[col_type];
         uint256 delta_debt;
@@ -157,7 +157,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         // NOTE: collateral sent to aution, debt sent to debt engine
         cdp_engine.grab({
             col_type: col_type,
-            src: safe,
+            cdp: cdp,
             col_dst: col.auction,
             debt_dst: address(debt_engine),
             delta_col: -int256(delta_col),
@@ -179,13 +179,13 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                 coin_amount: target_coin_amount,
                 // lot - the amount of collateral available for purchase [wad]
                 collateral_amount: delta_col,
-                user: safe,
+                user: cdp,
                 keeper: keeper
             });
         }
 
         emit Liquidate(
-            col_type, safe, delta_col, delta_debt, due, col.auction, id
+            col_type, cdp, delta_col, delta_debt, due, col.auction, id
         );
     }
 

@@ -11,7 +11,7 @@ import {AccessControl} from "../lib/AccessControl.sol";
 contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
-    // urns - collateral type => account => safe
+    // urns - collateral type => account => position
     mapping(bytes32 => mapping(address => ICDPEngine.Position)) public positions;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
@@ -93,22 +93,22 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     }
 
     // --- CDP Manipulation ---
-    // frob - modify a safe.
-    // frob(i, u, v, w, dink, dart) - modify a safe
-    // - modify the safe of user u
+    // frob - modify a CDP
+    // frob(i, u, v, w, dink, dart)
+    // - modify position of user u
     // - using gem from user v
     // - and creating coin for user w
     // dink: change in amount of collateral
     // dart: change in amount of debt
     function modify_cdp(
         bytes32 col_type,
-        address safe,
+        address cdp,
         address col_src,
         address coin_dst,
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ICDPEngine.Position memory pos = positions[col_type][safe];
+        ICDPEngine.Position memory pos = positions[col_type][cdp];
         ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate != 0, "collateral not initialized");
 
@@ -119,7 +119,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         // delta_debt = delta_coin / col.rate
         // delta_coin [rad] = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
-        // coin balance + compound interest that the safe owes to protocol
+        // coin balance + compound interest that the cdp owes to protocol
         // debt [rad]
         uint256 coin_debt = col.rate * pos.debt;
         sys_debt = Math.add(sys_debt, delta_coin);
@@ -130,17 +130,17 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
                 || (col.debt * col.rate <= col.max_debt && sys_debt <= sys_max_debt),
             "delta debt > max"
         );
-        // safe is either less risky than before, or it is safe
+        // cdp is either less risky than before, or it is safe
         require(
             (delta_debt <= 0 && delta_col >= 0)
                 || coin_debt <= pos.collateral * col.spot,
             "undercollateralized"
         );
-        // safe is either more safe, or the owner consent
+        // cdp is either more safe, or the owner consent
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(safe, msg.sender),
-            "not allowed to modify safe"
+                || can_modify_account(cdp, msg.sender),
+            "not allowed to modify cdp"
         );
         // collateral src consent
         require(
@@ -153,29 +153,29 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
             "not allowed to modify coin dst"
         );
 
-        // safe has no debt, or a non-dusty amount
+        // cdp has no debt, or a non-dusty amount
         require(pos.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
 
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
-        positions[col_type][safe] = pos;
+        positions[col_type][cdp] = pos;
         collaterals[col_type] = col;
     }
 
     // --- CDP Fungibility ---
-    // fork - to split a safe - binary approval or splitting/merging positions.
+    // fork - to split a cdp - binary approval or splitting/merging positions.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(
         bytes32 col_type,
-        address src,
-        address dst,
+        address cdp_src,
+        address cdp_dst,
         int256 delta_col,
         int256 delta_debt
     ) external {
-        ICDPEngine.Position storage u = positions[col_type][src];
-        ICDPEngine.Position storage v = positions[col_type][dst];
+        ICDPEngine.Position storage u = positions[col_type][cdp_src];
+        ICDPEngine.Position storage v = positions[col_type][cdp_dst];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
@@ -183,47 +183,47 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         v.collateral = Math.add(v.collateral, delta_col);
         v.debt = Math.add(v.debt, delta_debt);
 
-        uint256 u_total_coin = u.debt * col.rate;
-        uint256 v_total_coin = v.debt * col.rate;
+        uint256 u_coin_debt = u.debt * col.rate;
+        uint256 v_coin_debt = v.debt * col.rate;
 
         // both sides consent
         require(
-            can_modify_account(src, msg.sender)
-                && can_modify_account(dst, msg.sender),
+            can_modify_account(cdp_src, msg.sender)
+                && can_modify_account(cdp_dst, msg.sender),
             "not allowed"
         );
 
         // both sides safe
-        require(u_total_coin <= u.collateral * col.spot, "not safe src");
-        require(v_total_coin <= v.collateral * col.spot, "not safe dst");
+        require(u_coin_debt <= u.collateral * col.spot, "not safe src");
+        require(v_coin_debt <= v.collateral * col.spot, "not safe dst");
 
         // both sides non-dusty
-        require(u_total_coin >= col.min_debt || u.debt == 0, "dust src");
-        require(v_total_coin >= col.min_debt || v.debt == 0, "dust dst");
+        require(u_coin_debt >= col.min_debt || u.debt == 0, "dust src");
+        require(v_coin_debt >= col.min_debt || v.debt == 0, "dust dst");
     }
 
     // --- CDP Confiscation ---
-    // grab - liquidate a safe.
+    // grab - liquidate a cdp
     // grab(i, u, v, w, dink, dart)
-    // - modify the safe of user u
+    // - modify the cdp of user u
     // - give gem to user v
     // - create sin for user w
     // grab is the means by which positions are liquidated,
-    // transferring debt from the safe to a users sin balance.
+    // transferring debt from the cdp to a users sin balance.
     function grab(
         bytes32 col_type,
-        address src,
+        address cdp,
         address col_dst,
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ICDPEngine.Position storage safe = positions[col_type][src];
+        ICDPEngine.Position storage pos = positions[col_type][cdp];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         // TODO: flip operations? add -> sub
-        safe.collateral = Math.add(safe.collateral, delta_col);
-        safe.debt = Math.add(safe.debt, delta_debt);
+        pos.collateral = Math.add(pos.collateral, delta_col);
+        pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         int256 delta_coin = Math.mul(col.rate, delta_debt);

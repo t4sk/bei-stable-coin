@@ -27,7 +27,7 @@ interface ICDPManager {
     // count
     function count(address owner) external view returns (uint256);
 
-    // cdpCan - permission to modify safe by addr
+    // cdpCan - permission to modify cdp by addr
     function cdp_can(address owner, uint256 cdp_id, address user)
         external
         view

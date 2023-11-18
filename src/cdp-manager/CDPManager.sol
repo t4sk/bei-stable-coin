@@ -17,30 +17,30 @@ contract CDPManager {
     // cdpi
     uint256 public last_cdp_id;
     // urns
-    // safe id => CDPHandler
+    // cdp id => CDPHandler
     mapping(uint256 => address) public positions;
     // list
-    // safe id => prev & next safe ids (double linked list)
+    // cdp id => prev & next cdp ids (double linked list)
     mapping(uint256 => ICDPManager.List) public list;
     // owns
-    // safe id => owner of safe
+    // cdp id => owner of cdp
     mapping(uint256 => address) public owner_of;
     // ilks
-    // safe id => collateral types
+    // cdp id => collateral types
     mapping(uint256 => bytes32) public collaterals;
 
     // first
-    // owner => first safe id
+    // owner => first cdp id
     mapping(address => uint256) public first;
     // last
-    // owner => last safe id
+    // owner => last cdp id
     mapping(address => uint256) public last;
     // count
-    // owner => amount of safe handlers
+    // owner => amount of cdp handlers
     mapping(address => uint256) public count;
 
-    // cdpCan - permission to modify safe by addr
-    // owner => safe id => addr => allowed
+    // cdpCan - permission to modify cdp by addr
+    // owner => cdp id => addr => allowed
     mapping(address => mapping(uint256 => mapping(address => bool))) public
         cdp_can;
 
@@ -48,12 +48,12 @@ contract CDPManager {
     // CDPHandler => addr => allowed
     mapping(address => mapping(address => bool)) public cdp_handler_can;
 
-    // cdpAllowed - msg.sender is safe owner or safe owner has given permission to msg.sender
+    // cdpAllowed - msg.sender is cdp owner or cdp owner has given permission to msg.sender
     modifier cdp_allowed(uint256 cdp_id) {
         address owner = owner_of[cdp_id];
         require(
             msg.sender == owner || cdp_can[owner][cdp_id][msg.sender],
-            "safe not allowed"
+            "cdp not allowed"
         );
         _;
     }
@@ -63,7 +63,7 @@ contract CDPManager {
     modifier cdp_handler_allowed(address user) {
         require(
             msg.sender == user || cdp_handler_can[user][msg.sender],
-            "safe handler not allowed"
+            "cdp handler not allowed"
         );
         _;
     }
@@ -73,7 +73,7 @@ contract CDPManager {
     }
 
     // cdpAllow
-    // Allow / disallow user to manage the safe.
+    // Allow / disallow user to manage the cdp.
     function allow_cdp(uint256 cdp_id, address user, bool ok)
         public
         cdp_allowed(cdp_id)
@@ -82,13 +82,13 @@ contract CDPManager {
     }
 
     // urnAllow
-    // Allow / disallow user to quit to msg.sender's safe handler.
+    // Allow / disallow user to quit to msg.sender's cdp handler.
     function allow_cdp_handler(address user, bool ok) public {
         cdp_handler_can[msg.sender][user] = ok;
     }
 
     // open
-    // Open a new safe for a given user address.
+    // Open a new cdp for a given user address.
     function open(bytes32 col_type, address user) public returns (uint256) {
         require(user != address(0), "user = zero address");
 
@@ -100,7 +100,7 @@ contract CDPManager {
         collaterals[id] = col_type;
 
         // TODO: learn doubly linked list algo
-        // Add new safe to double linked list and pointers
+        // Add new cdp to double linked list and pointers
         if (first[user] == 0) {
             first[user] = id;
         }
@@ -116,7 +116,7 @@ contract CDPManager {
     }
 
     // give
-    // Give the safe ownership to a dst address.
+    // Give the cdp ownership to a dst address.
     function give(uint256 cdp_id, address dst) public cdp_allowed(cdp_id) {
         require(dst != address(0), "dst = 0 address");
         require(dst != owner_of[cdp_id], "dst is already owner");
@@ -157,17 +157,17 @@ contract CDPManager {
     }
 
     // frob
-    // Modify safe keeping the generated BEI or collateral freed in the safe address.
+    // Modify cdp keeping the generated BEI or collateral freed in the cdp address.
     function modify_cdp(uint256 cdp_id, int256 delta_col, int256 delta_debt)
         public
         cdp_allowed(cdp_id)
     {
-        address safe = positions[cdp_id];
+        address cdp = positions[cdp_id];
         ICDPEngine(cdp_engine).modify_cdp({
             col_type: collaterals[cdp_id],
-            safe: safe,
-            col_src: safe,
-            coin_dst: safe,
+            cdp: cdp,
+            col_src: cdp,
+            coin_dst: cdp,
             delta_col: delta_col,
             delta_debt: delta_debt
         });
@@ -207,64 +207,64 @@ contract CDPManager {
         ICDPEngine(cdp_engine).transfer_coin(positions[cdp_id], dst, rad);
     }
 
-    // Quit the system, migrating the cdp_id (collateral, debt) to a different dst safe handler
-    function quit(uint256 cdp_id, address dst)
+    // Quit the system, migrating the cdp_id (collateral, debt) to a different dst cdp handler
+    function quit(uint256 cdp_id, address cdp_dst)
         public
         cdp_allowed(cdp_id)
-        cdp_handler_allowed(dst)
+        cdp_handler_allowed(cdp_dst)
     {
         bytes32 col_type = collaterals[cdp_id];
-        address safe = positions[cdp_id];
+        address cdp = positions[cdp_id];
 
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).positions(col_type, safe);
+            ICDPEngine(cdp_engine).positions(col_type, cdp);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
-            src: safe,
-            dst: dst,
+            cdp_src: cdp,
+            cdp_dst: cdp_dst,
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });
     }
 
-    // Import a position from src safe handler to the safe handler owned by cdp_id
-    function enter(address src, uint256 cdp_id)
+    // Import a position from cdp_src cdp handler to the cdp handler owned by cdp_id
+    function enter(address cdp_src, uint256 cdp_id)
         public
-        cdp_handler_allowed(src)
+        cdp_handler_allowed(cdp_src)
         cdp_allowed(cdp_id)
     {
         bytes32 col_type = collaterals[cdp_id];
 
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).positions(col_type, src);
+            ICDPEngine(cdp_engine).positions(col_type, cdp_src);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
-            src: src,
-            dst: positions[cdp_id],
+            cdp_src: cdp_src,
+            cdp_dst: positions[cdp_id],
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });
     }
 
-    // Move a position from safe_src safe handler to the safe_dst safe handler
-    function shift(uint256 safe_src, uint256 safe_dst)
+    // Move a position from cdp_src cdp handler to the cdp_dst cdp handler
+    function shift(uint256 cdp_src, uint256 cdp_dst)
         public
-        cdp_allowed(safe_src)
-        cdp_allowed(safe_dst)
+        cdp_allowed(cdp_src)
+        cdp_allowed(cdp_dst)
     {
         require(
-            collaterals[safe_src] == collaterals[safe_dst],
+            collaterals[cdp_src] == collaterals[cdp_dst],
             "not matching collaterals"
         );
         ICDPEngine.Position memory pos = ICDPEngine(cdp_engine).positions(
-            collaterals[safe_src], positions[safe_src]
+            collaterals[cdp_src], positions[cdp_src]
         );
         ICDPEngine(cdp_engine).fork({
-            col_type: collaterals[safe_src],
-            src: positions[safe_src],
-            dst: positions[safe_dst],
+            col_type: collaterals[cdp_src],
+            cdp_src: positions[cdp_src],
+            cdp_dst: positions[cdp_dst],
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });

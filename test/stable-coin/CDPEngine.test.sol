@@ -22,11 +22,11 @@ contract SafeEngineTest is Test {
         return ICDPEngine(address(cdp_engine)).collaterals(col_type);
     }
 
-    function get_position(bytes32 col_type, address safe)
+    function get_position(bytes32 col_type, address cdp)
         private
         returns (ICDPEngine.Position memory)
     {
-        return ICDPEngine(address(cdp_engine)).positions(col_type, safe);
+        return ICDPEngine(address(cdp_engine)).positions(col_type, cdp);
     }
 
     function test_constructor() public {
@@ -167,7 +167,7 @@ contract SafeEngineTest is Test {
     }
 
     function test_modify_safe_revert() public {
-        address safe = address(1);
+        address cdp = address(1);
         address col_src = address(2);
         address coin_dst = address(3);
 
@@ -175,7 +175,7 @@ contract SafeEngineTest is Test {
         vm.expectRevert("collateral not initialized");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -192,7 +192,7 @@ contract SafeEngineTest is Test {
         vm.expectRevert("delta debt > max");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -203,32 +203,32 @@ contract SafeEngineTest is Test {
         vm.expectRevert("undercollateralized");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(11 * WAD + 1)
         });
 
-        // Test - not allowed safe //
-        vm.expectRevert("not allowed to modify safe");
+        // Test - not allowed cdp //
+        vm.expectRevert("not allowed to modify cdp");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(WAD)
         });
 
-        vm.prank(safe);
+        vm.prank(cdp);
         cdp_engine.allow_account_modification(address(this));
 
         // Test - not allowed collateral src //
         vm.expectRevert("not allowed to modify collateral src");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -242,7 +242,7 @@ contract SafeEngineTest is Test {
         cdp_engine.modify_collateral_balance(COL_TYPE, col_src, int256(WAD));
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -252,7 +252,7 @@ contract SafeEngineTest is Test {
         vm.expectRevert("not allowed to modify coin dst");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -266,7 +266,7 @@ contract SafeEngineTest is Test {
         vm.expectRevert("debt < dust");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -278,7 +278,7 @@ contract SafeEngineTest is Test {
         vm.expectRevert("stopped");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            safe: safe,
+            cdp: cdp,
             col_src: col_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -287,7 +287,7 @@ contract SafeEngineTest is Test {
     }
 
     function test_modify_safe() public {
-        address safe = address(1);
+        address cdp = address(1);
         address col_src = address(2);
         address coin_dst = address(3);
 
@@ -297,7 +297,7 @@ contract SafeEngineTest is Test {
         cdp_engine.set(COL_TYPE, "spot", 10 * RAY);
         cdp_engine.set(COL_TYPE, "min_debt", RAD);
 
-        vm.prank(safe);
+        vm.prank(cdp);
         cdp_engine.allow_account_modification(address(this));
         vm.prank(col_src);
         cdp_engine.allow_account_modification(address(this));
@@ -324,21 +324,21 @@ contract SafeEngineTest is Test {
             int256 delta_col = tests[i][0];
             int256 delta_debt = tests[i][1];
 
-            ICDPEngine.Position memory pos0 = get_position(COL_TYPE, safe);
+            ICDPEngine.Position memory pos0 = get_position(COL_TYPE, cdp);
             ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
             uint256 gem0 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin0 = cdp_engine.coin(coin_dst);
 
             cdp_engine.modify_cdp({
                 col_type: COL_TYPE,
-                safe: safe,
+                cdp: cdp,
                 col_src: col_src,
                 coin_dst: coin_dst,
                 delta_col: delta_col,
                 delta_debt: delta_debt
             });
 
-            ICDPEngine.Position memory pos1 = get_position(COL_TYPE, safe);
+            ICDPEngine.Position memory pos1 = get_position(COL_TYPE, cdp);
             ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
             uint256 gem1 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin1 = cdp_engine.coin(coin_dst);

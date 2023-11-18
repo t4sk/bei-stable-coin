@@ -100,7 +100,7 @@ interface ICDPEngine {
     // frob
     function modify_cdp(
         bytes32 col_type,
-        address safe,
+        address cdp,
         address col_src,
         address coin_dst,
         // wad
@@ -112,8 +112,8 @@ interface ICDPEngine {
     // --- CDP Fungibility ---
     function fork(
         bytes32 col_type,
-        address src,
-        address dst,
+        address cdp_src,
+        address cdp_dst,
         // wad
         int256 delta_col,
         // wad
@@ -121,7 +121,7 @@ interface ICDPEngine {
     ) external;
     function grab(
         bytes32 col_type,
-        address src,
+        address cdp,
         address col_dst,
         address debt_dst,
         // wad

@@ -186,7 +186,7 @@ contract CollateralAuction is Auth, Guard {
     function start(
         uint256 coin_amount, // tab - Debt [rad]
         uint256 collateral_amount, // lot - Collateral [wad]
-        // TODO: rename user to safe?
+        // TODO: rename user to cdp?
         address user, // Address that will receive any leftover collateral
         address keeper // Address that will receive incentives
     ) external auth lock not_stopped(1) returns (uint256 id) {
