@@ -8,8 +8,8 @@ import {CDPHandler} from "./CDPHandler.sol";
 
 // DssCdpManager
 contract CDPManager {
-    event NewSafe(
-        address indexed user, address indexed owner, uint256 indexed safe_id
+    event OpenCDP(
+        address indexed user, address indexed owner, uint256 indexed cdp_id
     );
 
     // vat
@@ -49,10 +49,10 @@ contract CDPManager {
     mapping(address => mapping(address => bool)) public safe_handler_can;
 
     // cdpAllowed - msg.sender is safe owner or safe owner has given permission to msg.sender
-    modifier safe_allowed(uint256 safe_id) {
-        address owner = owner_of[safe_id];
+    modifier cdp_allowed(uint256 cdp_id) {
+        address owner = owner_of[cdp_id];
         require(
-            msg.sender == owner || safe_can[owner][safe_id][msg.sender],
+            msg.sender == owner || safe_can[owner][cdp_id][msg.sender],
             "safe not allowed"
         );
         _;
@@ -60,7 +60,7 @@ contract CDPManager {
 
     // TODO: wat dis?
     // urnAllowed
-    modifier safe_handler_allowed(address user) {
+    modifier cdp_handler_allowed(address user) {
         require(
             msg.sender == user || safe_handler_can[user][msg.sender],
             "safe handler not allowed"
@@ -74,16 +74,16 @@ contract CDPManager {
 
     // cdpAllow
     // Allow / disallow user to manage the safe.
-    function allow_safe(uint256 safe_id, address user, bool ok)
+    function allow_cdp(uint256 cdp_id, address user, bool ok)
         public
-        safe_allowed(safe_id)
+        cdp_allowed(cdp_id)
     {
-        safe_can[owner_of[safe_id]][safe_id][user] = ok;
+        safe_can[owner_of[cdp_id]][cdp_id][user] = ok;
     }
 
     // urnAllow
     // Allow / disallow user to quit to msg.sender's safe handler.
-    function allow_safe_handler(address user, bool ok) public {
+    function allow_cdp_handler(address user, bool ok) public {
         safe_handler_can[msg.sender][user] = ok;
     }
 
@@ -111,60 +111,60 @@ contract CDPManager {
         last[user] = id;
         count[user] += 1;
 
-        emit NewSafe(msg.sender, user, id);
+        emit OpenCDP(msg.sender, user, id);
         return id;
     }
 
     // give
     // Give the safe ownership to a dst address.
-    function give(uint256 safe_id, address dst) public safe_allowed(safe_id) {
+    function give(uint256 cdp_id, address dst) public cdp_allowed(cdp_id) {
         require(dst != address(0), "dst = 0 address");
-        require(dst != owner_of[safe_id], "dst is already owner");
+        require(dst != owner_of[cdp_id], "dst is already owner");
 
         // TODO: learn doubly linked list algo
-        // Remove transferred safe_id from double linked list of origin user and pointers
-        if (list[safe_id].prev != 0) {
-            // Set the next pointer of the prev safe_id (if exists) to the next of the transferred one
-            list[list[safe_id].prev].next = list[safe_id].next;
+        // Remove transferred cdp_id from double linked list of origin user and pointers
+        if (list[cdp_id].prev != 0) {
+            // Set the next pointer of the prev cdp_id (if exists) to the next of the transferred one
+            list[list[cdp_id].prev].next = list[cdp_id].next;
         }
-        if (list[safe_id].next != 0) {
+        if (list[cdp_id].next != 0) {
             // If wasn't the last one
-            list[list[safe_id].next].prev = list[safe_id].prev; // Set the prev pointer of the next safe_id to the prev of the transferred one
+            list[list[cdp_id].next].prev = list[cdp_id].prev; // Set the prev pointer of the next cdp_id to the prev of the transferred one
         } else {
             // If was the last one
-            last[owner_of[safe_id]] = list[safe_id].prev; // Update last pointer of the owner
+            last[owner_of[cdp_id]] = list[cdp_id].prev; // Update last pointer of the owner
         }
-        if (first[owner_of[safe_id]] == safe_id) {
+        if (first[owner_of[cdp_id]] == cdp_id) {
             // If was the first one
-            first[owner_of[safe_id]] = list[safe_id].next; // Update first pointer of the owner
+            first[owner_of[cdp_id]] = list[cdp_id].next; // Update first pointer of the owner
         }
-        count[owner_of[safe_id]] -= 1;
+        count[owner_of[cdp_id]] -= 1;
 
         // Transfer ownership
-        owner_of[safe_id] = dst;
+        owner_of[cdp_id] = dst;
 
-        // Add transferred safe_id to double linked list of destiny user and pointers
-        list[safe_id].prev = last[dst];
-        list[safe_id].next = 0;
+        // Add transferred cdp_id to double linked list of destiny user and pointers
+        list[cdp_id].prev = last[dst];
+        list[cdp_id].next = 0;
         if (last[dst] != 0) {
-            list[last[dst]].next = safe_id;
+            list[last[dst]].next = cdp_id;
         }
         if (first[dst] == 0) {
-            first[dst] = safe_id;
+            first[dst] = cdp_id;
         }
-        last[dst] = safe_id;
+        last[dst] = cdp_id;
         count[dst] += 1;
     }
 
     // frob
     // Modify safe keeping the generated BEI or collateral freed in the safe address.
-    function modify_cdp(uint256 safe_id, int256 delta_col, int256 delta_debt)
+    function modify_cdp(uint256 cdp_id, int256 delta_col, int256 delta_debt)
         public
-        safe_allowed(safe_id)
+        cdp_allowed(cdp_id)
     {
-        address safe = positions[safe_id];
+        address safe = positions[cdp_id];
         ICDPEngine(cdp_engine).modify_cdp({
-            col_type: collaterals[safe_id],
+            col_type: collaterals[cdp_id],
             safe: safe,
             col_src: safe,
             coin_dst: safe,
@@ -174,47 +174,47 @@ contract CDPManager {
     }
 
     // flux
-    // Transfer wad amount of safe_id collateral from the safe_id address to a dst address.
-    function transfer_collateral(uint256 safe_id, address dst, uint256 wad)
+    // Transfer wad amount of cdp_id collateral from the cdp_id address to a dst address.
+    function transfer_collateral(uint256 cdp_id, address dst, uint256 wad)
         public
-        safe_allowed(safe_id)
+        cdp_allowed(cdp_id)
     {
         ICDPEngine(cdp_engine).transfer_collateral(
-            collaterals[safe_id], positions[safe_id], dst, wad
+            collaterals[cdp_id], positions[cdp_id], dst, wad
         );
     }
 
     // flux
-    // Transfer wad amount of any type of collateral (col_type) from the safe_id address to a dst address.
-    // This function has the purpose to take away collateral from the system that doesn't correspond to the safe_id but was sent there wrongly.
+    // Transfer wad amount of any type of collateral (col_type) from the cdp_id address to a dst address.
+    // This function has the purpose to take away collateral from the system that doesn't correspond to the cdp_id but was sent there wrongly.
     function transfer_collateral(
         bytes32 col_type,
-        uint256 safe_id,
+        uint256 cdp_id,
         address dst,
         uint256 wad
-    ) public safe_allowed(safe_id) {
+    ) public cdp_allowed(cdp_id) {
         ICDPEngine(cdp_engine).transfer_collateral(
-            col_type, positions[safe_id], dst, wad
+            col_type, positions[cdp_id], dst, wad
         );
     }
 
     // move
-    // Transfer wad amount of BEI from the safe_id address to a dst address.
-    function transfer_coin(uint256 safe_id, address dst, uint256 rad)
+    // Transfer wad amount of BEI from the cdp_id address to a dst address.
+    function transfer_coin(uint256 cdp_id, address dst, uint256 rad)
         public
-        safe_allowed(safe_id)
+        cdp_allowed(cdp_id)
     {
-        ICDPEngine(cdp_engine).transfer_coin(positions[safe_id], dst, rad);
+        ICDPEngine(cdp_engine).transfer_coin(positions[cdp_id], dst, rad);
     }
 
-    // Quit the system, migrating the safe_id (collateral, debt) to a different dst safe handler
-    function quit(uint256 safe_id, address dst)
+    // Quit the system, migrating the cdp_id (collateral, debt) to a different dst safe handler
+    function quit(uint256 cdp_id, address dst)
         public
-        safe_allowed(safe_id)
-        safe_handler_allowed(dst)
+        cdp_allowed(cdp_id)
+        cdp_handler_allowed(dst)
     {
-        bytes32 col_type = collaterals[safe_id];
-        address safe = positions[safe_id];
+        bytes32 col_type = collaterals[cdp_id];
+        address safe = positions[cdp_id];
 
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, safe);
@@ -228,13 +228,13 @@ contract CDPManager {
         });
     }
 
-    // Import a position from src safe handler to the safe handler owned by safe_id
-    function enter(address src, uint256 safe_id)
+    // Import a position from src safe handler to the safe handler owned by cdp_id
+    function enter(address src, uint256 cdp_id)
         public
-        safe_handler_allowed(src)
-        safe_allowed(safe_id)
+        cdp_handler_allowed(src)
+        cdp_allowed(cdp_id)
     {
-        bytes32 col_type = collaterals[safe_id];
+        bytes32 col_type = collaterals[cdp_id];
 
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, src);
@@ -242,7 +242,7 @@ contract CDPManager {
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
             src: src,
-            dst: positions[safe_id],
+            dst: positions[cdp_id],
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });
@@ -251,8 +251,8 @@ contract CDPManager {
     // Move a position from safe_src safe handler to the safe_dst safe handler
     function shift(uint256 safe_src, uint256 safe_dst)
         public
-        safe_allowed(safe_src)
-        safe_allowed(safe_dst)
+        cdp_allowed(safe_src)
+        cdp_allowed(safe_dst)
     {
         require(
             collaterals[safe_src] == collaterals[safe_dst],
