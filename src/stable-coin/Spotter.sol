@@ -19,8 +19,8 @@ contract Spotter is Auth, CircuitBreaker {
     // par - value of BEI in the reference asset (e.g. $1 per BEI)
     uint256 public par; // ref per BEI [ray]
 
-    constructor(address _safe_engine) {
-        cdp_engine = ICDPEngine(_safe_engine);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         par = RAY;
     }
 

@@ -15,7 +15,7 @@ contract CDPManager {
     // vat
     address public immutable cdp_engine;
     // cdpi
-    uint256 public last_safe_id;
+    uint256 public last_cdp_id;
     // urns
     // safe id => CDPHandler
     mapping(uint256 => address) public positions;
@@ -42,17 +42,17 @@ contract CDPManager {
     // cdpCan - permission to modify safe by addr
     // owner => safe id => addr => allowed
     mapping(address => mapping(uint256 => mapping(address => bool))) public
-        safe_can;
+        cdp_can;
 
     // urnCan
     // CDPHandler => addr => allowed
-    mapping(address => mapping(address => bool)) public safe_handler_can;
+    mapping(address => mapping(address => bool)) public cdp_handler_can;
 
     // cdpAllowed - msg.sender is safe owner or safe owner has given permission to msg.sender
     modifier cdp_allowed(uint256 cdp_id) {
         address owner = owner_of[cdp_id];
         require(
-            msg.sender == owner || safe_can[owner][cdp_id][msg.sender],
+            msg.sender == owner || cdp_can[owner][cdp_id][msg.sender],
             "safe not allowed"
         );
         _;
@@ -62,14 +62,14 @@ contract CDPManager {
     // urnAllowed
     modifier cdp_handler_allowed(address user) {
         require(
-            msg.sender == user || safe_handler_can[user][msg.sender],
+            msg.sender == user || cdp_handler_can[user][msg.sender],
             "safe handler not allowed"
         );
         _;
     }
 
-    constructor(address _safe_engine) {
-        cdp_engine = _safe_engine;
+    constructor(address _cdp_engine) {
+        cdp_engine = _cdp_engine;
     }
 
     // cdpAllow
@@ -78,13 +78,13 @@ contract CDPManager {
         public
         cdp_allowed(cdp_id)
     {
-        safe_can[owner_of[cdp_id]][cdp_id][user] = ok;
+        cdp_can[owner_of[cdp_id]][cdp_id][user] = ok;
     }
 
     // urnAllow
     // Allow / disallow user to quit to msg.sender's safe handler.
     function allow_cdp_handler(address user, bool ok) public {
-        safe_handler_can[msg.sender][user] = ok;
+        cdp_handler_can[msg.sender][user] = ok;
     }
 
     // open
@@ -93,7 +93,7 @@ contract CDPManager {
         require(user != address(0), "user = zero address");
 
         // increment and then assign to var
-        uint256 id = ++last_safe_id;
+        uint256 id = ++last_cdp_id;
 
         positions[id] = address(new CDPHandler(cdp_engine));
         owner_of[id] = user;

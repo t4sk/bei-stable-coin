@@ -423,7 +423,7 @@ contract ProxyActions is Common {
         address owner = ICDPManager(safe_manager).owner_of(cdp_id);
         if (
             owner == address(this)
-                || ICDPManager(safe_manager).safe_can(owner, cdp_id, address(this))
+                || ICDPManager(safe_manager).cdp_can(owner, cdp_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(coin_join, safe, wad);
@@ -484,7 +484,7 @@ contract ProxyActions is Common {
         address owner = ICDPManager(safe_manager).owner_of(cdp_id);
         if (
             owner == address(this)
-                || ICDPManager(safe_manager).safe_can(owner, cdp_id, address(this))
+                || ICDPManager(safe_manager).cdp_can(owner, cdp_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(

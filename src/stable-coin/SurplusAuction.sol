@@ -57,8 +57,8 @@ contract SurplusAuction is Auth, CircuitBreaker {
     // fill - current BEI in auction [rad]
     uint256 public total_coin_in_auction;
 
-    constructor(address _safe_engine, address _gem) {
-        cdp_engine = ICDPEngine(_safe_engine);
+    constructor(address _cdp_engine, address _gem) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         gem = IGem(_gem);
     }
 

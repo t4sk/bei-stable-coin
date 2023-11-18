@@ -10,7 +10,7 @@ interface ICDPManager {
     // vat
     function cdp_engine() external view returns (address);
     // cdpi
-    function last_safe_id() external view returns (uint256);
+    function last_cdp_id() external view returns (uint256);
     // urns
     function positions(uint256 cdp_id) external view returns (address);
     // list
@@ -28,12 +28,12 @@ interface ICDPManager {
     function count(address owner) external view returns (uint256);
 
     // cdpCan - permission to modify safe by addr
-    function safe_can(address owner, uint256 cdp_id, address user)
+    function cdp_can(address owner, uint256 cdp_id, address user)
         external
         view
         returns (bool);
     // urnCan
-    function safe_handler_can(address owner, address user)
+    function cdp_handler_can(address owner, address user)
         external
         view
         returns (bool);

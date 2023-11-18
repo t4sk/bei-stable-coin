@@ -34,8 +34,8 @@ contract Pot is Auth, CircuitBreaker {
     // drip - performs stability fee collection for a specific
     //        collateral type when it is called
 
-    constructor(address _safe_engine) {
-        cdp_engine = ICDPEngine(_safe_engine);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         savings_rate = RAY;
         chi = RAY;
         updated_at = block.timestamp;

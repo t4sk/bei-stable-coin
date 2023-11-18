@@ -53,8 +53,8 @@ contract DebtAuction is Auth, CircuitBreaker {
     // vow
     address public debt_engine; // not used until shutdown TODO: why?
 
-    constructor(address _safe_engine, address _gem) {
-        cdp_engine = ICDPEngine(_safe_engine);
+    constructor(address _cdp_engine, address _gem) {
+        cdp_engine = ICDPEngine(_cdp_engine);
         gem = IGem(_gem);
     }
 

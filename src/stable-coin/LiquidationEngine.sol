@@ -44,8 +44,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // Amount BEI needed to cover debt+fees of active auctions [rad]
     uint256 public total;
 
-    constructor(address _safe_engine) {
-        cdp_engine = ICDPEngine(_safe_engine);
+    constructor(address _cdp_engine) {
+        cdp_engine = ICDPEngine(_cdp_engine);
     }
 
     // --- Administration ---
