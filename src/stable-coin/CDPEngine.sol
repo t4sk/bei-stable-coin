@@ -100,7 +100,6 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // - and creating coin for user w
     // dink: change in amount of collateral
     // dart: change in amount of debt
-    // TODO: rename to modify_cdp?
     function modify_cdp(
         bytes32 col_type,
         address safe,

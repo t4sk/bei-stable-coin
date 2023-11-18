@@ -2,12 +2,12 @@
 pragma solidity 0.8.19;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
-import {ISafeManager} from "../interfaces/ISafeManager.sol";
+import {ICDPManager} from "../interfaces/ICDPManager.sol";
 import "../lib/Math.sol";
-import {SafeHandler} from "./SafeHandler.sol";
+import {CDPHandler} from "./CDPHandler.sol";
 
 // DssCdpManager
-contract SafeManager {
+contract CDPManager {
     event NewSafe(
         address indexed user, address indexed owner, uint256 indexed safe_id
     );
@@ -17,11 +17,11 @@ contract SafeManager {
     // cdpi
     uint256 public last_safe_id;
     // urns
-    // safe id => SafeHandler
+    // safe id => CDPHandler
     mapping(uint256 => address) public positions;
     // list
     // safe id => prev & next safe ids (double linked list)
-    mapping(uint256 => ISafeManager.List) public list;
+    mapping(uint256 => ICDPManager.List) public list;
     // owns
     // safe id => owner of safe
     mapping(uint256 => address) public owner_of;
@@ -45,7 +45,7 @@ contract SafeManager {
         safe_can;
 
     // urnCan
-    // SafeHandler => addr => allowed
+    // CDPHandler => addr => allowed
     mapping(address => mapping(address => bool)) public safe_handler_can;
 
     // cdpAllowed - msg.sender is safe owner or safe owner has given permission to msg.sender
@@ -95,7 +95,7 @@ contract SafeManager {
         // increment and then assign to var
         uint256 id = ++last_safe_id;
 
-        positions[id] = address(new SafeHandler(cdp_engine));
+        positions[id] = address(new CDPHandler(cdp_engine));
         owner_of[id] = user;
         collaterals[id] = col_type;
 

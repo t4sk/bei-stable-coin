@@ -7,7 +7,7 @@ import {ICoin} from "../interfaces/ICoin.sol";
 import {ICoinJoin} from "../interfaces/ICoinJoin.sol";
 import {IGemJoin} from "../interfaces/IGemJoin.sol";
 import {IAccessControl} from "../interfaces/IAccessControl.sol";
-import {ISafeManager} from "../interfaces/ISafeManager.sol";
+import {ICDPManager} from "../interfaces/ICDPManager.sol";
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IJug} from "../interfaces/IJug.sol";
 import "../lib/Math.sol";
@@ -143,12 +143,12 @@ contract ProxyActions is Common {
         public
         returns (uint256 safe_id)
     {
-        safe_id = ISafeManager(safe_manager).open(col_type, user);
+        safe_id = ICDPManager(safe_manager).open(col_type, user);
     }
 
     // TODO: wat dis?
     function give(address safe_manager, uint256 safe_id, address user) public {
-        ISafeManager(safe_manager).give(safe_id, user);
+        ICDPManager(safe_manager).give(safe_id, user);
     }
 
     // TODO:
@@ -182,14 +182,14 @@ contract ProxyActions is Common {
         address user,
         bool ok
     ) public {
-        ISafeManager(safe_manager).allow_safe(safe_id, user, ok);
+        ICDPManager(safe_manager).allow_safe(safe_id, user, ok);
     }
 
     // urnAllow
     function allow_safe_handler(address safe_manager, address user, bool ok)
         public
     {
-        ISafeManager(safe_manager).allow_safe_handler(user, ok);
+        ICDPManager(safe_manager).allow_safe_handler(user, ok);
     }
 
     // flux
@@ -199,7 +199,7 @@ contract ProxyActions is Common {
         address dst,
         uint256 wad
     ) public {
-        ISafeManager(safe_manager).transfer_collateral(safe_id, dst, wad);
+        ICDPManager(safe_manager).transfer_collateral(safe_id, dst, wad);
     }
 
     // move
@@ -210,7 +210,7 @@ contract ProxyActions is Common {
         // TODO: check units
         uint256 rad
     ) public {
-        ISafeManager(safe_manager).transfer_coin(safe_id, dst, rad);
+        ICDPManager(safe_manager).transfer_coin(safe_id, dst, rad);
     }
 
     // frob
@@ -220,21 +220,21 @@ contract ProxyActions is Common {
         int256 delta_col,
         int256 delta_debt
     ) public {
-        ISafeManager(safe_manager).modify_cdp(safe_id, delta_col, delta_debt);
+        ICDPManager(safe_manager).modify_cdp(safe_id, delta_col, delta_debt);
     }
 
     function quit(address safe_manager, uint256 safe_id, address dst) public {
-        ISafeManager(safe_manager).quit(safe_id, dst);
+        ICDPManager(safe_manager).quit(safe_id, dst);
     }
 
     function enter(address safe_manager, address src, uint256 safe_id) public {
-        ISafeManager(safe_manager).enter(src, safe_id);
+        ICDPManager(safe_manager).enter(src, safe_id);
     }
 
     function shift(address safe_manager, uint256 safe_src, uint256 safe_dst)
         public
     {
-        ISafeManager(safe_manager).shift(safe_src, safe_dst);
+        ICDPManager(safe_manager).shift(safe_src, safe_dst);
     }
 
     // TODO: wat dis?
@@ -251,11 +251,11 @@ contract ProxyActions is Common {
     {
         // Receives ETH amount, converts it to WETH and joins it into the cdp_engine
         eth_join_join(eth_join, address(this));
-        // TODO: why 2 ways to call modify_cdp -> from SafeManager and directly to CDPEngine
+        // TODO: why 2 ways to call modify_cdp -> from CDPManager and directly to CDPEngine
         // Locks WETH amount into the CDP
-        ICDPEngine(ISafeManager(safe_manager).cdp_engine()).modify_cdp({
-            col_type: ISafeManager(safe_manager).collaterals(safe_id),
-            safe: ISafeManager(safe_manager).positions(safe_id),
+        ICDPEngine(ICDPManager(safe_manager).cdp_engine()).modify_cdp({
+            col_type: ICDPManager(safe_manager).collaterals(safe_id),
+            safe: ICDPManager(safe_manager).positions(safe_id),
             col_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(msg.value),
@@ -271,7 +271,7 @@ contract ProxyActions is Common {
         address owner
     ) public payable {
         require(
-            ISafeManager(safe_manager).owner_of(safe_id) == owner,
+            ICDPManager(safe_manager).owner_of(safe_id) == owner,
             "owner mismatch"
         );
         lock_eth(safe_manager, eth_join, safe_id);
@@ -288,9 +288,9 @@ contract ProxyActions is Common {
         // Takes token amount from user's wallet and joins into the cdp_engine
         gem_join_join(gem_join, address(this), amount, is_tranfer_from);
         // Locks token amount into the CDP
-        ICDPEngine(ISafeManager(safe_manager).cdp_engine()).modify_cdp({
-            col_type: ISafeManager(safe_manager).collaterals(safe_id),
-            safe: ISafeManager(safe_manager).positions(safe_id),
+        ICDPEngine(ICDPManager(safe_manager).cdp_engine()).modify_cdp({
+            col_type: ICDPManager(safe_manager).collaterals(safe_id),
+            safe: ICDPManager(safe_manager).positions(safe_id),
             col_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(to_18_dec(gem_join, amount)),
@@ -308,7 +308,7 @@ contract ProxyActions is Common {
         address owner
     ) public {
         require(
-            ISafeManager(safe_manager).owner_of(safe_id) == owner,
+            ICDPManager(safe_manager).owner_of(safe_id) == owner,
             "owner mismatch"
         );
         lock_gem(safe_manager, gem_join, safe_id, amount, is_tranfer_from);
@@ -389,9 +389,9 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 wad
     ) public {
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         // Generates debt in the CDP
         modify_cdp(
             safe_manager,
@@ -416,16 +416,14 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 wad
     ) public {
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
 
-        address owner = ISafeManager(safe_manager).owner_of(safe_id);
+        address owner = ICDPManager(safe_manager).owner_of(safe_id);
         if (
             owner == address(this)
-                || ISafeManager(safe_manager).safe_can(
-                    owner, safe_id, address(this)
-                )
+                || ICDPManager(safe_manager).safe_can(owner, safe_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(coin_join, safe, wad);
@@ -467,7 +465,7 @@ contract ProxyActions is Common {
         address owner
     ) public {
         require(
-            ISafeManager(safe_manager).owner_of(safe_id) == owner,
+            ICDPManager(safe_manager).owner_of(safe_id) == owner,
             "owner-missmatch"
         );
         repay(safe_manager, coin_join, safe_id, wad);
@@ -477,18 +475,16 @@ contract ProxyActions is Common {
     function repay_all(address safe_manager, address coin_join, uint256 safe_id)
         public
     {
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, safe);
 
-        address owner = ISafeManager(safe_manager).owner_of(safe_id);
+        address owner = ICDPManager(safe_manager).owner_of(safe_id);
         if (
             owner == address(this)
-                || ISafeManager(safe_manager).safe_can(
-                    owner, safe_id, address(this)
-                )
+                || ICDPManager(safe_manager).safe_can(owner, safe_id, address(this))
         ) {
             // Joins BEI amount into the cdp_engine
             coin_join_join(
@@ -525,7 +521,7 @@ contract ProxyActions is Common {
         address owner
     ) public {
         require(
-            ISafeManager(safe_manager).owner_of(safe_id) == owner,
+            ICDPManager(safe_manager).owner_of(safe_id) == owner,
             "owner-missmatch"
         );
         repay_all(safe_manager, coin_join, safe_id);
@@ -540,9 +536,9 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 coin_amount
     ) public payable {
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         // Receives ETH amount, converts it to WETH and joins it into the cdp_engine
         eth_join_join(eth_join, safe);
         // Locks WETH amount into the CDP and generates debt
@@ -590,9 +586,9 @@ contract ProxyActions is Common {
         uint256 coin_amount,
         bool is_tranfer_from
     ) public {
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         // Takes token amount from user's wallet and joins into the cdp_engine
         gem_join_join(gem_join, safe, col_amount, is_tranfer_from);
         // Locks token amount into the CDP and generates debt
@@ -669,8 +665,8 @@ contract ProxyActions is Common {
         uint256 col_amount,
         uint256 coin_amount
     ) public {
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
         // Joins BEI amount into the cdp_engine
         coin_join_join(coin_join, safe, coin_amount);
         // Paybacks debt to the CDP and unlocks WETH amount from it
@@ -682,7 +678,7 @@ contract ProxyActions is Common {
                 cdp_engine,
                 ICDPEngine(cdp_engine).coin(safe),
                 safe,
-                ISafeManager(safe_manager).collaterals(safe_id)
+                ICDPManager(safe_manager).collaterals(safe_id)
             )
         );
         // Moves the amount from the CDP safe to proxy's address
@@ -703,9 +699,9 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 col_amount
     ) public {
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, safe);
 
@@ -738,7 +734,7 @@ contract ProxyActions is Common {
         uint256 col_amount,
         uint256 coin_amount
     ) public {
-        address safe = ISafeManager(safe_manager).positions(safe_id);
+        address safe = ICDPManager(safe_manager).positions(safe_id);
         // Joins BEI amount into the cdp_engine
         coin_join_join(coin_join, safe, coin_amount);
         uint256 col_wad = to_18_dec(gem_join, col_amount);
@@ -748,10 +744,10 @@ contract ProxyActions is Common {
             safe_id,
             -Math.to_int(col_wad),
             _get_repay_delta_debt(
-                ISafeManager(safe_manager).cdp_engine(),
-                ICDPEngine(ISafeManager(safe_manager).cdp_engine()).coin(safe),
+                ICDPManager(safe_manager).cdp_engine(),
+                ICDPEngine(ICDPManager(safe_manager).cdp_engine()).coin(safe),
                 safe,
-                ISafeManager(safe_manager).collaterals(safe_id)
+                ICDPManager(safe_manager).collaterals(safe_id)
             )
         );
         // Moves the amount from the CDP safe to proxy's address
@@ -768,9 +764,9 @@ contract ProxyActions is Common {
         uint256 safe_id,
         uint256 col_amount
     ) public {
-        address cdp_engine = ISafeManager(safe_manager).cdp_engine();
-        address safe = ISafeManager(safe_manager).positions(safe_id);
-        bytes32 col_type = ISafeManager(safe_manager).collaterals(safe_id);
+        address cdp_engine = ICDPManager(safe_manager).cdp_engine();
+        address safe = ICDPManager(safe_manager).positions(safe_id);
+        bytes32 col_type = ICDPManager(safe_manager).collaterals(safe_id);
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, safe);
 

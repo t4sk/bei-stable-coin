@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.19;
 
-interface ISafeManager {
+interface ICDPManager {
     struct List {
         uint256 prev;
         uint256 next;
