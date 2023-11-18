@@ -18,7 +18,7 @@ contract SafeManager {
     uint256 public last_safe_id;
     // urns
     // safe id => SafeHandler
-    mapping(uint256 => address) public safes;
+    mapping(uint256 => address) public positions;
     // list
     // safe id => prev & next safe ids (double linked list)
     mapping(uint256 => ISafeManager.List) public list;
@@ -95,7 +95,7 @@ contract SafeManager {
         // increment and then assign to var
         uint256 id = ++last_safe_id;
 
-        safes[id] = address(new SafeHandler(cdp_engine));
+        positions[id] = address(new SafeHandler(cdp_engine));
         owner_of[id] = user;
         collaterals[id] = col_type;
 
@@ -162,7 +162,7 @@ contract SafeManager {
         public
         safe_allowed(safe_id)
     {
-        address safe = safes[safe_id];
+        address safe = positions[safe_id];
         ICDPEngine(cdp_engine).modify_cdp({
             col_type: collaterals[safe_id],
             safe: safe,
@@ -180,7 +180,7 @@ contract SafeManager {
         safe_allowed(safe_id)
     {
         ICDPEngine(cdp_engine).transfer_collateral(
-            collaterals[safe_id], safes[safe_id], dst, wad
+            collaterals[safe_id], positions[safe_id], dst, wad
         );
     }
 
@@ -194,7 +194,7 @@ contract SafeManager {
         uint256 wad
     ) public safe_allowed(safe_id) {
         ICDPEngine(cdp_engine).transfer_collateral(
-            col_type, safes[safe_id], dst, wad
+            col_type, positions[safe_id], dst, wad
         );
     }
 
@@ -204,7 +204,7 @@ contract SafeManager {
         public
         safe_allowed(safe_id)
     {
-        ICDPEngine(cdp_engine).transfer_coin(safes[safe_id], dst, rad);
+        ICDPEngine(cdp_engine).transfer_coin(positions[safe_id], dst, rad);
     }
 
     // Quit the system, migrating the safe_id (collateral, debt) to a different dst safe handler
@@ -214,10 +214,10 @@ contract SafeManager {
         safe_handler_allowed(dst)
     {
         bytes32 col_type = collaterals[safe_id];
-        address safe = safes[safe_id];
+        address safe = positions[safe_id];
 
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).safes(col_type, safe);
+            ICDPEngine(cdp_engine).positions(col_type, safe);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
@@ -237,12 +237,12 @@ contract SafeManager {
         bytes32 col_type = collaterals[safe_id];
 
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).safes(col_type, src);
+            ICDPEngine(cdp_engine).positions(col_type, src);
 
         ICDPEngine(cdp_engine).fork({
             col_type: col_type,
             src: src,
-            dst: safes[safe_id],
+            dst: positions[safe_id],
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });
@@ -258,12 +258,13 @@ contract SafeManager {
             collaterals[safe_src] == collaterals[safe_dst],
             "not matching collaterals"
         );
-        ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).safes(collaterals[safe_src], safes[safe_src]);
+        ICDPEngine.Position memory pos = ICDPEngine(cdp_engine).positions(
+            collaterals[safe_src], positions[safe_src]
+        );
         ICDPEngine(cdp_engine).fork({
             col_type: collaterals[safe_src],
-            src: safes[safe_src],
-            dst: safes[safe_dst],
+            src: positions[safe_src],
+            dst: positions[safe_dst],
             delta_col: Math.to_int(pos.collateral),
             delta_debt: Math.to_int(pos.debt)
         });

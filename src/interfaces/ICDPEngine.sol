@@ -51,7 +51,7 @@ interface ICDPEngine {
         view
         returns (Collateral memory);
     // urns
-    function safes(bytes32 col_type, address account)
+    function positions(bytes32 col_type, address account)
         external
         view
         returns (Position memory);

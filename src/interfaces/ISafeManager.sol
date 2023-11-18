@@ -12,7 +12,7 @@ interface ISafeManager {
     // cdpi
     function last_safe_id() external view returns (uint256);
     // urns
-    function safes(uint256 safe_id) external view returns (address);
+    function positions(uint256 safe_id) external view returns (address);
     // list
     function list(uint256 safe_id) external view returns (List memory);
     // owns

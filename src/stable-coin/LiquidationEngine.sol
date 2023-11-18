@@ -110,7 +110,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         live
         returns (uint256 id)
     {
-        ICDPEngine.Position memory pos = cdp_engine.safes(col_type, safe);
+        ICDPEngine.Position memory pos = cdp_engine.positions(col_type, safe);
         ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         Collateral memory col = collaterals[col_type];
         uint256 delta_debt;

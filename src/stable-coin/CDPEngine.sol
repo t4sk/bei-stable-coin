@@ -11,9 +11,8 @@ import {AccessControl} from "../lib/AccessControl.sol";
 contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
-    // TODO: rename safe to CDP?
     // urns - collateral type => account => safe
-    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public safes;
+    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public positions;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // dai - account => coin balance [rad]
@@ -110,7 +109,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external live {
-        ICDPEngine.Position memory pos = safes[col_type][safe];
+        ICDPEngine.Position memory pos = positions[col_type][safe];
         ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate != 0, "collateral not initialized");
 
@@ -161,12 +160,12 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
-        safes[col_type][safe] = pos;
+        positions[col_type][safe] = pos;
         collaterals[col_type] = col;
     }
 
     // --- CDP Fungibility ---
-    // fork - to split a safe - binary approval or splitting/merging safes.
+    // fork - to split a safe - binary approval or splitting/merging positions.
     //    dink: amount of collateral to exchange.
     //    dart: amount of stablecoin debt to exchange.
     function fork(
@@ -176,8 +175,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external {
-        ICDPEngine.Position storage u = safes[col_type][src];
-        ICDPEngine.Position storage v = safes[col_type][dst];
+        ICDPEngine.Position storage u = positions[col_type][src];
+        ICDPEngine.Position storage v = positions[col_type][dst];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         u.collateral = Math.sub(u.collateral, delta_col);
@@ -210,7 +209,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // - modify the safe of user u
     // - give gem to user v
     // - create sin for user w
-    // grab is the means by which safes are liquidated,
+    // grab is the means by which positions are liquidated,
     // transferring debt from the safe to a users sin balance.
     function grab(
         bytes32 col_type,
@@ -220,7 +219,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ICDPEngine.Position storage safe = safes[col_type][src];
+        ICDPEngine.Position storage safe = positions[col_type][src];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         // TODO: flip operations? add -> sub

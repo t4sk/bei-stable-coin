@@ -22,11 +22,11 @@ contract SafeEngineTest is Test {
         return ICDPEngine(address(cdp_engine)).collaterals(col_type);
     }
 
-    function get_safe(bytes32 col_type, address safe)
+    function get_position(bytes32 col_type, address safe)
         private
         returns (ICDPEngine.Position memory)
     {
-        return ICDPEngine(address(cdp_engine)).safes(col_type, safe);
+        return ICDPEngine(address(cdp_engine)).positions(col_type, safe);
     }
 
     function test_constructor() public {
@@ -324,7 +324,7 @@ contract SafeEngineTest is Test {
             int256 delta_col = tests[i][0];
             int256 delta_debt = tests[i][1];
 
-            ICDPEngine.Position memory pos0 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Position memory pos0 = get_position(COL_TYPE, safe);
             ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
             uint256 gem0 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin0 = cdp_engine.coin(coin_dst);
@@ -338,7 +338,7 @@ contract SafeEngineTest is Test {
                 delta_debt: delta_debt
             });
 
-            ICDPEngine.Position memory pos1 = get_safe(COL_TYPE, safe);
+            ICDPEngine.Position memory pos1 = get_position(COL_TYPE, safe);
             ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
             uint256 gem1 = cdp_engine.gem(COL_TYPE, col_src);
             uint256 coin1 = cdp_engine.coin(coin_dst);
