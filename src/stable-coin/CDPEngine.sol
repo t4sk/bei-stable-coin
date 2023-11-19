@@ -85,7 +85,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         gem[col_type][dst] += wad;
     }
 
-    // move - transfer stablecoin between users.
+    // move - transfer stable coin between users.
     function transfer_coin(address src, address dst, uint256 rad) external {
         require(can_modify_account(src, msg.sender), "not authorized");
         coin[src] -= rad;
@@ -103,7 +103,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     function modify_cdp(
         bytes32 col_type,
         address cdp,
-        address col_src,
+        address gem_src,
         address coin_dst,
         int256 delta_col,
         int256 delta_debt
@@ -120,7 +120,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         // delta_coin [rad] = col.rate * delta_debt
         int256 delta_coin = Math.mul(col.rate, delta_debt);
         // coin balance + compound interest that the cdp owes to protocol
-        // debt [rad]
+        // coin debt [rad]
         uint256 coin_debt = col.rate * pos.debt;
         sys_debt = Math.add(sys_debt, delta_coin);
 
@@ -144,8 +144,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         );
         // collateral src consent
         require(
-            delta_col <= 0 || can_modify_account(col_src, msg.sender),
-            "not allowed to modify collateral src"
+            delta_col <= 0 || can_modify_account(gem_src, msg.sender),
+            "not allowed to modify gem src"
         );
         // coin dst consent
         require(
@@ -156,7 +156,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         // cdp has no debt, or a non-dusty amount
         require(pos.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
 
-        gem[col_type][col_src] = Math.sub(gem[col_type][col_src], delta_col);
+        gem[col_type][gem_src] = Math.sub(gem[col_type][gem_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
         positions[col_type][cdp] = pos;
@@ -164,9 +164,9 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     }
 
     // --- CDP Fungibility ---
-    // fork - to split a cdp - binary approval or splitting/merging positions.
+    // fork - split a cdp - binary approval or splitting/merging positions.
     //    dink: amount of collateral to exchange.
-    //    dart: amount of stablecoin debt to exchange.
+    //    dart: amount of stable coin debt to exchange.
     function fork(
         bytes32 col_type,
         address cdp_src,
@@ -208,12 +208,10 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // - modify the cdp of user u
     // - give gem to user v
     // - create sin for user w
-    // grab is the means by which positions are liquidated,
-    // transferring debt from the cdp to a users sin balance.
     function grab(
         bytes32 col_type,
         address cdp,
-        address col_dst,
+        address gem_dst,
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
@@ -221,20 +219,19 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         ICDPEngine.Position storage pos = positions[col_type][cdp];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
-        // TODO: flip operations? add -> sub
         pos.collateral = Math.add(pos.collateral, delta_col);
         pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
         int256 delta_coin = Math.mul(col.rate, delta_debt);
 
-        gem[col_type][col_dst] = Math.sub(gem[col_type][col_dst], delta_col);
+        gem[col_type][gem_dst] = Math.sub(gem[col_type][gem_dst], delta_col);
         debts[debt_dst] = Math.sub(debts[debt_dst], delta_coin);
         sys_unbacked_debt = Math.sub(sys_unbacked_debt, delta_coin);
     }
 
     // --- Settlement ---
-    // heal - create / destroy equal quantities of stablecoin and system debt (vice).
+    // heal - create / destroy equal quantities of stable coin and system debt (vice).
     function burn(uint256 rad) external {
         debts[msg.sender] -= rad;
         coin[msg.sender] -= rad;
@@ -242,7 +239,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         sys_debt -= rad;
     }
 
-    // suck - mint unbacked stablecoin (accounted for with vice).
+    // suck - mint unbacked stable coin (accounted for with vice).
     function mint(address debt_dst, address coin_dst, uint256 rad)
         external
         auth

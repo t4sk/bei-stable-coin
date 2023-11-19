@@ -15,6 +15,25 @@ contract CDPEngineTest is Test {
         cdp_engine = new CDPEngine();
     }
 
+    function setup_cdp_engine() private {
+        cdp_engine.init(COL_TYPE);
+        cdp_engine.set("sys_max_debt", 1000 * RAD);
+        cdp_engine.set(COL_TYPE, "max_debt", 100 * RAD);
+        cdp_engine.set(COL_TYPE, "spot", 10 * RAY);
+        cdp_engine.set(COL_TYPE, "min_debt", RAD);
+    }
+
+    function setup_cdp_access(address cdp, address gem_src, address coin_dst)
+        private
+    {
+        vm.prank(cdp);
+        cdp_engine.allow_account_modification(address(this));
+        vm.prank(gem_src);
+        cdp_engine.allow_account_modification(address(this));
+        vm.prank(coin_dst);
+        cdp_engine.allow_account_modification(address(this));
+    }
+
     function get_collateral(bytes32 col_type)
         private
         returns (ICDPEngine.Collateral memory)
@@ -168,7 +187,7 @@ contract CDPEngineTest is Test {
 
     function test_modify_cdp_revert() public {
         address cdp = address(1);
-        address col_src = address(2);
+        address gem_src = address(2);
         address coin_dst = address(3);
 
         // Test - collateral not initialized //
@@ -176,24 +195,20 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
             delta_debt: 0
         });
 
-        cdp_engine.init(COL_TYPE);
-        cdp_engine.set("sys_max_debt", 1000 * RAD);
-        cdp_engine.set(COL_TYPE, "max_debt", 100 * RAD);
-        cdp_engine.set(COL_TYPE, "spot", 11 * RAY);
-        cdp_engine.set(COL_TYPE, "min_debt", RAD);
+        setup_cdp_engine();
 
         // Test - delta debt > max //
         vm.expectRevert("delta debt > max");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
             delta_debt: int256(100 * WAD + 1)
@@ -204,7 +219,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(11 * WAD + 1)
@@ -215,7 +230,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(WAD)
@@ -225,25 +240,25 @@ contract CDPEngineTest is Test {
         cdp_engine.allow_account_modification(address(this));
 
         // Test - not allowed collateral src //
-        vm.expectRevert("not allowed to modify collateral src");
+        vm.expectRevert("not allowed to modify gem src");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(WAD)
         });
 
-        vm.prank(col_src);
+        vm.prank(gem_src);
         cdp_engine.allow_account_modification(address(this));
 
         // Test - not allowed coin dst //
-        cdp_engine.modify_collateral_balance(COL_TYPE, col_src, int256(WAD));
+        cdp_engine.modify_collateral_balance(COL_TYPE, gem_src, int256(WAD));
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
             delta_debt: int256(WAD)
@@ -253,7 +268,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
             delta_debt: -int256(WAD)
@@ -267,7 +282,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
             delta_debt: -int256(WAD) + 1
@@ -279,7 +294,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
             cdp: cdp,
-            col_src: col_src,
+            gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
             delta_debt: 0
@@ -288,24 +303,14 @@ contract CDPEngineTest is Test {
 
     function test_modify_cdp() public {
         address cdp = address(1);
-        address col_src = address(2);
+        address gem_src = address(2);
         address coin_dst = address(3);
 
-        cdp_engine.init(COL_TYPE);
-        cdp_engine.set("sys_max_debt", 1000 * RAD);
-        cdp_engine.set(COL_TYPE, "max_debt", 100 * RAD);
-        cdp_engine.set(COL_TYPE, "spot", 10 * RAY);
-        cdp_engine.set(COL_TYPE, "min_debt", RAD);
-
-        vm.prank(cdp);
-        cdp_engine.allow_account_modification(address(this));
-        vm.prank(col_src);
-        cdp_engine.allow_account_modification(address(this));
-        vm.prank(coin_dst);
-        cdp_engine.allow_account_modification(address(this));
+        setup_cdp_engine();
+        setup_cdp_access({cdp: cdp, gem_src: gem_src, coin_dst: coin_dst});
 
         cdp_engine.modify_collateral_balance(
-            COL_TYPE, col_src, int256(10 * WAD)
+            COL_TYPE, gem_src, int256(10 * WAD)
         );
 
         // delta_col, delta_debt
@@ -326,13 +331,13 @@ contract CDPEngineTest is Test {
 
             ICDPEngine.Position memory pos0 = get_position(COL_TYPE, cdp);
             ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
-            uint256 gem0 = cdp_engine.gem(COL_TYPE, col_src);
+            uint256 gem0 = cdp_engine.gem(COL_TYPE, gem_src);
             uint256 coin0 = cdp_engine.coin(coin_dst);
 
             cdp_engine.modify_cdp({
                 col_type: COL_TYPE,
                 cdp: cdp,
-                col_src: col_src,
+                gem_src: gem_src,
                 coin_dst: coin_dst,
                 delta_col: delta_col,
                 delta_debt: delta_debt
@@ -340,7 +345,7 @@ contract CDPEngineTest is Test {
 
             ICDPEngine.Position memory pos1 = get_position(COL_TYPE, cdp);
             ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
-            uint256 gem1 = cdp_engine.gem(COL_TYPE, col_src);
+            uint256 gem1 = cdp_engine.gem(COL_TYPE, gem_src);
             uint256 coin1 = cdp_engine.coin(coin_dst);
 
             assertEq(pos1.collateral, Math.add(pos0.collateral, delta_col));
@@ -351,9 +356,41 @@ contract CDPEngineTest is Test {
         }
     }
 
+    function test_grab() public {
+        address cdp = address(1);
+        address gem_dst = address(2);
+        address debt_dst = address(3);
+
+        setup_cdp_engine();
+        setup_cdp_access({cdp: cdp, gem_src: cdp, coin_dst: cdp});
+
+        // cdp_engine.modify_collateral_balance(
+        //     COL_TYPE, cdp, int256(10 * WAD)
+        // );
+        // cdp_engine.modify_cdp({
+        //     col_type: COL_TYPE,
+        //     cdp: cdp,
+        //     gem_src: cdp,
+        //     coin_dst: cdp,
+        //     delta_col: int256(WAD),
+        //     delta_debt: int256(WAD)
+        // });
+
+        // vm.expectRevert("not authorized");
+        // vm.prank(address(1));
+        // cdp_engine.grab({
+        //     col_type: COL_TYPE,
+        //     cdp: cdp,
+        //     gem_dst: gem_dst,
+        //     debt_dst: debt_dst,
+        //     delta_col: 0,
+        //     delta_debt: 0
+        // });
+    }
+
     function test_mint() public {
         address debt_dst = address(1);
-        address coin_dst = address(1);
+        address coin_dst = address(2);
 
         vm.expectRevert("not authorized");
         vm.prank(debt_dst);

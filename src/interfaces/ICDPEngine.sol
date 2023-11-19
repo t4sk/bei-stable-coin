@@ -101,7 +101,7 @@ interface ICDPEngine {
     function modify_cdp(
         bytes32 col_type,
         address cdp,
-        address col_src,
+        address gem_src,
         address coin_dst,
         // wad
         int256 delta_col,
@@ -122,7 +122,7 @@ interface ICDPEngine {
     function grab(
         bytes32 col_type,
         address cdp,
-        address col_dst,
+        address gem_dst,
         address debt_dst,
         // wad
         int256 delta_col,

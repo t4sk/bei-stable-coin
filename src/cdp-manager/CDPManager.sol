@@ -166,7 +166,7 @@ contract CDPManager {
         ICDPEngine(cdp_engine).modify_cdp({
             col_type: collaterals[cdp_id],
             cdp: cdp,
-            col_src: cdp,
+            gem_src: cdp,
             coin_dst: cdp,
             delta_col: delta_col,
             delta_debt: delta_debt

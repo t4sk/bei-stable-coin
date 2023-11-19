@@ -256,7 +256,7 @@ contract ProxyActions is Common {
         ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).modify_cdp({
             col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
             cdp: ICDPManager(cdp_manager).positions(cdp_id),
-            col_src: address(this),
+            gem_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(msg.value),
             delta_debt: 0
@@ -290,7 +290,7 @@ contract ProxyActions is Common {
         ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).modify_cdp({
             col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
             cdp: ICDPManager(cdp_manager).positions(cdp_id),
-            col_src: address(this),
+            gem_src: address(this),
             coin_dst: address(this),
             delta_col: Math.to_int(to_18_dec(gem_join, amount)),
             delta_debt: 0
@@ -441,7 +441,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).modify_cdp({
                 col_type: col_type,
                 cdp: cdp,
-                col_src: address(this),
+                gem_src: address(this),
                 coin_dst: address(this),
                 delta_col: 0,
                 delta_debt: _get_repay_delta_debt(
@@ -500,7 +500,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).modify_cdp({
                 col_type: col_type,
                 cdp: cdp,
-                col_src: address(this),
+                gem_src: address(this),
                 coin_dst: address(this),
                 delta_col: 0,
                 delta_debt: -int256(pos.debt)

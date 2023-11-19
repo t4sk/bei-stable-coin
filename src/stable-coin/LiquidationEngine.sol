@@ -158,7 +158,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         cdp_engine.grab({
             col_type: col_type,
             cdp: cdp,
-            col_dst: col.auction,
+            gem_dst: col.auction,
             debt_dst: address(debt_engine),
             delta_col: -int256(delta_col),
             delta_debt: -int256(delta_debt)
