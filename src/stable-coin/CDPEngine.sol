@@ -18,7 +18,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // dai - account => coin balance [rad]
     mapping(address => uint256) public coin;
     // sin - account => debt balance [rad]
-    mapping(address => uint256) public debts;
+    mapping(address => uint256) public unbacked_debts;
 
     // debt - total coin issued [rad]
     uint256 public sys_debt;
@@ -226,14 +226,15 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         int256 delta_coin = Math.mul(col.rate, delta_debt);
 
         gem[col_type][gem_dst] = Math.sub(gem[col_type][gem_dst], delta_col);
-        debts[debt_dst] = Math.sub(debts[debt_dst], delta_coin);
+        unbacked_debts[debt_dst] =
+            Math.sub(unbacked_debts[debt_dst], delta_coin);
         sys_unbacked_debt = Math.sub(sys_unbacked_debt, delta_coin);
     }
 
     // --- Settlement ---
     // heal - create / destroy equal quantities of stable coin and system debt (vice).
     function burn(uint256 rad) external {
-        debts[msg.sender] -= rad;
+        unbacked_debts[msg.sender] -= rad;
         coin[msg.sender] -= rad;
         sys_unbacked_debt -= rad;
         sys_debt -= rad;
@@ -244,7 +245,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         external
         auth
     {
-        debts[debt_dst] += rad;
+        unbacked_debts[debt_dst] += rad;
         coin[coin_dst] += rad;
         sys_unbacked_debt += rad;
         sys_debt += rad;

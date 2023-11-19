@@ -48,6 +48,15 @@ contract CDPEngineTest is Test {
         return ICDPEngine(address(cdp_engine)).positions(col_type, cdp);
     }
 
+    function get_delta_coin(bytes32 col_type, int256 delta_debt)
+        private
+        returns (int256)
+    {
+        ICDPEngine.Collateral memory c =
+            ICDPEngine(address(cdp_engine)).collaterals(col_type);
+        return Math.mul(c.rate, delta_debt);
+    }
+
     function test_constructor() public {
         assertTrue(cdp_engine.authorized(address(this)));
         assertTrue(cdp_engine.is_live());
@@ -352,7 +361,9 @@ contract CDPEngineTest is Test {
             assertEq(pos1.debt, Math.add(pos0.debt, delta_debt));
             assertEq(col1.debt, Math.add(col0.debt, delta_debt));
             assertEq(gem1, Math.sub(gem0, delta_col));
-            assertEq(coin1, Math.add(coin0, Math.mul(col0.rate, delta_debt)));
+            assertEq(
+                coin1, Math.add(coin0, get_delta_coin(COL_TYPE, delta_debt))
+            );
         }
     }
 
@@ -364,28 +375,54 @@ contract CDPEngineTest is Test {
         setup_cdp_engine();
         setup_cdp_access({cdp: cdp, gem_src: cdp, coin_dst: cdp});
 
-        // cdp_engine.modify_collateral_balance(
-        //     COL_TYPE, cdp, int256(10 * WAD)
-        // );
-        // cdp_engine.modify_cdp({
-        //     col_type: COL_TYPE,
-        //     cdp: cdp,
-        //     gem_src: cdp,
-        //     coin_dst: cdp,
-        //     delta_col: int256(WAD),
-        //     delta_debt: int256(WAD)
-        // });
+        cdp_engine.modify_collateral_balance(COL_TYPE, cdp, int256(10 * WAD));
+        cdp_engine.modify_cdp({
+            col_type: COL_TYPE,
+            cdp: cdp,
+            gem_src: cdp,
+            coin_dst: cdp,
+            delta_col: int256(WAD),
+            delta_debt: int256(2 * WAD)
+        });
 
-        // vm.expectRevert("not authorized");
-        // vm.prank(address(1));
-        // cdp_engine.grab({
-        //     col_type: COL_TYPE,
-        //     cdp: cdp,
-        //     gem_dst: gem_dst,
-        //     debt_dst: debt_dst,
-        //     delta_col: 0,
-        //     delta_debt: 0
-        // });
+        vm.expectRevert("not authorized");
+        vm.prank(address(1));
+        cdp_engine.grab({
+            col_type: COL_TYPE,
+            cdp: cdp,
+            gem_dst: gem_dst,
+            debt_dst: debt_dst,
+            delta_col: 0,
+            delta_debt: 0
+        });
+
+        int256 delta_coin = get_delta_coin(COL_TYPE, -int256(2 * WAD));
+
+        ICDPEngine.Position memory pos0 = get_position(COL_TYPE, cdp);
+        ICDPEngine.Collateral memory col0 = get_collateral(COL_TYPE);
+        uint256 g0 = cdp_engine.gem(COL_TYPE, gem_dst);
+        uint256 d0 = cdp_engine.unbacked_debts(debt_dst);
+        uint256 s0 = cdp_engine.sys_unbacked_debt();
+        cdp_engine.grab({
+            col_type: COL_TYPE,
+            cdp: cdp,
+            gem_dst: gem_dst,
+            debt_dst: debt_dst,
+            delta_col: -int256(WAD),
+            delta_debt: -int256(2 * WAD)
+        });
+        ICDPEngine.Position memory pos1 = get_position(COL_TYPE, cdp);
+        ICDPEngine.Collateral memory col1 = get_collateral(COL_TYPE);
+        uint256 g1 = cdp_engine.gem(COL_TYPE, gem_dst);
+        uint256 d1 = cdp_engine.unbacked_debts(debt_dst);
+        uint256 s1 = cdp_engine.sys_unbacked_debt();
+
+        assertEq(pos1.collateral, pos0.collateral - WAD);
+        assertEq(pos1.debt, pos0.debt - 2 * WAD);
+        assertEq(col1.debt, col0.debt - 2 * WAD);
+        assertEq(g1, g0 + WAD);
+        assertEq(d1, d0 + uint256(-delta_coin));
+        assertEq(s1, s0 + uint256(-delta_coin));
     }
 
     function test_mint() public {
@@ -397,7 +434,7 @@ contract CDPEngineTest is Test {
         cdp_engine.mint(debt_dst, coin_dst, 100);
 
         cdp_engine.mint(debt_dst, coin_dst, 100);
-        assertEq(cdp_engine.debts(debt_dst), 100);
+        assertEq(cdp_engine.unbacked_debts(debt_dst), 100);
         assertEq(cdp_engine.coin(coin_dst), 100);
         assertEq(cdp_engine.sys_unbacked_debt(), 100);
         assertEq(cdp_engine.sys_debt(), 100);
@@ -410,7 +447,7 @@ contract CDPEngineTest is Test {
         vm.prank(src);
         cdp_engine.burn(10);
 
-        assertEq(cdp_engine.debts(src), 90);
+        assertEq(cdp_engine.unbacked_debts(src), 90);
         assertEq(cdp_engine.coin(src), 90);
         assertEq(cdp_engine.sys_unbacked_debt(), 90);
         assertEq(cdp_engine.sys_debt(), 90);

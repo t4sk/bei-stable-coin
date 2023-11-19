@@ -99,7 +99,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         // TODO: what?
         require(
             rad
-                <= cdp_engine.debts(address(this)) - total_debt_on_queue
+                <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
                     - total_debt_on_auction,
             "insufficient debt"
         );
@@ -121,7 +121,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         // TODO: what?
         require(
             debt_auction_bid_size
-                <= cdp_engine.debts(address(this)) - total_debt_on_queue
+                <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
                     - total_debt_on_auction,
             "insufficient debt"
         );
@@ -137,12 +137,12 @@ contract DebtEngine is Auth, CircuitBreaker {
     function start_surplus_auction() external returns (uint256 id) {
         require(
             cdp_engine.coin(address(this))
-                >= cdp_engine.debts(address(this)) + surplus_auction_lot_size
-                    + min_surplus,
+                >= cdp_engine.unbacked_debts(address(this))
+                    + surplus_auction_lot_size + min_surplus,
             "insufficient surplus"
         );
         require(
-            cdp_engine.debts(address(this)) - total_debt_on_queue
+            cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
                 - total_debt_on_auction == 0,
             "debt not zero"
         );
@@ -157,7 +157,8 @@ contract DebtEngine is Auth, CircuitBreaker {
         debt_auction.stop();
         cdp_engine.burn(
             Math.min(
-                cdp_engine.coin(address(this)), cdp_engine.debts(address(this))
+                cdp_engine.coin(address(this)),
+                cdp_engine.unbacked_debts(address(this))
             )
         );
     }

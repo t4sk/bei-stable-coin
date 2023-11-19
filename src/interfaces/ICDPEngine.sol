@@ -63,7 +63,7 @@ interface ICDPEngine {
     // dai [rad]
     function coin(address account) external view returns (uint256);
     // sin [rad]
-    function debts(address account) external view returns (uint256);
+    function unbacked_debts(address account) external view returns (uint256);
     // debt [rad]
     function sys_debt() external view returns (uint256);
     // vice [rad]
