@@ -367,6 +367,174 @@ contract CDPEngineTest is Test {
         }
     }
 
+    function test_fork_revert() public {
+        address cdp_src = address(1);
+        address cdp_dst = address(2);
+
+        vm.expectRevert("not allowed");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: 0,
+            delta_debt: 0
+        });
+
+        vm.prank(cdp_src);
+        cdp_engine.allow_account_modification(address(this));
+
+        vm.expectRevert("not allowed");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: 0,
+            delta_debt: 0
+        });
+
+        vm.prank(cdp_dst);
+        cdp_engine.allow_account_modification(address(this));
+
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: 0,
+            delta_debt: 0
+        });
+
+        setup_cdp_engine();
+
+        cdp_engine.modify_collateral_balance(
+            COL_TYPE, cdp_src, int256(10 * WAD)
+        );
+        cdp_engine.modify_cdp({
+            col_type: COL_TYPE,
+            cdp: cdp_src,
+            gem_src: cdp_src,
+            coin_dst: cdp_src,
+            delta_col: int256(10 * WAD),
+            delta_debt: int256(20 * WAD)
+        });
+
+        cdp_engine.modify_collateral_balance(
+            COL_TYPE, cdp_dst, int256(10 * WAD)
+        );
+        cdp_engine.modify_cdp({
+            col_type: COL_TYPE,
+            cdp: cdp_dst,
+            gem_src: cdp_dst,
+            coin_dst: cdp_dst,
+            delta_col: int256(10 * WAD),
+            delta_debt: int256(20 * WAD)
+        });
+
+        vm.expectRevert("not safe src");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: int256(10 * WAD),
+            delta_debt: 0
+        });
+
+        vm.expectRevert("not safe dst");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: -int256(10 * WAD),
+            delta_debt: 0
+        });
+
+        vm.expectRevert("dust src");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: 0,
+            delta_debt: int256(20 * WAD) - 1
+        });
+
+        vm.expectRevert("dust dst");
+        cdp_engine.fork({
+            col_type: COL_TYPE,
+            cdp_src: cdp_src,
+            cdp_dst: cdp_dst,
+            delta_col: 0,
+            delta_debt: -int256(20 * WAD) + 1
+        });
+    }
+
+    function test_fork() public {
+        address cdp_src = address(1);
+        address cdp_dst = address(2);
+
+        setup_cdp_engine();
+
+        vm.prank(cdp_src);
+        cdp_engine.allow_account_modification(address(this));
+        vm.prank(cdp_dst);
+        cdp_engine.allow_account_modification(address(this));
+
+        cdp_engine.modify_collateral_balance(
+            COL_TYPE, cdp_src, int256(10 * WAD)
+        );
+        cdp_engine.modify_cdp({
+            col_type: COL_TYPE,
+            cdp: cdp_src,
+            gem_src: cdp_src,
+            coin_dst: cdp_src,
+            delta_col: int256(10 * WAD),
+            delta_debt: int256(20 * WAD)
+        });
+
+        cdp_engine.modify_collateral_balance(
+            COL_TYPE, cdp_dst, int256(10 * WAD)
+        );
+        cdp_engine.modify_cdp({
+            col_type: COL_TYPE,
+            cdp: cdp_dst,
+            gem_src: cdp_dst,
+            coin_dst: cdp_dst,
+            delta_col: int256(10 * WAD),
+            delta_debt: int256(20 * WAD)
+        });
+
+        // delta col, delta dst
+        int256[2][7] memory tests = [
+            [int256(0), int256(0)],
+            [int256(WAD), int256(0)],
+            [int256(0), int256(WAD)],
+            [int256(WAD), int256(WAD)],
+            [-int256(WAD), int256(0)],
+            [int256(0), -int256(WAD)],
+            [-int256(WAD), -int256(WAD)]
+        ];
+
+        for (uint256 i = 0; i < tests.length; i++) {
+            int256 delta_col = tests[i][0];
+            int256 delta_debt = tests[i][1];
+
+            ICDPEngine.Position memory u0 = get_position(COL_TYPE, cdp_src);
+            ICDPEngine.Position memory v0 = get_position(COL_TYPE, cdp_dst);
+            cdp_engine.fork({
+                col_type: COL_TYPE,
+                cdp_src: cdp_src,
+                cdp_dst: cdp_dst,
+                delta_col: delta_col,
+                delta_debt: delta_debt
+            });
+            ICDPEngine.Position memory u1 = get_position(COL_TYPE, cdp_src);
+            ICDPEngine.Position memory v1 = get_position(COL_TYPE, cdp_dst);
+
+            assertEq(u1.collateral, Math.sub(u0.collateral, delta_col), "u col");
+            assertEq(u1.debt, Math.sub(u0.debt, delta_debt), "u debt");
+            assertEq(v1.collateral, Math.add(v0.collateral, delta_col), "v col");
+            assertEq(v1.debt, Math.add(v0.debt, delta_debt), "v debt");
+        }
+    }
+
     function test_grab() public {
         address cdp = address(1);
         address gem_dst = address(2);
