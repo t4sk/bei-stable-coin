@@ -36,6 +36,7 @@ contract CDPEngineTest is Test {
 
     function get_collateral(bytes32 col_type)
         private
+        view
         returns (ICDPEngine.Collateral memory)
     {
         return ICDPEngine(address(cdp_engine)).collaterals(col_type);
@@ -43,6 +44,7 @@ contract CDPEngineTest is Test {
 
     function get_position(bytes32 col_type, address cdp)
         private
+        view
         returns (ICDPEngine.Position memory)
     {
         return ICDPEngine(address(cdp_engine)).positions(col_type, cdp);
@@ -50,6 +52,7 @@ contract CDPEngineTest is Test {
 
     function get_delta_coin(bytes32 col_type, int256 delta_debt)
         private
+        view
         returns (int256)
     {
         ICDPEngine.Collateral memory c =
@@ -621,18 +624,17 @@ contract CDPEngineTest is Test {
         assertEq(cdp_engine.sys_debt(), 90);
     }
 
-    function test_sync() public {
+    function test_update_rate() public {
         address coin_dst = address(1);
 
         vm.expectRevert("not authorized");
         vm.prank(coin_dst);
-        cdp_engine.sync(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
 
-        // TODO: test with col.debt > 0
-        cdp_engine.sync(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
 
         cdp_engine.stop();
         vm.expectRevert("stopped");
-        cdp_engine.sync(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
     }
 }

@@ -253,7 +253,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
 
     // --- Rates ---
     // fold - modify the debt multiplier, creating / destroying corresponding debt.
-    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
+    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
         external
         auth
         live
@@ -262,8 +262,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         // old total debt = col.debt * col.rate
         // new total debt = col.debt * (col.rate + delta_rate)
         col.rate = Math.add(col.rate, delta_rate);
-        int256 delta_debt = Math.mul(col.debt, delta_rate);
-        coin[coin_dst] = Math.add(coin[coin_dst], delta_debt);
-        sys_debt = Math.add(sys_debt, delta_debt);
+        int256 delta_coin = Math.mul(col.debt, delta_rate);
+        coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
+        sys_debt = Math.add(sys_debt, delta_coin);
     }
 }

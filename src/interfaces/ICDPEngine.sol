@@ -138,6 +138,6 @@ interface ICDPEngine {
 
     // --- Rates ---
     // fold
-    function sync(bytes32 col_type, address coin_dst, int256 delta_rate)
+    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
         external;
 }
