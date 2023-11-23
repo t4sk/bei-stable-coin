@@ -8,7 +8,6 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// TODO: rename?
 contract Spotter is Auth, CircuitBreaker {
     event Poke(bytes32 col_type, uint256 val, uint256 spot);
 
@@ -16,8 +15,8 @@ contract Spotter is Auth, CircuitBreaker {
     mapping(bytes32 => ISpotter.Collateral) public collaterals;
 
     ICDPEngine public immutable cdp_engine;
-    // par - value of BEI in the reference asset (e.g. $1 per BEI)
-    uint256 public par; // ref per BEI [ray]
+    // par [ray] - value of BEI in the reference asset (e.g. $1 per BEI)
+    uint256 public par;
 
     constructor(address _cdp_engine) {
         cdp_engine = ICDPEngine(_cdp_engine);
@@ -60,12 +59,11 @@ contract Spotter is Auth, CircuitBreaker {
     function poke(bytes32 col_type) external {
         (uint256 val, bool ok) =
             IPriceFeed(collaterals[col_type].price_feed).peek();
-        // TODO: should require ok?
+        // NOTE: spot = liquidation price
+        //            = val * 1e9 * par / liquidation_ratio
         uint256 spot = ok
-            // TODO: what?
             ? Math.rdiv(
-                Math.rdiv(val * 10 ** 9, par),
-                collaterals[col_type].liquidation_ratio
+                Math.rdiv(val * 1e9, par), collaterals[col_type].liquidation_ratio
             )
             : 0;
         cdp_engine.set(col_type, "spot", spot);

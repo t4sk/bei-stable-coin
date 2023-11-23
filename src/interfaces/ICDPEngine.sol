@@ -8,8 +8,7 @@ interface ICDPEngine {
         uint256 debt;
         // rate [ray] stablecoin debt multiplier (accumulated stability fees)
         uint256 rate;
-        // spot [ray] collateral price with safety margin,
-        //            i.e. the maximum stablecoin allowed per unit of collateral
+        // spot [ray] liquidation price
         uint256 spot;
         // line [rad] debt ceiling for a specific collateral type
         uint256 max_debt;
