@@ -14,5 +14,6 @@ interface ISpotter {
     function par() external returns (uint256);
     function collaterals(bytes32 col_type)
         external
+        view
         returns (Collateral memory);
 }

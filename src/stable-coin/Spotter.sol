@@ -24,6 +24,14 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // file
+    function set(bytes32 key, uint256 val) external auth live {
+        if (key == "par") {
+            par = val;
+        } else {
+            revert("invalid param");
+        }
+    }
+
     function set(bytes32 col_type, bytes32 key, address addr)
         external
         auth
@@ -31,14 +39,6 @@ contract Spotter is Auth, CircuitBreaker {
     {
         if (key == "price_feed") {
             collaterals[col_type].price_feed = addr;
-        } else {
-            revert("invalid param");
-        }
-    }
-
-    function set(bytes32 key, uint256 val) external auth live {
-        if (key == "par") {
-            par = val;
         } else {
             revert("invalid param");
         }

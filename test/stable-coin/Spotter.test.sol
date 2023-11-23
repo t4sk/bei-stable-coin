@@ -33,11 +33,55 @@ contract SpotterTest is Test {
         spotter = new Spotter(address(cdp_engine));
     }
 
+    function get_collateral(bytes32 col_type)
+        private
+        view
+        returns (ISpotter.Collateral memory)
+    {
+        return ISpotter(address(spotter)).collaterals(col_type);
+    }
+
     function test_constructor() public {
         assertEq(spotter.authorized(address(this)), true);
         assertEq(spotter.is_live(), true);
         assertEq(address(spotter.cdp_engine()), address(cdp_engine));
         assertEq(spotter.par(), RAY);
+    }
+
+    function test_set() public {
+        vm.expectRevert("not authorized");
+        vm.prank(address(1));
+        spotter.set("par", 0);
+
+        vm.expectRevert("not authorized");
+        vm.prank(address(1));
+        spotter.set(COL_TYPE, "price_feed", address(price_feed));
+
+        vm.expectRevert("not authorized");
+        vm.prank(address(1));
+        spotter.set(COL_TYPE, "liquidation_ratio", 0);
+
+        spotter.set("par", 1);
+        assertEq(spotter.par(), 1);
+
+        ISpotter.Collateral memory col;
+        spotter.set(COL_TYPE, "price_feed", address(1));
+        col = get_collateral(COL_TYPE);
+        assertEq(col.price_feed, address(1));
+
+        spotter.set(COL_TYPE, "liquidation_ratio", 1);
+        col = get_collateral(COL_TYPE);
+        assertEq(col.liquidation_ratio, 1);
+
+        spotter.stop();
+        vm.expectRevert("stopped");
+        spotter.set("par", 0);
+
+        vm.expectRevert("stopped");
+        spotter.set(COL_TYPE, "price_feed", address(price_feed));
+
+        vm.expectRevert("stopped");
+        spotter.set(COL_TYPE, "liquidation_ratio", 0);
     }
 
     function test_poke() public {
