@@ -14,7 +14,7 @@ typically be less than the base stability fee to remain sustainable.
 The purpose of Pot is to offer another incentive for holding BEI.
 */
 contract Pot is Auth, CircuitBreaker {
-    // pie = sum(coin / chi)
+    // pie = sum(coin / rate_acc)
     // Normalised savings BEI [wad]
     mapping(address => uint256) public pie;
     // Pie
@@ -23,9 +23,9 @@ contract Pot is Auth, CircuitBreaker {
     // dsr
     // BEI savings rate [ray]
     uint256 public savings_rate;
-    // chi
+    // rate_acc
     // Rate accumulator [ray]
-    uint256 public chi;
+    uint256 public rate_acc;
 
     ICDPEngine public cdp_engine; // CDP Engine
     address public debt_engine; // Debt Engine
@@ -37,7 +37,7 @@ contract Pot is Auth, CircuitBreaker {
     constructor(address _cdp_engine) {
         cdp_engine = ICDPEngine(_cdp_engine);
         savings_rate = RAY;
-        chi = RAY;
+        rate_acc = RAY;
         updated_at = block.timestamp;
     }
 
@@ -72,14 +72,14 @@ contract Pot is Auth, CircuitBreaker {
     function collect_stability_fee() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
         uint256 tmp = Math.rmul(
-            Math.rpow(savings_rate, block.timestamp - updated_at, RAY), chi
+            Math.rpow(savings_rate, block.timestamp - updated_at, RAY), rate_acc
         );
-        uint256 delta_chi = tmp - chi;
-        chi = tmp;
+        uint256 delta_chi = tmp - rate_acc;
+        rate_acc = tmp;
         updated_at = block.timestamp;
-        // prev total = chi * total
-        // new  total = new chi * total
-        // mint = new total - prev total = (new chi - chi) * total
+        // prev total = rate_acc * total
+        // new  total = new rate_acc * total
+        // mint = new total - prev total = (new rate_acc - rate_acc) * total
         cdp_engine.mint(debt_engine, address(this), total_pie * delta_chi);
         return tmp;
     }
@@ -90,12 +90,12 @@ contract Pot is Auth, CircuitBreaker {
         // TODO: check math for multiple deposits
         pie[msg.sender] += wad;
         total_pie += wad;
-        cdp_engine.transfer_coin(msg.sender, address(this), chi * wad);
+        cdp_engine.transfer_coin(msg.sender, address(this), rate_acc * wad);
     }
 
     function exit(uint256 wad) external {
         pie[msg.sender] -= wad;
         total_pie -= wad;
-        cdp_engine.transfer_coin(address(this), msg.sender, chi * wad);
+        cdp_engine.transfer_coin(address(this), msg.sender, rate_acc * wad);
     }
 }

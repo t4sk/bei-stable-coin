@@ -11,9 +11,9 @@ import {Common} from "./Common.sol";
 contract ProxyActionsSavingsRate is Common {
     function join(address coin_join, address pot, uint256 wad) public {
         ICDPEngine cdp_engine = ICDPEngine(ICoinJoin(coin_join).cdp_engine());
-        // Executes collect_stability_fee to get the chi rate updated to rho == now,
+        // Executes collect_stability_fee to get the rate_acc rate updated to rho == now,
         // otherwise join will fail
-        uint256 chi = IPot(pot).collect_stability_fee();
+        uint256 rate_acc = IPot(pot).collect_stability_fee();
         // Joins wad amount to the cdp_engine balance
         coin_join_join(coin_join, address(this), wad);
         // Approves the pot to take out BEI from the proxy's balance in the cdp_engine
@@ -21,15 +21,15 @@ contract ProxyActionsSavingsRate is Common {
             cdp_engine.allow_account_modification(pot);
         }
         // Joins the pie value (equivalent to the BEI wad amount) in the pot
-        IPot(pot).join(wad * RAY / chi);
+        IPot(pot).join(wad * RAY / rate_acc);
     }
 
     function exit(address coin_join, address pot, uint256 wad) public {
         ICDPEngine cdp_engine = ICDPEngine(ICoinJoin(coin_join).cdp_engine());
         // Executes collect_stability_fee to count the savings accumulated until this moment
-        uint256 chi = IPot(pot).collect_stability_fee();
+        uint256 rate_acc = IPot(pot).collect_stability_fee();
         // Calculates the pie value in the pot equivalent to the BEI wad amount
-        uint256 pie = wad * RAY / chi;
+        uint256 pie = wad * RAY / rate_acc;
         // Exits BEI from the pot
         IPot(pot).exit(pie);
         // Checks the actual balance of BEI in the cdp_engine after the pot exit
@@ -48,7 +48,7 @@ contract ProxyActionsSavingsRate is Common {
     function exit_all(address coin_join, address pot) public {
         ICDPEngine cdp_engine = ICDPEngine(ICoinJoin(coin_join).cdp_engine());
         // Executes collect_stability_fee to count the savings accumulated until this moment
-        uint256 chi = IPot(pot).collect_stability_fee();
+        uint256 rate_acc = IPot(pot).collect_stability_fee();
         // Gets the total pie belonging to the proxy address
         uint256 pie = IPot(pot).pie(address(this));
         // Exits BEI from the pot
@@ -58,6 +58,6 @@ contract ProxyActionsSavingsRate is Common {
             cdp_engine.allow_account_modification(coin_join);
         }
         // Exits the BEI amount corresponding to the value of pie
-        ICoinJoin(coin_join).exit(msg.sender, chi * pie / RAY);
+        ICoinJoin(coin_join).exit(msg.sender, rate_acc * pie / RAY);
     }
 }

@@ -15,7 +15,7 @@ contract MockCDPEngine {
     {
         return ICDPEngine.Collateral({
             debt: 0,
-            chi: 1109285099002409304767524639,
+            rate_acc: 1109285099002409304767524639,
             spot: 0,
             max_debt: 0,
             min_debt: 0

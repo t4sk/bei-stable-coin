@@ -80,9 +80,11 @@ contract Jug is Auth {
         ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         rate = Math.rmul(
             Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
-            c.chi
+            c.rate_acc
         );
-        cdp_engine.update_rate(col_type, debt_engine, Math.diff(rate, c.chi));
+        cdp_engine.update_rate(
+            col_type, debt_engine, Math.diff(rate, c.rate_acc)
+        );
         col.updated_at = block.timestamp;
     }
 }
