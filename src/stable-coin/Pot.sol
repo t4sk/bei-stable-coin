@@ -23,7 +23,7 @@ contract Pot is Auth, CircuitBreaker {
     // dsr
     // BEI savings rate [ray]
     uint256 public savings_rate;
-    // rate_acc
+    // chi
     // Rate accumulator [ray]
     uint256 public rate_acc;
 

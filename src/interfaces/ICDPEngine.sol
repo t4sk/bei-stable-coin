@@ -140,6 +140,6 @@ interface ICDPEngine {
     function update_rate_acc(
         bytes32 col_type,
         address coin_dst,
-        int256 delta_rate
+        int256 delta_rate_acc
     ) external;
 }

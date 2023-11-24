@@ -259,13 +259,13 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     function update_rate_acc(
         bytes32 col_type,
         address coin_dst,
-        int256 delta_rate
+        int256 delta_rate_acc
     ) external auth live {
         ICDPEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate_acc
-        // new total debt = col.debt * (col.rate_acc + delta_rate)
-        col.rate_acc = Math.add(col.rate_acc, delta_rate);
-        int256 delta_coin = Math.mul(col.debt, delta_rate);
+        // new total debt = col.debt * (col.rate_acc + delta_rate_acc)
+        col.rate_acc = Math.add(col.rate_acc, delta_rate_acc);
+        int256 delta_coin = Math.mul(col.debt, delta_rate_acc);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
         sys_debt = Math.add(sys_debt, delta_coin);
     }

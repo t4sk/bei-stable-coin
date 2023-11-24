@@ -8,12 +8,10 @@ import "../../src/lib/Math.sol";
 import {Jug} from "../../src/stable-coin/Jug.sol";
 
 contract MockCDPEngine {
-    function collaterals(bytes32 col_type)
-        private
-        view
-        returns (ICDPEngine.Collateral memory)
-    {
-        return ICDPEngine.Collateral({
+    mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
+
+    constructor(bytes32 col_type) {
+        collaterals[col_type] = ICDPEngine.Collateral({
             debt: 0,
             rate_acc: 1109285099002409304767524639,
             spot: 0,
@@ -21,6 +19,20 @@ contract MockCDPEngine {
             min_debt: 0
         });
     }
+
+    function get_collateral(bytes32 col_type)
+        external
+        view
+        returns (ICDPEngine.Collateral memory)
+    {
+        return collaterals[col_type];
+    }
+
+    function update_rate_acc(
+        bytes32 col_type,
+        address coin_dst,
+        int256 delta_rate_acc
+    ) external {}
 }
 
 contract JugTest is Test {
@@ -29,7 +41,7 @@ contract JugTest is Test {
     bytes32 private constant COL_TYPE = bytes32(uint256(1));
 
     function setUp() public {
-        cdp_engine = new MockCDPEngine();
+        cdp_engine = new MockCDPEngine(COL_TYPE);
         jug = new Jug(address(cdp_engine));
     }
 
@@ -38,6 +50,16 @@ contract JugTest is Test {
         // About 5% per year
         uint256 fee = 1000000001622535724756171269;
         jug.set(COL_TYPE, "fee", fee);
-        uint256 rate = jug.collect_stability_fee(COL_TYPE);
+
+        ICDPEngine.Collateral memory c0 = cdp_engine.get_collateral(COL_TYPE);
+        uint256 rate;
+        rate = jug.collect_stability_fee(COL_TYPE);
+        assertEq(rate, c0.rate_acc);
+
+        skip(10);
+
+        rate = jug.collect_stability_fee(COL_TYPE);
+        assertGt(rate, c0.rate_acc);
+        assertEq(rate, Math.rmul(Math.rpow(fee, 10, RAY), c0.rate_acc));
     }
 }
