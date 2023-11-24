@@ -59,6 +59,7 @@ contract JugTest is Test {
         skip(10);
 
         rate = jug.collect_stability_fee(COL_TYPE);
+
         assertGt(rate, c0.rate_acc);
         assertEq(rate, Math.rmul(Math.rpow(fee, 10, RAY), c0.rate_acc));
     }
