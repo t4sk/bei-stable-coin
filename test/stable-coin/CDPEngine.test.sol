@@ -629,12 +629,12 @@ contract CDPEngineTest is Test {
 
         vm.expectRevert("not authorized");
         vm.prank(coin_dst);
-        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate_acc(COL_TYPE, coin_dst, 100);
 
-        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate_acc(COL_TYPE, coin_dst, 100);
 
         cdp_engine.stop();
         vm.expectRevert("stopped");
-        cdp_engine.update_rate(COL_TYPE, coin_dst, 100);
+        cdp_engine.update_rate_acc(COL_TYPE, coin_dst, 100);
     }
 }

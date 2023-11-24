@@ -137,6 +137,9 @@ interface ICDPEngine {
 
     // --- Rates ---
     // fold
-    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
-        external;
+    function update_rate_acc(
+        bytes32 col_type,
+        address coin_dst,
+        int256 delta_rate
+    ) external;
 }

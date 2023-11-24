@@ -256,11 +256,11 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
 
     // --- Rates ---
     // fold - modify the debt multiplier, creating / destroying corresponding debt.
-    function update_rate(bytes32 col_type, address coin_dst, int256 delta_rate)
-        external
-        auth
-        live
-    {
+    function update_rate_acc(
+        bytes32 col_type,
+        address coin_dst,
+        int256 delta_rate
+    ) external auth live {
         ICDPEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate_acc
         // new total debt = col.debt * (col.rate_acc + delta_rate)
