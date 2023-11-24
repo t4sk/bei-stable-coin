@@ -2,5 +2,7 @@
 pragma solidity 0.8.19;
 
 interface IJug {
-    function drip(bytes32 col_type) external returns (uint256 rate);
+    function collect_stability_fee(bytes32 col_type)
+        external
+        returns (uint256 rate);
 }

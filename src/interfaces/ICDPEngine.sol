@@ -7,7 +7,7 @@ interface ICDPEngine {
         // Art [wad] total normalized stablecoin debt
         uint256 debt;
         // rate [ray] stablecoin debt multiplier (accumulated stability fees)
-        uint256 rate;
+        uint256 chi;
         // spot [ray] liquidation price
         uint256 spot;
         // line [rad] debt ceiling for a specific collateral type

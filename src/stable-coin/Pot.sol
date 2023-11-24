@@ -30,8 +30,8 @@ contract Pot is Auth, CircuitBreaker {
     ICDPEngine public cdp_engine; // CDP Engine
     address public debt_engine; // Debt Engine
     // rho
-    uint256 public updated_at; // Time of last drip [unix epoch time]
-    // drip - performs stability fee collection for a specific
+    uint256 public updated_at; // Time of last collect_stability_fee [unix epoch time]
+    // collect_stability_fee - performs stability fee collection for a specific
     //        collateral type when it is called
 
     constructor(address _cdp_engine) {
@@ -68,7 +68,8 @@ contract Pot is Auth, CircuitBreaker {
     }
 
     // --- Savings Rate Accumulation ---
-    function drip() external returns (uint256) {
+    // drip
+    function collect_stability_fee() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
         uint256 tmp = Math.rmul(
             Math.rpow(savings_rate, block.timestamp - updated_at, RAY), chi

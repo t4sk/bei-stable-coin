@@ -30,9 +30,9 @@ contract ProxyActions is Common {
         bytes32 col_type,
         uint256 wad
     ) internal returns (int256 delta_debt) {
-        // TODO: why drip?
+        // TODO: why collect_stability_fee?
         // Updates stability fee rate
-        uint256 rate = IJug(jug).drip(col_type);
+        uint256 rate = IJug(jug).collect_stability_fee(col_type);
 
         // Gets BEI balance of the cdp in the cdp_engine
         uint256 coin_bal = ICDPEngine(cdp_engine).coin(cdp);
@@ -68,7 +68,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
         // Uses the whole coin_amount balance in the cdp_engine to reduce the debt
-        delta_debt = Math.to_int(coin_amount / c.rate);
+        delta_debt = Math.to_int(coin_amount / c.chi);
         // Checks the calculated delta_debt is not higher than cdp.debt (total debt),
         // otherwise uses its value
         delta_debt = uint256(delta_debt) <= pos.debt
@@ -92,7 +92,7 @@ contract ProxyActions is Common {
         // Gets actual coin amount in the cdp
         uint256 coin_bal = ICDPEngine(cdp_engine).coin(user);
 
-        uint256 rad = pos.debt * c.rate - coin_bal;
+        uint256 rad = pos.debt * c.chi - coin_bal;
         wad = rad / RAY;
 
         // If the rad precision has some dust, it will need to request for 1 extra wad wei

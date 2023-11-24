@@ -31,8 +31,8 @@ library Math {
     }
 
     function diff(uint256 x, uint256 y) internal pure returns (int256 z) {
-        z = int256(x) - int256(y);
         require(int256(x) >= 0 && int256(y) >= 0);
+        z = int256(x) - int256(y);
     }
 
     function to_int(uint256 x) internal pure returns (int256 y) {

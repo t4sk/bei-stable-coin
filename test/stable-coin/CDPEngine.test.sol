@@ -57,7 +57,7 @@ contract CDPEngineTest is Test {
     {
         ICDPEngine.Collateral memory c =
             ICDPEngine(address(cdp_engine)).collaterals(col_type);
-        return Math.mul(c.rate, delta_debt);
+        return Math.mul(c.chi, delta_debt);
     }
 
     function test_constructor() public {
@@ -72,7 +72,7 @@ contract CDPEngineTest is Test {
 
         cdp_engine.init(COL_TYPE);
         ICDPEngine.Collateral memory col = get_collateral(COL_TYPE);
-        assertEq(col.rate, RAY);
+        assertEq(col.chi, RAY);
 
         vm.expectRevert("already initialized");
         cdp_engine.init(COL_TYPE);

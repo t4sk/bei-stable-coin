@@ -29,8 +29,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
 
     // --- Administration ---
     function init(bytes32 col_type) external auth {
-        require(collaterals[col_type].rate == 0, "already initialized");
-        collaterals[col_type].rate = RAY;
+        require(collaterals[col_type].chi == 0, "already initialized");
+        collaterals[col_type].chi = RAY;
     }
 
     // file
@@ -110,24 +110,24 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     ) external live {
         ICDPEngine.Position memory pos = positions[col_type][cdp];
         ICDPEngine.Collateral memory col = collaterals[col_type];
-        require(col.rate != 0, "collateral not initialized");
+        require(col.chi != 0, "collateral not initialized");
 
         pos.collateral = Math.add(pos.collateral, delta_col);
         pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
-        // delta_debt = delta_coin / col.rate
-        // delta_coin [rad] = col.rate * delta_debt
-        int256 delta_coin = Math.mul(col.rate, delta_debt);
+        // delta_debt = delta_coin / col.chi
+        // delta_coin [rad] = col.chi * delta_debt
+        int256 delta_coin = Math.mul(col.chi, delta_debt);
         // coin balance + compound interest that the cdp owes to protocol
         // coin debt [rad]
-        uint256 coin_debt = col.rate * pos.debt;
+        uint256 coin_debt = col.chi * pos.debt;
         sys_debt = Math.add(sys_debt, delta_coin);
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
             delta_debt <= 0
-                || (col.debt * col.rate <= col.max_debt && sys_debt <= sys_max_debt),
+                || (col.debt * col.chi <= col.max_debt && sys_debt <= sys_max_debt),
             "delta debt > max"
         );
         // cdp is either less risky than before, or it is safe
@@ -183,8 +183,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         v.collateral = Math.add(v.collateral, delta_col);
         v.debt = Math.add(v.debt, delta_debt);
 
-        uint256 u_coin_debt = u.debt * col.rate;
-        uint256 v_coin_debt = v.debt * col.rate;
+        uint256 u_coin_debt = u.debt * col.chi;
+        uint256 v_coin_debt = v.debt * col.chi;
 
         // both sides consent
         require(
@@ -223,7 +223,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
-        int256 delta_coin = Math.mul(col.rate, delta_debt);
+        int256 delta_coin = Math.mul(col.chi, delta_debt);
 
         gem[col_type][gem_dst] = Math.sub(gem[col_type][gem_dst], delta_col);
         unbacked_debts[debt_dst] =
@@ -259,9 +259,9 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         live
     {
         ICDPEngine.Collateral storage col = collaterals[col_type];
-        // old total debt = col.debt * col.rate
-        // new total debt = col.debt * (col.rate + delta_rate)
-        col.rate = Math.add(col.rate, delta_rate);
+        // old total debt = col.debt * col.chi
+        // new total debt = col.debt * (col.chi + delta_rate)
+        col.chi = Math.add(col.chi, delta_rate);
         int256 delta_coin = Math.mul(col.debt, delta_rate);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
         sys_debt = Math.add(sys_debt, delta_coin);

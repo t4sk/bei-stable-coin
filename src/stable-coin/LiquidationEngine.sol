@@ -116,7 +116,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         uint256 delta_debt;
         {
             require(
-                c.spot > 0 && pos.collateral * c.spot < pos.debt * c.rate,
+                c.spot > 0 && pos.collateral * c.spot < pos.debt * c.chi,
                 "not unsafe"
             );
 
@@ -128,11 +128,11 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
             // TODO: why divide by penalty?
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
-            delta_debt = Math.min(pos.debt, room * WAD / c.rate / col.penalty);
+            delta_debt = Math.min(pos.debt, room * WAD / c.chi / col.penalty);
 
             // Partial liquidation edge case logic
             if (pos.debt > delta_debt) {
-                if ((pos.debt - delta_debt) * c.rate < c.min_debt) {
+                if ((pos.debt - delta_debt) * c.chi < c.min_debt) {
                     // If the leftover s would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
@@ -142,7 +142,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
                 } else {
                     // In a partial liquidation, the resulting auction should also be non-dusty.
                     require(
-                        delta_debt * c.rate >= c.min_debt,
+                        delta_debt * c.chi >= c.min_debt,
                         "dusty auction from partial liquidation"
                     );
                 }
@@ -164,12 +164,12 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             delta_debt: -int256(delta_debt)
         });
 
-        uint256 due = delta_debt * c.rate;
+        uint256 due = delta_debt * c.chi;
         debt_engine.push_debt_to_queue(due);
 
         {
             // Avoid stack too deep
-            // This calcuation will overflow if delta_debt*rate exceeds ~10^14
+            // This calcuation will overflow if delta_debt*chi exceeds ~10^14
             uint256 target_coin_amount = due * col.penalty / WAD;
             total += target_coin_amount;
             collaterals[col_type].amount += target_coin_amount;
