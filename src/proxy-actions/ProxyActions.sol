@@ -30,7 +30,6 @@ contract ProxyActions is Common {
         bytes32 col_type,
         uint256 wad
     ) internal returns (int256 delta_debt) {
-        // TODO: why collect_stability_fee?
         // Updates stability fee rate
         uint256 rate = IJug(jug).collect_stability_fee(col_type);
 
@@ -39,7 +38,7 @@ contract ProxyActions is Common {
 
         // If there was already enough BEI in the cdp_engine balance,
         // just exits it without adding more debt
-        if (coin_bal < wad * RAY) {
+        if (wad * RAY > coin_bal) {
             // Calculates the needed delta debt so together with the existing BEI
             // in the cdp_engine is enough to exit wad amount of BEI tokens
             delta_debt = Math.to_int((wad * RAY - coin_bal) / rate);
