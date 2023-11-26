@@ -9,30 +9,26 @@ import "../lib/Math.sol";
 /*
 Pot is the core of the BEI Savings Rate. 
 It allows users to deposit BEI and activate the BEI Savings Rate and 
-earning savings on their BEI.  The DSR is set by Maker Governance, and will 
+earning savings on their BEI. The DSR is set by Maker Governance, and will 
 typically be less than the base stability fee to remain sustainable. 
 The purpose of Pot is to offer another incentive for holding BEI.
 */
 contract Pot is Auth, CircuitBreaker {
-    // pie = sum(coin / rate_acc)
-    // Normalised savings BEI [wad]
+    // pie [wad] - Normalised savings BEI
     mapping(address => uint256) public pie;
-    // Pie
-    // Total normalised savings BEI [wad]
+    // Pie [wad] - Total normalised savings BEI
     uint256 public total_pie;
-    // dsr
-    // BEI savings rate [ray]
+    // dsr [ray] - BEI savings rate
     uint256 public savings_rate;
-    // chi
-    // Rate accumulator [ray]
+    // chi [ray] - Rate accumulator
     uint256 public rate_acc;
 
-    ICDPEngine public cdp_engine; // CDP Engine
-    address public debt_engine; // Debt Engine
-    // rho
-    uint256 public updated_at; // Time of last collect_stability_fee [unix epoch time]
-    // collect_stability_fee - performs stability fee collection for a specific
-    //        collateral type when it is called
+    // vat
+    ICDPEngine public cdp_engine;
+    // vow
+    address public debt_engine;
+    // rho [unix timestamp] - Time of last collect_stability_fee
+    uint256 public updated_at;
 
     constructor(address _cdp_engine) {
         cdp_engine = ICDPEngine(_cdp_engine);
@@ -71,17 +67,17 @@ contract Pot is Auth, CircuitBreaker {
     // drip
     function collect_stability_fee() external returns (uint256) {
         require(block.timestamp >= updated_at, "now < updated_at");
-        uint256 tmp = Math.rmul(
+        uint256 acc = Math.rmul(
             Math.rpow(savings_rate, block.timestamp - updated_at, RAY), rate_acc
         );
-        uint256 delta_chi = tmp - rate_acc;
-        rate_acc = tmp;
+        uint256 delta_rate_acc = acc - rate_acc;
+        rate_acc = acc;
         updated_at = block.timestamp;
         // prev total = rate_acc * total
         // new  total = new rate_acc * total
         // mint = new total - prev total = (new rate_acc - rate_acc) * total
-        cdp_engine.mint(debt_engine, address(this), total_pie * delta_chi);
-        return tmp;
+        cdp_engine.mint(debt_engine, address(this), total_pie * delta_rate_acc);
+        return acc;
     }
 
     // --- Savings BEI Management ---
