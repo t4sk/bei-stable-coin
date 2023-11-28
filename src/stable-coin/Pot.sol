@@ -83,7 +83,6 @@ contract Pot is Auth, CircuitBreaker {
     // --- Savings BEI Management ---
     function join(uint256 wad) external {
         require(block.timestamp == updated_at, "updated_at != now");
-        // TODO: check math for multiple deposits
         pie[msg.sender] += wad;
         total_pie += wad;
         cdp_engine.transfer_coin(msg.sender, address(this), rate_acc * wad);
