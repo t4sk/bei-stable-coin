@@ -34,7 +34,6 @@ contract LinearDecrease is Auth {
         if (duration <= dt) {
             return 0;
         }
-        // TODO: top is RAY?
         return Math.rmul(top, (duration - dt) * RAY / duration);
     }
 }
