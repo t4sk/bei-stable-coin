@@ -23,22 +23,24 @@ contract CollateralAuction is Auth, Guard {
     ILiquidationEngine public liquidation_engine;
     // debt_engine - Recipient of BEI raised in auctions
     address public debt_engine;
-    // Collateral price module
+    // spotter - Collateral price module
     ISpotter public spotter;
     // calc - Current price calculator
     IAuctionPriceCalculator public calc;
 
-    // buf - Multiplicative factor to increase starting price [ray]
-    uint256 public buf;
-    // tail - Time elapsed before auction reset [seconds]
+    // buf [ray] - Multiplicative factor to increase starting price
+    uint256 public boost;
+    // tail [seconds] - Time elapsed before auction reset
     uint256 public max_duration;
-    // cusp - Percentage drop before auction reset [ray]
+    // cusp [ray] - Percentage drop before auction reset
     uint256 public min_delta_price_ratio;
-    // chip - Percentage of coin to raise, to mint from debt_engine to incentivize keepers [wad]
+    // chip [wad] - Percentage of coin to raise, to mint from debt_engine to
+    //              incentivize keepers
     uint64 public fee_rate;
-    // tip - Flat fee to mint from debt_engine to incentivize keepers [rad]
+    // tip [rad] - Flat fee to mint from debt_engine to incentivize keepers
     uint192 public flat_fee;
-    // chost - Cache the collateral_type dust times the collateral_type chop to prevent excessive SLOADs [rad]
+    // chost [rad] - Cache the collateral_type dust times the collateral_type
+    //               chop to prevent excessive SLOADs
     uint256 public cache;
 
     // kicks - Total auctions
@@ -49,15 +51,15 @@ contract CollateralAuction is Auth, Guard {
     struct Sale {
         // Index in active array
         uint256 pos;
-        // tab - Amount of coin to raise [rad]
+        // tab [rad] - Amount of coin to raise
         uint256 coin_amount;
-        // lot - Amount of collateral to sell [wad]
+        // lot [wad] - Amount of collateral to sell
         uint256 collateral_amount;
         // usr - Liquidated CDP
         address user;
         // tick - Auction start time
         uint96 start_time;
-        // top - Starting price [ray]
+        // top [ray] - Starting price
         uint256 starting_price;
     }
 
@@ -103,16 +105,16 @@ contract CollateralAuction is Auth, Guard {
 
     // --- Init ---
     constructor(
-        address vat_,
-        address spotter_,
-        address liquidation_engine_,
-        bytes32 collateral_type_
+        address _cdp_engine,
+        address _spotter,
+        address _liquidation_engine,
+        bytes32 _collateral_type
     ) {
-        cdp_engine = ICDPEngine(vat_);
-        spotter = ISpotter(spotter_);
-        liquidation_engine = ILiquidationEngine(liquidation_engine_);
-        collateral_type = collateral_type_;
-        buf = RAY;
+        cdp_engine = ICDPEngine(_cdp_engine);
+        spotter = ISpotter(_spotter);
+        liquidation_engine = ILiquidationEngine(_liquidation_engine);
+        collateral_type = _collateral_type;
+        boost = RAY;
     }
 
     // --- Synchronization ---
@@ -124,8 +126,8 @@ contract CollateralAuction is Auth, Guard {
     // --- Administration ---
     // file
     function set(bytes32 key, uint256 val) external auth lock {
-        if (key == "buf") {
-            buf = val;
+        if (key == "boost") {
+            boost = val;
         } else if (key == "max_duration") {
             // Time elapsed before auction reset
             max_duration = val;
@@ -170,7 +172,6 @@ contract CollateralAuction is Auth, Guard {
         ISpotter.Collateral memory col = spotter.collaterals(collateral_type);
         (uint256 val, bool ok) = IPriceFeed(col.price_feed).peek();
         require(ok, "invalid price");
-        // TODO: math?
         price = Math.rdiv(val * 1e9, spotter.par());
     }
 
@@ -178,21 +179,25 @@ contract CollateralAuction is Auth, Guard {
     // note: trusts the caller to transfer collateral to the contract
     // The starting price `starting_price` is obtained as follows:
     //
-    //     starting_price = val * buf / par
+    //     starting_price = val * boost / par
     //
-    // Where `val` is the collateral's unitary value in USD, `buf` is a
+    // Where `val` is the collateral's unitary value in USD, `boost` is a
     // multiplicative factor to increase the starting price, and `par` is a
     // reference per BEI.
     function start(
-        uint256 coin_amount, // tab - Debt [rad]
-        uint256 collateral_amount, // lot - Collateral [wad]
+        // tab [rad] - debt
+        uint256 coin_amount,
+        // lot [wad] - collateral
+        uint256 collateral_amount,
+        // user - address that will receive any leftover collaterl
         // TODO: rename user to cdp?
-        address user, // Address that will receive any leftover collateral
-        address keeper // Address that will receive incentives
+        address user,
+        // keeper - address that will receive incentive
+        address keeper
     ) external auth lock not_stopped(1) returns (uint256 id) {
-        require(coin_amount > 0, "zero coin amount");
-        require(collateral_amount > 0, "zero collateral amount");
-        require(user != address(0), "zero address user");
+        require(coin_amount > 0, "0 coin amount");
+        require(collateral_amount > 0, "0 collateral amount");
+        require(user != address(0), "0 address user");
         id = ++last_auction_id;
 
         active.push(id);
@@ -203,7 +208,7 @@ contract CollateralAuction is Auth, Guard {
         sales[id].user = user;
         sales[id].start_time = uint96(block.timestamp);
 
-        uint256 starting_price = Math.rmul(get_price(), buf);
+        uint256 starting_price = Math.rmul(get_price(), boost);
         require(starting_price > 0, "zero starting price");
         sales[id].starting_price = starting_price;
 
@@ -249,7 +254,7 @@ contract CollateralAuction is Auth, Guard {
         sales[id].start_time = uint96(block.timestamp);
 
         uint256 price = get_price();
-        starting_price = Math.rmul(price, buf);
+        starting_price = Math.rmul(price, boost);
         require(starting_price > 0, "zero starting price");
         sales[id].starting_price = starting_price;
 
