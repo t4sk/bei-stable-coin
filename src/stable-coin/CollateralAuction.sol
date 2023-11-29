@@ -303,12 +303,16 @@ contract CollateralAuction is Auth, Guard {
     // If `coin_amount <= chost`, partial purchases are no longer possible; that is, the remaining
     // collateral can only be purchased entirely, or not at all.
     function take(
-        uint256 id, // Auction id
-        uint256 max_collateral_amount, // Upper limit on amount of collateral to buy  [wad]
-        uint256 max_price, // Maximum acceptable price (BEI / collateral) [ray]
-        // who
-        address receiver, // Receiver of collateral and external call address
-        bytes calldata data // Data to pass in external call; if length 0, no call is done
+        // id - Auction id
+        uint256 id,
+        // amt [wad] - Upper limit on amount of collateral to buy
+        uint256 max_collateral_amount,
+        // max [ray] - Maximum acceptable price (BEI / collateral)
+        uint256 max_price,
+        // who - Receiver of collateral and external call address
+        address receiver,
+        // Data to pass in external call; if length 0, no call is done
+        bytes calldata data
     ) external lock not_stopped(3) {
         Sale storage sale = sales[id];
         address user = sale.user;
@@ -325,7 +329,7 @@ contract CollateralAuction is Auth, Guard {
         }
 
         // Ensure price is acceptable to buyer
-        require(max_price >= price, "too-expensive");
+        require(max_price >= price, "price > max");
 
         uint256 collateral_amount = sale.collateral_amount;
         uint256 coin_amount = sale.coin_amount;
@@ -338,6 +342,7 @@ contract CollateralAuction is Auth, Guard {
             uint256 slice = Math.min(collateral_amount, max_collateral_amount);
 
             // BEI needed to buy a slice of this sale
+            // rad = wad * ray
             owe = slice * price;
 
             // Don't collect more than coin_amount of BEI
@@ -347,6 +352,7 @@ contract CollateralAuction is Auth, Guard {
                 owe = coin_amount;
                 // Adjust slice
                 // slice' = owe' / price <= owe / price = slice <= collateral_amount
+                // wad = rad / ray
                 slice = owe / price;
             } else if (owe < coin_amount && slice < collateral_amount) {
                 // If slice = collateral_amount -> auction completed -> dust doesn't matter
@@ -390,6 +396,7 @@ contract CollateralAuction is Auth, Guard {
             // Get BEI from caller
             cdp_engine.transfer_coin(msg.sender, debt_engine, owe);
 
+            // TODO: wat dis?
             // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
                 collateral_type,
@@ -397,6 +404,7 @@ contract CollateralAuction is Auth, Guard {
             );
         }
 
+        // TODO: when col amount > 0 or coin amount > 0?
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {
@@ -484,6 +492,7 @@ contract CollateralAuction is Auth, Guard {
     function update_cache() external {
         ICDPEngine.Collateral memory col =
             ICDPEngine(cdp_engine).collaterals(collateral_type);
+        // TODO: wat dis?
         cache =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }
@@ -491,7 +500,7 @@ contract CollateralAuction is Auth, Guard {
     // Cancel an auction during ES or via governance action.
     function yank(uint256 id) external auth lock {
         Sale memory sale = sales[id];
-        require(sale.user != address(0), "Clipper/not-running-auction");
+        require(sale.user != address(0), "not running auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
         cdp_engine.transfer_collateral(
             collateral_type, address(this), msg.sender, sale.collateral_amount
