@@ -49,7 +49,7 @@ contract CollateralAuction is Auth, Guard {
     uint256[] public active;
 
     struct Sale {
-        // Index in active array
+        // pos - Index in active array
         uint256 pos;
         // tab [rad] - Amount of coin to raise
         uint256 coin_amount;
@@ -202,20 +202,21 @@ contract CollateralAuction is Auth, Guard {
 
         active.push(id);
 
-        sales[id].pos = active.length - 1;
-        sales[id].coin_amount = coin_amount;
-        sales[id].collateral_amount = collateral_amount;
-        sales[id].user = user;
-        sales[id].start_time = uint96(block.timestamp);
+        Sale storage sale = sales[id];
+        sale.pos = active.length - 1;
+        sale.coin_amount = coin_amount;
+        sale.collateral_amount = collateral_amount;
+        sale.user = user;
+        sale.start_time = uint96(block.timestamp);
 
         uint256 starting_price = Math.rmul(get_price(), boost);
         require(starting_price > 0, "zero starting price");
-        sales[id].starting_price = starting_price;
+        sale.starting_price = starting_price;
 
         // incentive to start auction
         uint256 fee;
         if (flat_fee > 0 || fee_rate > 0) {
-            // TODO: check units
+            // rad + rad * wad / wad
             fee = flat_fee + Math.wmul(coin_amount, fee_rate);
             cdp_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
         }
@@ -238,9 +239,10 @@ contract CollateralAuction is Auth, Guard {
         address keeper // Address that will receive incentives
     ) external lock not_stopped(2) {
         // Read auction data
-        address user = sales[id].user;
-        uint96 start_time = sales[id].start_time;
-        uint256 starting_price = sales[id].starting_price;
+        Sale storage sale = sales[id];
+        address user = sale.user;
+        uint96 start_time = sale.start_time;
+        uint256 starting_price = sale.starting_price;
 
         require(user != address(0), "not running auction");
 
@@ -249,19 +251,19 @@ contract CollateralAuction is Auth, Guard {
         (bool done,) = status(start_time, starting_price);
         require(done, "cannot reset");
 
-        uint256 coin_amount = sales[id].coin_amount;
-        uint256 collateral_amount = sales[id].collateral_amount;
-        sales[id].start_time = uint96(block.timestamp);
+        uint256 coin_amount = sale.coin_amount;
+        uint256 collateral_amount = sale.collateral_amount;
+        sale.start_time = uint96(block.timestamp);
 
         uint256 price = get_price();
         starting_price = Math.rmul(price, boost);
-        require(starting_price > 0, "zero starting price");
-        sales[id].starting_price = starting_price;
+        require(starting_price > 0, "0 starting price");
+        sale.starting_price = starting_price;
 
         // incentive to redo auction
-        // TODO: can call redo multiple times to farm fee?
         uint256 fee;
         if (flat_fee > 0 || fee_rate > 0) {
+            // TODO: wat dis? cache
             if (coin_amount >= cache && collateral_amount * price >= cache) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
                 cdp_engine.mint({
@@ -308,15 +310,16 @@ contract CollateralAuction is Auth, Guard {
         address receiver, // Receiver of collateral and external call address
         bytes calldata data // Data to pass in external call; if length 0, no call is done
     ) external lock not_stopped(3) {
-        address user = sales[id].user;
-        uint96 start_time = sales[id].start_time;
+        Sale storage sale = sales[id];
+        address user = sale.user;
+        uint96 start_time = sale.start_time;
 
         require(user != address(0), "not running auction");
 
         uint256 price;
         {
             bool done;
-            (done, price) = status(start_time, sales[id].starting_price);
+            (done, price) = status(start_time, sale.starting_price);
             // Check that auction doesn't need reset
             require(!done, "needs reset");
         }
@@ -324,8 +327,8 @@ contract CollateralAuction is Auth, Guard {
         // Ensure price is acceptable to buyer
         require(max_price >= price, "too-expensive");
 
-        uint256 collateral_amount = sales[id].collateral_amount;
-        uint256 coin_amount = sales[id].coin_amount;
+        uint256 collateral_amount = sale.collateral_amount;
+        uint256 coin_amount = sale.coin_amount;
         // BEI needed to buy a slice of this sale
         uint256 owe;
 
@@ -402,8 +405,8 @@ contract CollateralAuction is Auth, Guard {
             );
             _remove(id);
         } else {
-            sales[id].coin_amount = coin_amount;
-            sales[id].collateral_amount = collateral_amount;
+            sale.coin_amount = coin_amount;
+            sale.collateral_amount = collateral_amount;
         }
 
         emit Take(
@@ -450,16 +453,17 @@ contract CollateralAuction is Auth, Guard {
             uint256 coin_amount
         )
     {
+        Sale storage sale = sales[id];
         // Read auction data
-        address user = sales[id].user;
-        uint96 start_time = sales[id].start_time;
+        address user = sale.user;
+        uint96 start_time = sale.start_time;
 
         bool done;
-        (done, price) = status(start_time, sales[id].starting_price);
+        (done, price) = status(start_time, sale.starting_price);
 
         needs_redo = user != address(0) && done;
-        collateral_amount = sales[id].collateral_amount;
-        coin_amount = sales[id].coin_amount;
+        collateral_amount = sale.collateral_amount;
+        coin_amount = sale.coin_amount;
     }
 
     // Internally returns boolean for if an auction needs a redo
@@ -486,13 +490,11 @@ contract CollateralAuction is Auth, Guard {
 
     // Cancel an auction during ES or via governance action.
     function yank(uint256 id) external auth lock {
-        require(sales[id].user != address(0), "Clipper/not-running-auction");
+        Sale memory sale = sales[id];
+        require(sale.user != address(0), "Clipper/not-running-auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
         cdp_engine.transfer_collateral(
-            collateral_type,
-            address(this),
-            msg.sender,
-            sales[id].collateral_amount
+            collateral_type, address(this), msg.sender, sale.collateral_amount
         );
         _remove(id);
         emit Yank(id);
