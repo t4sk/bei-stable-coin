@@ -345,6 +345,10 @@ contract CollateralAuction is Auth, Guard {
             // rad = wad * ray
             owe = slice * price;
 
+            // owe > coin amount && slice = col amount
+            // owe > coin amount && slice < col amount
+            // owe <= coin amount && slice = col amoun
+            // owe <= coin amount && slice < col amoun
             // Don't collect more than coin_amount of BEI
             if (owe > coin_amount) {
                 // Total debt will be paid
@@ -358,7 +362,7 @@ contract CollateralAuction is Auth, Guard {
                 // If slice = collateral_amount -> auction completed -> dust doesn't matter
                 if (coin_amount - owe < min_coin) {
                     // safe as owe < coin_amount
-                    // If coin_amount <= chost, buyers have to take the entire collateral_amount.
+                    // If coin_amount <= min_coin, buyers have to take the entire collateral_amount.
                     require(coin_amount > min_coin, "no partial purchase");
                     // Adjust amount to pay
                     // owe' <= owe
