@@ -41,7 +41,8 @@ contract CollateralAuction is Auth, Guard {
     uint192 public flat_fee;
     // chost [rad] - Cache the collateral_type dust times the collateral_type
     //               chop to prevent excessive SLOADs
-    uint256 public cache;
+    //               min debt x liquidation penalty multiplier
+    uint256 public min_coin;
 
     // kicks - Total auctions
     uint256 public last_auction_id;
@@ -85,7 +86,7 @@ contract CollateralAuction is Auth, Guard {
     );
     event Take(
         uint256 indexed id,
-        uint256 max_collateral_amount,
+        uint256 max_collateral,
         uint256 price,
         uint256 owe,
         uint256 coin_amount,
@@ -190,7 +191,6 @@ contract CollateralAuction is Auth, Guard {
         // lot [wad] - collateral
         uint256 collateral_amount,
         // user - address that will receive any leftover collaterl
-        // TODO: rename user to cdp?
         address user,
         // keeper - address that will receive incentive
         address keeper
@@ -263,8 +263,9 @@ contract CollateralAuction is Auth, Guard {
         // incentive to redo auction
         uint256 fee;
         if (flat_fee > 0 || fee_rate > 0) {
-            // TODO: wat dis? cache
-            if (coin_amount >= cache && collateral_amount * price >= cache) {
+            if (
+                coin_amount >= min_coin && collateral_amount * price >= min_coin
+            ) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
                 cdp_engine.mint({
                     debt_dst: debt_engine,
@@ -306,7 +307,7 @@ contract CollateralAuction is Auth, Guard {
         // id - Auction id
         uint256 id,
         // amt [wad] - Upper limit on amount of collateral to buy
-        uint256 max_collateral_amount,
+        uint256 max_collateral,
         // max [ray] - Maximum acceptable price (BEI / collateral)
         uint256 max_price,
         // who - Receiver of collateral and external call address
@@ -335,11 +336,10 @@ contract CollateralAuction is Auth, Guard {
         uint256 coin_amount = sale.coin_amount;
         // BEI needed to buy a slice of this sale
         uint256 owe;
-
         {
-            // Purchase as much as possible, up to max_collateral_amount
+            // Purchase as much as possible, up to max_collateral
             // slice <= collateral_amount
-            uint256 slice = Math.min(collateral_amount, max_collateral_amount);
+            uint256 slice = Math.min(collateral_amount, max_collateral);
 
             // BEI needed to buy a slice of this sale
             // rad = wad * ray
@@ -356,14 +356,13 @@ contract CollateralAuction is Auth, Guard {
                 slice = owe / price;
             } else if (owe < coin_amount && slice < collateral_amount) {
                 // If slice = collateral_amount -> auction completed -> dust doesn't matter
-                // TODO: what?
-                if (coin_amount - owe < cache) {
+                if (coin_amount - owe < min_coin) {
                     // safe as owe < coin_amount
                     // If coin_amount <= chost, buyers have to take the entire collateral_amount.
-                    require(coin_amount > cache, "no partial purchase");
+                    require(coin_amount > min_coin, "no partial purchase");
                     // Adjust amount to pay
                     // owe' <= owe
-                    owe = coin_amount - cache;
+                    owe = coin_amount - min_coin;
                     // Adjust slice
                     // slice' = owe' / price < owe / price == slice < collateral_amount
                     slice = owe / price;
@@ -396,7 +395,6 @@ contract CollateralAuction is Auth, Guard {
             // Get BEI from caller
             cdp_engine.transfer_coin(msg.sender, debt_engine, owe);
 
-            // TODO: wat dis?
             // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(
                 collateral_type,
@@ -418,13 +416,7 @@ contract CollateralAuction is Auth, Guard {
         }
 
         emit Take(
-            id,
-            max_collateral_amount,
-            price,
-            owe,
-            coin_amount,
-            collateral_amount,
-            user
+            id, max_collateral, price, owe, coin_amount, collateral_amount, user
         );
     }
 
@@ -461,15 +453,12 @@ contract CollateralAuction is Auth, Guard {
             uint256 coin_amount
         )
     {
-        Sale storage sale = sales[id];
-        // Read auction data
-        address user = sale.user;
-        uint96 start_time = sale.start_time;
+        Sale memory sale = sales[id];
 
         bool done;
-        (done, price) = status(start_time, sale.starting_price);
+        (done, price) = status(sale.start_time, sale.starting_price);
 
-        needs_redo = user != address(0) && done;
+        needs_redo = sale.user != address(0) && done;
         collateral_amount = sale.collateral_amount;
         coin_amount = sale.coin_amount;
     }
@@ -489,11 +478,10 @@ contract CollateralAuction is Auth, Guard {
 
     // Public function to update the cached dust*chop value.
     // upchost
-    function update_cache() external {
+    function update_min_coin() external {
         ICDPEngine.Collateral memory col =
             ICDPEngine(cdp_engine).collaterals(collateral_type);
-        // TODO: wat dis?
-        cache =
+        min_coin =
             Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
     }
 

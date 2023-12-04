@@ -25,23 +25,22 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     struct Collateral {
         // clip - Address of collateral auction house
         address auction;
-        // chop - Liquidation penalty [wad]
+        // chop [wad] - Liquidation penalty multiplier
         uint256 penalty;
-        // hole - Max BEI needed to cover debt+fees of active auctions per collateral [rad]
+        // hole [rad] - Max BEI needed to cover debt+fees of active auctions per collateral
         uint256 max;
-        // dirt - Amountt of BEI needed to cover debt+fees of active auctions per collateral [rad]
+        // dirt [rad] - Amountt of BEI needed to cover debt+fees of active auctions per collateral
         uint256 amount;
     }
 
+    // vat
     ICDPEngine public immutable cdp_engine;
     mapping(bytes32 => Collateral) public collaterals;
-    // debt_engine
+    // vow
     IDebtEngine public debt_engine;
-    // Hole
-    // Max BEI needed to cover debt+fees of active auctions [rad]
+    // Hole [rad] - Max BEI needed to cover debt+fees of active auctions
     uint256 public max;
-    // Dirt
-    // Amount BEI needed to cover debt+fees of active auctions [rad]
+    // Dirt [rad] - Amount BEI needed to cover debt+fees of active auctions
     uint256 public total;
 
     constructor(address _cdp_engine) {
