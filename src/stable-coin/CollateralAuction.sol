@@ -406,7 +406,6 @@ contract CollateralAuction is Auth, Guard {
             );
         }
 
-        // TODO: when col amount > 0 or coin amount > 0?
         if (collateral_amount == 0) {
             _remove(id);
         } else if (coin_amount == 0) {

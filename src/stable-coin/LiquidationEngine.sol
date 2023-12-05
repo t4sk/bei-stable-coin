@@ -8,7 +8,6 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// TODO: study how liquidation works
 // Dog
 contract LiquidationEngine is Auth, CircuitBreaker {
     event Liquidate(
@@ -23,7 +22,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     event Remove(bytes32 col_type, uint256 rad);
 
     struct Collateral {
-        // clip - Address of collateral auction house
+        // clip - Address of collateral auction
         address auction;
         // chop [wad] - Liquidation penalty multiplier
         uint256 penalty;
@@ -38,9 +37,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     mapping(bytes32 => Collateral) public collaterals;
     // vow
     IDebtEngine public debt_engine;
-    // Hole [rad] - Max BEI needed to cover debt+fees of active auctions
+    // Hole [rad] - Max BEI needed to cover debt + fees of active auctions
     uint256 public max;
-    // Dirt [rad] - Amount BEI needed to cover debt+fees of active auctions
+    // Dirt [rad] - Amount BEI needed to cover debt + fees of active auctions
     uint256 public total;
 
     constructor(address _cdp_engine) {
@@ -49,9 +48,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
     // --- Administration ---
     // file
-    function set(bytes32 key, address val) external auth {
+    function set(bytes32 key, address addr) external auth {
         if (key == "debt_engine") {
-            debt_engine = IDebtEngine(val);
+            debt_engine = IDebtEngine(addr);
         } else {
             revert("set invalid param");
         }
@@ -123,9 +122,10 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // 1) Remaining space in the general Hole
             // 2) Remaining space in the collateral hole
             require(max > total && col.max > col.amount, "liquidation limit");
+            // room [rad]
             uint256 room = Math.min(max - total, col.max - col.amount);
 
-            // TODO: why divide by penalty?
+            // rad * wad / ray / wad = wad
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
             delta_debt =
                 Math.min(pos.debt, room * WAD / c.rate_acc / col.penalty);
@@ -151,7 +151,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
         uint256 delta_col = (pos.collateral * delta_debt) / pos.debt;
 
-        require(delta_col > 0, "null-auction");
+        require(delta_col > 0, "null auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
         // NOTE: collateral sent to aution, debt sent to debt engine
