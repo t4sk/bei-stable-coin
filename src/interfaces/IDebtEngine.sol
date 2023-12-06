@@ -32,7 +32,7 @@ interface IDebtEngine {
     // heal
     function settle_debt(uint256 rad) external;
     // kiss
-    function cancel_auctioned_debt_with_surplus(uint256 rad) external;
+    function decrease_auction_debt(uint256 rad) external;
     // flop
     function start_debt_auction() external returns (uint256 id);
     // flap

@@ -95,7 +95,7 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // heal - Debt settlement
     function settle_debt(uint256 rad) external {
-        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
         require(
             rad
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
@@ -106,9 +106,9 @@ contract DebtEngine is Auth, CircuitBreaker {
     }
 
     // kiss
-    function cancel_auctioned_debt_with_surplus(uint256 rad) external {
+    function decrease_auction_debt(uint256 rad) external {
         require(rad <= total_debt_on_auction, "not enough debt on auction");
-        require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
+        require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
         // TODO: what?
         total_debt_on_auction -= rad;
         cdp_engine.burn(rad);
@@ -124,11 +124,13 @@ contract DebtEngine is Auth, CircuitBreaker {
                     - total_debt_on_auction,
             "insufficient debt"
         );
-        require(cdp_engine.coin(address(this)) == 0, "surplus not zero");
+        require(cdp_engine.coin(address(this)) == 0, "coin not zero");
         total_debt_on_auction += debt_auction_bid_size;
-        id = debt_auction.start(
-            address(this), debt_auction_lot_size, debt_auction_bid_size
-        );
+        id = debt_auction.start({
+            highest_bidder: address(this),
+            lot: debt_auction_lot_size,
+            bid_amount: debt_auction_bid_size
+        });
     }
 
     // flap
@@ -138,7 +140,7 @@ contract DebtEngine is Auth, CircuitBreaker {
             cdp_engine.coin(address(this))
                 >= cdp_engine.unbacked_debts(address(this))
                     + surplus_auction_lot_size + min_surplus,
-            "insufficient surplus"
+            "insufficient coin"
         );
         require(
             cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue

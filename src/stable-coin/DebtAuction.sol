@@ -12,7 +12,6 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 /*
 Debt Auctions are used to recapitalize the system by auctioning off MKR 
 for a fixed amount of BEI
-- sell MKR, buy BEI
 */
 contract DebtAuction is Auth, CircuitBreaker {
     // --- Events ---
@@ -20,16 +19,15 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // --- Data ---
     struct Bid {
-        // bid - BEI paid [rad]
+        // bid [rad] - BEI paid
         uint256 amount;
-        // lot - gems in return for bid [wad]
-        // An individual object or group of objects offered for sale at auction as a single unit.
+        // lot [wad] - gems in return for bid
         uint256 lot;
         // guy - high bidder
         address highest_bidder;
-        // tic - bid expiry time [unix epoch time]
+        // tic [timestamp] - bid expiry time
         uint48 bid_expiry_time;
-        // end - auction expiry time [unix epoch time]
+        // end [timestamp] - auction expiry time
         uint48 auction_end_time;
     }
 
@@ -132,7 +130,7 @@ contract DebtAuction is Auth, CircuitBreaker {
             if (b.bid_expiry_time == 0) {
                 uint256 debt =
                     IDebtEngine(b.highest_bidder).total_debt_on_auction();
-                IDebtEngine(b.highest_bidder).cancel_auctioned_debt_with_surplus(
+                IDebtEngine(b.highest_bidder).decrease_auction_debt(
                     Math.min(bid_amount, debt)
                 );
             }
