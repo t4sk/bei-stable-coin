@@ -154,7 +154,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_col > 0, "null auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
-        // NOTE: collateral sent to aution, debt sent to debt engine
+        // collateral sent to aution, debt sent to debt engine
         cdp_engine.grab({
             col_type: col_type,
             cdp: cdp,

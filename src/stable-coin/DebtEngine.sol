@@ -96,7 +96,6 @@ contract DebtEngine is Auth, CircuitBreaker {
     // heal - Debt settlement
     function settle_debt(uint256 rad) external {
         require(rad <= cdp_engine.coin(address(this)), "insufficient surplus");
-        // TODO: what?
         require(
             rad
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
