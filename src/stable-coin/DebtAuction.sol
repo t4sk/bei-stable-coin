@@ -38,14 +38,14 @@ contract DebtAuction is Auth, CircuitBreaker {
     // gem - MKR
     IGem public immutable gem;
 
-    // beg - minimum bid decrease
+    // beg [wad] - minimum bid decrease
     uint256 public min_lot_decrease = 1.05e18; // 5% minimum bid increase
-    // pad - increase for lot size during tick (default to 50%)
+    // pad [wad] - increase for lot size during tick (default to 50%)
     uint256 public lot_increase = 1.5e18; // 50% lot increase for tick
     // ttl - bid lifetime (Max bid duration / single bid lifetime)
-    uint48 public bid_duration = 3 hours; // 3 hours bid lifetime [seconds]
+    uint48 public bid_duration = 3 hours; // 3 hours bid lifetime
     // tau - maximum auction duration
-    uint48 public auction_duration = 2 days; // 2 days total auction length [seconds]
+    uint48 public auction_duration = 2 days; // 2 days total auction length
     // kicks - Total auction count, used to track auction ids
     uint256 public last_auction_id = 0;
     // vow
