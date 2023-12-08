@@ -25,15 +25,15 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // --- Data ---
     struct Bid {
-        // bid - MKR paid [wad]
+        // bid [wad] - MKR paid
         uint256 amount;
-        // lot - BEI in return for bid [rad]
+        // lot [rad] - BEI in return for bid
         uint256 lot;
         // guy - high bidder
         address highest_bidder;
-        // tic - bid expiry time [unix epoch time]
+        // tic - bid expiry time
         uint48 bid_expiry_time;
-        // end - auction expiry time [unix epoch time]
+        // end - auction expiry time
         uint48 auction_end_time;
     }
 
@@ -44,7 +44,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     // gem - MKR
     IGem public immutable gem;
 
-    // beg - minimum bid increase
+    // beg [wad] - minimum bid increase
     uint256 public min_bid_increase = 1.05e18;
     // ttl - bid lifetime (Max bid duration / single bid lifetime)
     uint48 public bid_duration = 3 hours;
@@ -52,9 +52,9 @@ contract SurplusAuction is Auth, CircuitBreaker {
     uint48 public auction_duration = 2 days;
     // kicks - Total auction count, used to track auction ids
     uint256 public last_auction_id = 0;
-    // lid - max BEI to be in auction at one time [rad]
+    // lid [rad] - max BEI to be in auction at one time
     uint256 public max_coin_in_auction;
-    // fill - current BEI in auction [rad]
+    // fill [rad] - current BEI in auction
     uint256 public total_coin_in_auction;
 
     constructor(address _cdp_engine, address _gem) {
@@ -116,23 +116,28 @@ contract SurplusAuction is Auth, CircuitBreaker {
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or first bid
         require(
-            b.bid_expiry_time > block.timestamp || b.bid_expiry_time == 0,
+            block.timestamp < b.bid_expiry_time || b.bid_expiry_time == 0,
             "bid expired"
         );
-        require(b.auction_end_time > block.timestamp, "auction ended");
+        require(block.timestamp < b.auction_end_time, "auction ended");
 
         require(lot == b.lot, "lot not matching");
         require(bid_amount > b.amount, "bid <= current");
-        // bid amount >= min bid increase * current bid
         require(
             bid_amount * WAD >= min_bid_increase * b.amount,
             "insufficient increase"
         );
 
         if (msg.sender != b.highest_bidder) {
+            // 0   -> debt engine
+            // 100 -> bidder 1
+            // 110 -> bidder 2
             gem.move(msg.sender, b.highest_bidder, b.amount);
             b.highest_bidder = msg.sender;
         }
+        // 100 <- bidder 1 (100 bid)
+        // 10  <- bidder 2 (110 bid)
+        // 20  <- bidder 3 (130 bid)
         gem.move(msg.sender, address(this), bid_amount - b.amount);
 
         b.amount = bid_amount;
@@ -151,7 +156,6 @@ contract SurplusAuction is Auth, CircuitBreaker {
             "not finished"
         );
         cdp_engine.transfer_coin(address(this), b.highest_bidder, b.lot);
-        // TODO: balance of address(this) >= b.amount ?
         gem.burn(address(this), b.amount);
         delete bids[id];
         total_coin_in_auction -= b.lot;
