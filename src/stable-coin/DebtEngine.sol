@@ -109,7 +109,6 @@ contract DebtEngine is Auth, CircuitBreaker {
     function decrease_auction_debt(uint256 rad) external {
         require(rad <= total_debt_on_auction, "not enough debt on auction");
         require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
-        // TODO: what?
         total_debt_on_auction -= rad;
         cdp_engine.burn(rad);
     }
@@ -117,7 +116,6 @@ contract DebtEngine is Auth, CircuitBreaker {
     // flop
     // Debt auction
     function start_debt_auction() external returns (uint256 id) {
-        // TODO: what?
         require(
             debt_auction_bid_size
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
