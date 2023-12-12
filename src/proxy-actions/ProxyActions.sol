@@ -611,6 +611,7 @@ contract ProxyActions is Common {
         bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
         // Takes token amount from user's wallet and joins into the cdp_engine
         gem_join_join(gem_join, cdp, col_amount, is_tranfer_from);
+        return;
         // Locks token amount into the CDP and generates debt
         modify_cdp({
             cdp_manager: cdp_manager,

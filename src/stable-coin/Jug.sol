@@ -69,6 +69,7 @@ contract Jug is Auth {
         }
     }
 
+    // TODO: test
     // --- Stability Fee Collection ---
     // drip
     function collect_stability_fee(bytes32 col_type)
