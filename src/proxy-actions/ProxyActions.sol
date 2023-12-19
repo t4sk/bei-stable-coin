@@ -57,7 +57,7 @@ contract ProxyActions is Common {
         uint256 coin_rad,
         address cdp,
         bytes32 col_type
-    ) internal view returns (int256 delta_debt) {
+    ) internal view returns (int256 delta_debt_wad) {
         // Gets actual rate from the cdp_engine
         ICDPEngine.Collateral memory c =
             ICDPEngine(cdp_engine).collaterals(col_type);
@@ -66,21 +66,21 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
         // Uses the whole coin_rad balance in the cdp_engine to reduce the debt
-        delta_debt = Math.to_int(coin_rad / c.rate_acc);
-        // Checks the calculated delta_debt is not higher than cdp.debt (total debt),
+        delta_debt_wad = Math.to_int(coin_rad / c.rate_acc);
+        // Checks the calculated delta_debt_wad is not higher than cdp.debt (total debt),
         // otherwise uses its value
-        delta_debt = uint256(delta_debt) <= pos.debt
-            ? -delta_debt
+        delta_debt_wad = uint256(delta_debt_wad) <= pos.debt
+            ? -delta_debt_wad
             : -Math.to_int(pos.debt);
     }
 
     // _getWipeAllWad
-    function get_repay_all_debt(
+    function get_repay_all_coin_wad(
         address cdp_engine,
         address user,
         address cdp,
         bytes32 col_type
-    ) internal view returns (uint256 wad) {
+    ) internal view returns (uint256 coin_wad) {
         // Gets actual rate from the cdp_engine
         ICDPEngine.Collateral memory c =
             ICDPEngine(cdp_engine).collaterals(col_type);
@@ -91,10 +91,10 @@ contract ProxyActions is Common {
         uint256 coin_bal = ICDPEngine(cdp_engine).coin(user);
 
         uint256 rad = pos.debt * c.rate_acc - coin_bal;
-        wad = rad / RAY;
+        coin_wad = rad / RAY;
 
-        // If the rad precision has some dust, it will need to request for 1 extra wad wei
-        wad = wad * RAY < rad ? wad + 1 : wad;
+        // If the rad precision has some dust, it will need to request for 1 extra coin_wad wei
+        coin_wad = coin_wad * RAY < rad ? coin_wad + 1 : coin_wad;
     }
 
     function transfer(address gem, address dst, uint256 amount) public {
@@ -497,7 +497,7 @@ contract ProxyActions is Common {
             coin_join_join(
                 coin_join,
                 cdp,
-                get_repay_all_debt(cdp_engine, cdp, cdp, col_type)
+                get_repay_all_coin_wad(cdp_engine, cdp, cdp, col_type)
             );
             // Paybacks debt to the CDP
             modify_cdp({
@@ -511,7 +511,7 @@ contract ProxyActions is Common {
             coin_join_join(
                 coin_join,
                 address(this),
-                get_repay_all_debt(cdp_engine, address(this), cdp, col_type)
+                get_repay_all_coin_wad(cdp_engine, address(this), cdp, col_type)
             );
             // Paybacks debt to the CDP
             ICDPEngine(cdp_engine).modify_cdp({
@@ -711,7 +711,7 @@ contract ProxyActions is Common {
                 col_type: ICDPManager(cdp_manager).collaterals(cdp_id)
             })
         });
-        // Moves the amount from the CDP cdp to proxy's address
+        // Moves the amount from the CDP to proxy's address
         transfer_collateral({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
@@ -742,7 +742,9 @@ contract ProxyActions is Common {
 
         // Joins BEI amount into the cdp_engine
         coin_join_join(
-            coin_join, cdp, get_repay_all_debt(cdp_engine, cdp, cdp, col_type)
+            coin_join,
+            cdp,
+            get_repay_all_coin_wad(cdp_engine, cdp, cdp, col_type)
         );
         // Paybacks debt to the CDP and unlocks WETH amount from it
         modify_cdp({
@@ -808,7 +810,9 @@ contract ProxyActions is Common {
 
         // Joins BEI amount into the cdp_engine
         coin_join_join(
-            coin_join, cdp, get_repay_all_debt(cdp_engine, cdp, cdp, col_type)
+            coin_join,
+            cdp,
+            get_repay_all_coin_wad(cdp_engine, cdp, cdp, col_type)
         );
         uint256 col_wad = to_wad(gem_join, col_amount);
         // Paybacks debt to the CDP and unlocks token amount from it
