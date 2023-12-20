@@ -7,6 +7,8 @@ import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import {AccessControl} from "../lib/AccessControl.sol";
 
+import "forge-std/Test.sol";
+
 // Vat - CDP Engine
 contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // ilks
@@ -264,6 +266,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         ICDPEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate_acc
         // new total debt = col.debt * (col.rate_acc + delta_rate_acc)
+        // delta coin = new total debt - old total debt
         col.rate_acc = Math.add(col.rate_acc, delta_rate_acc);
         int256 delta_coin = Math.mul(col.debt, delta_rate_acc);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
