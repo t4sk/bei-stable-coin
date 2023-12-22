@@ -40,7 +40,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         if (key == "sys_max_debt") {
             sys_max_debt = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -56,7 +56,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         } else if (key == "min_debt") {
             collaterals[col_type].min_debt = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 

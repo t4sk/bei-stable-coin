@@ -28,7 +28,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "par") {
             par = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -40,7 +40,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "price_feed") {
             collaterals[col_type].price_feed = addr;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -52,7 +52,7 @@ contract Spotter is Auth, CircuitBreaker {
         if (key == "liquidation_ratio") {
             collaterals[col_type].liquidation_ratio = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 

@@ -44,7 +44,7 @@ contract Pot is Auth, CircuitBreaker {
         if (key == "savings_rate") {
             savings_rate = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -53,7 +53,7 @@ contract Pot is Auth, CircuitBreaker {
         if (key == "debt_engine") {
             debt_engine = addr;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 

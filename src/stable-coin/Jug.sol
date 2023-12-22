@@ -49,7 +49,7 @@ contract Jug is Auth {
         if (key == "fee") {
             collaterals[col_type].fee = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -57,7 +57,7 @@ contract Jug is Auth {
         if (key == "base_fee") {
             base_fee = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -65,7 +65,7 @@ contract Jug is Auth {
         if (key == "debt_engine") {
             debt_engine = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 

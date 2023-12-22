@@ -89,10 +89,10 @@ contract CDPEngineTest is Test {
     }
 
     function test_set_invalid_param() public {
-        vm.expectRevert("invalid param");
+        vm.expectRevert("unrecognized param");
         cdp_engine.set("x", 0);
 
-        vm.expectRevert("invalid param");
+        vm.expectRevert("unrecognized param");
         cdp_engine.set(COL_TYPE, "x", 0);
     }
 

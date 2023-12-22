@@ -52,7 +52,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         if (key == "debt_engine") {
             debt_engine = IDebtEngine(addr);
         } else {
-            revert("set invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -60,7 +60,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         if (key == "max_coin") {
             max_coin = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -71,7 +71,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         } else if (key == "max_coin") {
             collaterals[col_type].max_coin = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -86,8 +86,13 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             );
             collaterals[col_type].auction = auction;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
+    }
+
+    // chop
+    function penalty(bytes32 col_type) external view returns (uint256) {
+        return collaterals[col_type].penalty;
     }
 
     // --- CDP Liquidation: all bark and no bite ---

@@ -5,6 +5,7 @@ import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
+import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import {IAuctionPriceCalculator} from
     "../interfaces/IAuctionPriceCalculator.sol";
 import {ICollateralAuctionCallee} from
@@ -49,23 +50,8 @@ contract CollateralAuction is Auth, Guard {
     // Array of active auction ids
     uint256[] public active;
 
-    struct Sale {
-        // pos - Index in active array
-        uint256 pos;
-        // tab [rad] - Amount of coin to raise
-        uint256 coin_amount;
-        // lot [wad] - Amount of collateral to sell
-        uint256 collateral_amount;
-        // usr - Liquidated CDP
-        address user;
-        // tick - Auction start time
-        uint96 start_time;
-        // top [ray] - Starting price
-        uint256 starting_price;
-    }
-
     // id => Sale
-    mapping(uint256 => Sale) public sales;
+    mapping(uint256 => ICollateralAuction.Sale) public sales;
 
     // Levels for circuit breaker
     // 0: no breaker
@@ -145,7 +131,7 @@ contract CollateralAuction is Auth, Guard {
             // Set breaker (0, 1, 2, or 3)
             stopped = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -160,7 +146,7 @@ contract CollateralAuction is Auth, Guard {
         } else if (key == "calc") {
             calc = IAuctionPriceCalculator(addr);
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -202,7 +188,7 @@ contract CollateralAuction is Auth, Guard {
 
         active.push(id);
 
-        Sale storage sale = sales[id];
+        ICollateralAuction.Sale storage sale = sales[id];
         sale.pos = active.length - 1;
         sale.coin_amount = coin_amount;
         sale.collateral_amount = collateral_amount;
@@ -239,7 +225,7 @@ contract CollateralAuction is Auth, Guard {
         address keeper // Address that will receive incentives
     ) external lock not_stopped(2) {
         // Read auction data
-        Sale storage sale = sales[id];
+        ICollateralAuction.Sale storage sale = sales[id];
         address user = sale.user;
         uint96 start_time = sale.start_time;
         uint256 starting_price = sale.starting_price;
@@ -315,7 +301,7 @@ contract CollateralAuction is Auth, Guard {
         // Data to pass in external call; if length 0, no call is done
         bytes calldata data
     ) external lock not_stopped(3) {
-        Sale storage sale = sales[id];
+        ICollateralAuction.Sale storage sale = sales[id];
         address user = sale.user;
         uint96 start_time = sale.start_time;
 
@@ -456,7 +442,7 @@ contract CollateralAuction is Auth, Guard {
             uint256 coin_amount
         )
     {
-        Sale memory sale = sales[id];
+        ICollateralAuction.Sale memory sale = sales[id];
 
         bool done;
         (done, price) = status(sale.start_time, sale.starting_price);
@@ -490,7 +476,7 @@ contract CollateralAuction is Auth, Guard {
 
     // Cancel an auction during ES or via governance action.
     function yank(uint256 id) external auth lock {
-        Sale memory sale = sales[id];
+        ICollateralAuction.Sale memory sale = sales[id];
         require(sale.user != address(0), "not running auction");
         // liquidation_engine.digs(collateral_type, sales[id].coin_amount);
         cdp_engine.transfer_collateral(

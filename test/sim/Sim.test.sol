@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 import {Gem} from "../Gem.sol";
 import {ICDPEngine} from "../../src/interfaces/ICDPEngine.sol";
+import {ICollateralAuction} from "../../src/interfaces/ICollateralAuction.sol";
 // stable-coin
 import "../../src/lib/Math.sol";
 import {CDPEngine} from "../../src/stable-coin/CDPEngine.sol";
@@ -16,6 +17,9 @@ import {DebtEngine} from "../../src/stable-coin/DebtEngine.sol";
 import {SurplusAuction} from "../../src/stable-coin/SurplusAuction.sol";
 import {DebtAuction} from "../../src/stable-coin/DebtAuction.sol";
 import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
+import {CollateralAuction} from "../../src/stable-coin/CollateralAuction.sol";
+import {StairstepExponentialDecrease} from
+    "../../src/stable-coin/AuctionPriceCalculator.sol";
 
 bytes32 constant COL_TYPE = bytes32(uint256(1));
 
@@ -45,9 +49,11 @@ contract Sim is Test {
     SurplusAuction private surplus_auction;
     DebtAuction private debt_auction;
     LiquidationEngine private liquidation_engine;
+    CollateralAuction private collateral_auction;
+    StairstepExponentialDecrease private stairstep_exp_dec;
     PriceFeed private price_feed;
-    address[] private users = [address(11), address(12), address(13)];
     address private constant keeper = address(111);
+    address[] private users = [address(11), address(12), address(13)];
 
     function setUp() public {
         mkr = new Gem("MKR", "MKR", 18);
@@ -66,6 +72,13 @@ contract Sim is Test {
             address(cdp_engine), address(surplus_auction), address(debt_auction)
         );
         liquidation_engine = new LiquidationEngine(address(cdp_engine));
+        collateral_auction = new CollateralAuction(
+            address(cdp_engine),
+            address(spotter),
+            address(liquidation_engine),
+            COL_TYPE
+        );
+        stairstep_exp_dec = new StairstepExponentialDecrease();
 
         price_feed = new PriceFeed();
 
@@ -73,7 +86,9 @@ contract Sim is Test {
         cdp_engine.add_auth(address(jug));
         cdp_engine.add_auth(address(spotter));
         cdp_engine.add_auth(address(liquidation_engine));
+        cdp_engine.add_auth(address(collateral_auction));
         debt_engine.add_auth(address(liquidation_engine));
+        collateral_auction.add_auth(address(liquidation_engine));
         coin.add_auth(address(coin_join));
 
         cdp_engine.init(COL_TYPE);
@@ -94,6 +109,16 @@ contract Sim is Test {
         liquidation_engine.set(COL_TYPE, "max_coin", 1e5 * RAD);
         // TODO: what is liquidation penalty
         liquidation_engine.set(COL_TYPE, "penalty", 1.13 * 1e18);
+        liquidation_engine.set(COL_TYPE, "auction", address(collateral_auction));
+
+        collateral_auction.set("boost", 1.1 * 1e27);
+        collateral_auction.set("max_duration", 7200);
+        collateral_auction.set("min_delta_price_ratio", 0.45 * 1e27);
+        collateral_auction.set("fee_rate", 0.001 * 1e18);
+        collateral_auction.set("flat_fee", 250 * RAD);
+
+        stairstep_exp_dec.set("cut", 0.99 * 1e27);
+        stairstep_exp_dec.set("step", 90);
 
         price_feed.set(1000 * WAD);
 
@@ -164,6 +189,14 @@ contract Sim is Test {
         returns (ICDPEngine.Position memory)
     {
         return ICDPEngine(address(cdp_engine)).positions(col_type, cdp);
+    }
+
+    function get_sale(uint256 sale_id)
+        internal
+        view
+        returns (ICollateralAuction.Sale memory)
+    {
+        return ICollateralAuction(address(collateral_auction)).sales(sale_id);
     }
 
     function borrow(
@@ -257,8 +290,13 @@ contract Sim is Test {
 
         price_feed.set(10 * WAD);
         spotter.poke(COL_TYPE);
+        collateral_auction.update_min_coin();
 
-        liquidation_engine.liquidate(COL_TYPE, users[0], keeper);
+        uint256 sale_id =
+            liquidation_engine.liquidate(COL_TYPE, users[0], keeper);
+
+        ICollateralAuction.Sale memory sale = get_sale(sale_id);
+        console.log("HERE", sale.coin_amount, sale.collateral_amount);
     }
 
     // TODO: test repay partial

@@ -7,8 +7,7 @@ import "../lib/Math.sol";
 // Abacus
 contract LinearDecrease is Auth {
     // --- Data ---
-    // tau
-    // Seconds after auction start when the price reaches zero [seconds]
+    // tau [seconds] - Seconds after auction start when the price reaches zero
     uint256 public duration;
 
     // --- Administration ---
@@ -17,7 +16,7 @@ contract LinearDecrease is Auth {
         if (key == "duration") {
             duration = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
@@ -38,8 +37,41 @@ contract LinearDecrease is Auth {
     }
 }
 
-// TODO:
-contract StairstepExponentialDecrease is Auth {}
+contract StairstepExponentialDecrease is Auth {
+    // --- Data ---
+    // step [seconds] - Length of time between price drops
+    uint256 public step;
+    // cut [ray] - Per-step multiplicative factor
+    uint256 public cut;
+
+    // --- Administration ---
+    // file
+    function set(bytes32 key, uint256 val) external auth {
+        if (key == "cut") {
+            require(
+                (cut = val) <= RAY, "StairstepExponentialDecrease/cut-gt-RAY"
+            );
+        } else if (key == "step") {
+            step = val;
+        } else {
+            revert("unrecognized param");
+        }
+    }
+
+    // top: initial price
+    // dur: seconds since the auction has started
+    // step: seconds between a price drop
+    // cut: cut encodes the percentage to decrease per step.
+    //   For efficiency, the values is set as (1 - (% value / 100)) * RAY
+    //   So, for a 1% decrease per step, cut would be (1 - 0.01) * RAY
+    //
+    // returns: top * (cut ^ dur)
+    //
+    //
+    function price(uint256 top, uint256 dt) external view returns (uint256) {
+        return Math.rmul(top, Math.rpow(cut, dt / step, RAY));
+    }
+}
 
 // TODO:
 contract ExponentialDecrease is Auth {}

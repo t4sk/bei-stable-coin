@@ -73,7 +73,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
         } else if (key == "max_coin_in_auction") {
             max_coin_in_auction = val;
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 

@@ -67,7 +67,7 @@ contract DebtAuction is Auth, CircuitBreaker {
         } else if (key == "auction_duration") {
             auction_duration = uint48(val);
         } else {
-            revert("invalid param");
+            revert("unrecognized param");
         }
     }
 
