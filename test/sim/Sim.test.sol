@@ -53,6 +53,7 @@ contract Sim is Test {
     StairstepExponentialDecrease private stairstep_exp_dec;
     PriceFeed private price_feed;
     address private constant keeper = address(111);
+    address private constant liquidator = address(222);
     address[] private users = [address(11), address(12), address(13)];
 
     function setUp() public {
@@ -88,6 +89,7 @@ contract Sim is Test {
         cdp_engine.add_auth(address(liquidation_engine));
         cdp_engine.add_auth(address(collateral_auction));
         debt_engine.add_auth(address(liquidation_engine));
+        liquidation_engine.add_auth(address(collateral_auction));
         collateral_auction.add_auth(address(liquidation_engine));
         coin.add_auth(address(coin_join));
 
@@ -111,6 +113,8 @@ contract Sim is Test {
         liquidation_engine.set(COL_TYPE, "penalty", 1.13 * 1e18);
         liquidation_engine.set(COL_TYPE, "auction", address(collateral_auction));
 
+        collateral_auction.set("debt_engine", address(debt_engine));
+        collateral_auction.set("calc", address(stairstep_exp_dec));
         collateral_auction.set("boost", 1.1 * 1e27);
         collateral_auction.set("max_duration", 7200);
         collateral_auction.set("min_delta_price_ratio", 0.45 * 1e27);
@@ -288,6 +292,11 @@ contract Sim is Test {
         uint256 coin_wad = 100 * WAD;
         borrow(COL_TYPE, users[0], col_wad, coin_wad);
 
+        vm.prank(liquidator);
+        cdp_engine.allow_account_modification(address(collateral_auction));
+        // Liquidator has coin
+        cdp_engine.mint(liquidator, liquidator, 100 * RAD);
+
         price_feed.set(10 * WAD);
         spotter.poke(COL_TYPE);
         collateral_auction.update_min_coin();
@@ -295,8 +304,22 @@ contract Sim is Test {
         uint256 sale_id =
             liquidation_engine.liquidate(COL_TYPE, users[0], keeper);
 
+        skip(3600);
+
         ICollateralAuction.Sale memory sale = get_sale(sale_id);
-        console.log("HERE", sale.coin_amount, sale.collateral_amount);
+        (, uint256 price,,) = collateral_auction.get_status(sale_id);
+
+        vm.prank(liquidator);
+        collateral_auction.take(
+            sale_id, sale.collateral_amount, price, liquidator, ""
+        );
+
+        assertEq(
+            cdp_engine.gem(COL_TYPE, liquidator),
+            sale.collateral_amount,
+            "keeper collateral"
+        );
+        console.log("HERE", cdp_engine.coin(address(debt_engine)));
     }
 
     // TODO: test repay partial
