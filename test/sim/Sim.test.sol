@@ -15,6 +15,7 @@ import {Jug} from "../../src/stable-coin/Jug.sol";
 import {DebtEngine} from "../../src/stable-coin/DebtEngine.sol";
 import {SurplusAuction} from "../../src/stable-coin/SurplusAuction.sol";
 import {DebtAuction} from "../../src/stable-coin/DebtAuction.sol";
+import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
 
 bytes32 constant COL_TYPE = bytes32(uint256(1));
 
@@ -43,8 +44,10 @@ contract Sim is Test {
     DebtEngine private debt_engine;
     SurplusAuction private surplus_auction;
     DebtAuction private debt_auction;
+    LiquidationEngine private liquidation_engine;
     PriceFeed private price_feed;
     address[] private users = [address(11), address(12), address(13)];
+    address private constant keeper = address(111);
 
     function setUp() public {
         mkr = new Gem("MKR", "MKR", 18);
@@ -62,12 +65,15 @@ contract Sim is Test {
         debt_engine = new DebtEngine(
             address(cdp_engine), address(surplus_auction), address(debt_auction)
         );
+        liquidation_engine = new LiquidationEngine(address(cdp_engine));
 
         price_feed = new PriceFeed();
 
         cdp_engine.add_auth(address(gem_join));
         cdp_engine.add_auth(address(jug));
         cdp_engine.add_auth(address(spotter));
+        cdp_engine.add_auth(address(liquidation_engine));
+        debt_engine.add_auth(address(liquidation_engine));
         coin.add_auth(address(coin_join));
 
         cdp_engine.init(COL_TYPE);
@@ -82,6 +88,12 @@ contract Sim is Test {
 
         spotter.set(COL_TYPE, "price_feed", address(price_feed));
         spotter.set(COL_TYPE, "liquidation_ratio", 145 * RAY / 100);
+
+        liquidation_engine.set("debt_engine", address(debt_engine));
+        liquidation_engine.set("max_coin", 1e6 * RAD);
+        liquidation_engine.set(COL_TYPE, "max_coin", 1e5 * RAD);
+        // TODO: what is liquidation penalty
+        liquidation_engine.set(COL_TYPE, "penalty", 1.13 * 1e18);
 
         price_feed.set(1000 * WAD);
 
@@ -154,13 +166,18 @@ contract Sim is Test {
         return ICDPEngine(address(cdp_engine)).positions(col_type, cdp);
     }
 
-    function borrow(address user, uint256 col_wad, uint256 coin_wad) internal {
+    function borrow(
+        bytes32 col_type,
+        address user,
+        uint256 col_wad,
+        uint256 coin_wad
+    ) internal {
         // Lock gem
         vm.startPrank(user);
         gem_join.join(user, col_wad);
 
         cdp_engine.modify_cdp({
-            col_type: COL_TYPE,
+            col_type: col_type,
             cdp: user,
             gem_src: user,
             coin_dst: user,
@@ -169,9 +186,9 @@ contract Sim is Test {
         });
 
         // Borrow
-        int256 delta_debt = get_borrow_delta_debt(user, COL_TYPE, coin_wad);
+        int256 delta_debt = get_borrow_delta_debt(user, col_type, coin_wad);
         cdp_engine.modify_cdp({
-            col_type: COL_TYPE,
+            col_type: col_type,
             cdp: user,
             gem_src: user,
             coin_dst: user,
@@ -183,16 +200,16 @@ contract Sim is Test {
         vm.stopPrank();
     }
 
-    function repay_all(address user) internal {
+    function repay_all(bytes32 col_type, address user) internal {
         uint256 repay_all_coin_wad =
-            get_repay_all_coin_wad(user, user, COL_TYPE);
+            get_repay_all_coin_wad(user, user, col_type);
 
-        uint pos_debt = get_position(COL_TYPE, user).debt;
+        uint256 pos_debt = get_position(col_type, user).debt;
 
         vm.startPrank(user);
         coin_join.join(user, repay_all_coin_wad);
         cdp_engine.modify_cdp({
-            col_type: COL_TYPE,
+            col_type: col_type,
             cdp: user,
             gem_src: user,
             coin_dst: user,
@@ -202,10 +219,10 @@ contract Sim is Test {
         vm.stopPrank();
     }
 
-    function test() public {
+    function test_repay_all() public {
         uint256 col_wad = WAD;
         uint256 coin_wad = 100 * WAD;
-        borrow(users[0], col_wad, coin_wad);
+        borrow(COL_TYPE, users[0], col_wad, coin_wad);
 
         uint256 coin_bal = coin.balanceOf(users[0]);
         assertEq(coin_bal, coin_wad, "coin balance");
@@ -216,30 +233,35 @@ contract Sim is Test {
 
         address user = users[0];
 
-        // TODO: test repay all
-        // int256 delta_debt_wad =
-        //     get_repay_delta_debt(coin_wad * RAY, user, COL_TYPE);
-        // console2.log("delta_debt_wad", delta_debt_wad);
-
-        // TODO: test repay partial
         uint256 repay_all_coin_wad =
             get_repay_all_coin_wad(user, user, COL_TYPE);
-        
+
         // TODO: how to circulate coin without this mint?
+        // TODO: borrow -> stability fee -> collect stability fee -> debt engine -> ?
         // Need extra coin to pay stability fee
         coin.mint(user, repay_all_coin_wad - coin_wad);
-        cdp_engine.mint(address(coin_join), address(coin_join), (repay_all_coin_wad - coin_wad) * RAY);
+        cdp_engine.mint(
+            address(coin_join),
+            address(coin_join),
+            (repay_all_coin_wad - coin_wad) * RAY
+        );
 
-        // TODO: borrow -> stability fee -> collect stability fee -> debt engine -> ?
-        // console.log("COIN_JOIN", cdp_engine.coin(address(debt_engine)));
-
-        repay_all(user);
-
-        // spotter.poke(COL_TYPE);
+        repay_all(COL_TYPE, user);
+        assertEq(get_position(COL_TYPE, user).debt, 0, "debt");
     }
 
-    // TODO: test repay
-    // TODO: test liquidation
+    function test_liquidation() public {
+        uint256 col_wad = WAD;
+        uint256 coin_wad = 100 * WAD;
+        borrow(COL_TYPE, users[0], col_wad, coin_wad);
+
+        price_feed.set(10 * WAD);
+        spotter.poke(COL_TYPE);
+
+        liquidation_engine.liquidate(COL_TYPE, users[0], keeper);
+    }
+
+    // TODO: test repay partial
     // TODO: test debt auction
     // TODO: test surplus auction
     // TODO: test Rates module

@@ -27,9 +27,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         // chop [wad] - Liquidation penalty multiplier
         uint256 penalty;
         // hole [rad] - Max BEI needed to cover debt+fees of active auctions per collateral
-        uint256 max;
+        uint256 max_coin;
         // dirt [rad] - Amountt of BEI needed to cover debt+fees of active auctions per collateral
-        uint256 amount;
+        uint256 coin_amount;
     }
 
     // vat
@@ -38,9 +38,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // vow
     IDebtEngine public debt_engine;
     // Hole [rad] - Max BEI needed to cover debt + fees of active auctions
-    uint256 public max;
+    uint256 public max_coin;
     // Dirt [rad] - Amount BEI needed to cover debt + fees of active auctions
-    uint256 public total;
+    uint256 public total_coin;
 
     constructor(address _cdp_engine) {
         cdp_engine = ICDPEngine(_cdp_engine);
@@ -57,8 +57,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     }
 
     function set(bytes32 key, uint256 val) external auth {
-        if (key == "max") {
-            max = val;
+        if (key == "max_coin") {
+            max_coin = val;
         } else {
             revert("invalid param");
         }
@@ -68,8 +68,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         if (key == "penalty") {
             require(val >= WAD, "penalty < WAD");
             collaterals[col_type].penalty = val;
-        } else if (key == "max") {
-            collaterals[col_type].max = val;
+        } else if (key == "max_coin") {
+            collaterals[col_type].max_coin = val;
         } else {
             revert("invalid param");
         }
@@ -121,12 +121,17 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // Get the minimum value between:
             // 1) Remaining space in the general Hole
             // 2) Remaining space in the collateral hole
-            require(max > total && col.max > col.amount, "liquidation limit");
+            require(
+                max_coin > total_coin && col.max_coin > col.coin_amount,
+                "liquidation limit"
+            );
             // room [rad]
-            uint256 room = Math.min(max - total, col.max - col.amount);
+            uint256 room =
+                Math.min(max_coin - total_coin, col.max_coin - col.coin_amount);
 
             // rad * wad / ray / wad = wad
             // uint256.max()/(RAD*WAD) = 115,792,089,237,316
+            // TODO: wat dis / penalty?
             delta_debt =
                 Math.min(pos.debt, room * WAD / c.rate_acc / col.penalty);
 
@@ -171,8 +176,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // Avoid stack too deep
             // This calcuation will overflow if delta_debt*rate_acc exceeds ~10^14
             uint256 target_coin_amount = due * col.penalty / WAD;
-            total += target_coin_amount;
-            collaterals[col_type].amount += target_coin_amount;
+            total_coin += target_coin_amount;
+            collaterals[col_type].coin_amount += target_coin_amount;
 
             id = ICollateralAuction(col.auction).start({
                 // tab - the target BEI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
@@ -194,8 +199,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         external
         auth
     {
-        total -= rad;
-        collaterals[col_type].amount -= rad;
+        total_coin -= rad;
+        collaterals[col_type].coin_amount -= rad;
         emit Remove(col_type, rad);
     }
 
