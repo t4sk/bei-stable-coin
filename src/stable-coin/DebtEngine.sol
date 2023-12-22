@@ -18,10 +18,10 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // sin (mapping timestamp => rad)
     mapping(uint256 => uint256) public debt_queue;
-    // Sin [rad]
+    // Sin [rad] - total debt pushed from liquidation engine
     uint256 public total_debt_on_queue;
     // Ash [rad]
-    uint256 public total_debt_on_auction;
+    uint256 public total_debt_on_debt_auction;
 
     // wait [seconds]
     uint256 public pop_debt_delay;
@@ -99,7 +99,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         require(
             rad
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_auction,
+                    - total_debt_on_debt_auction,
             "insufficient debt"
         );
         cdp_engine.burn(rad);
@@ -107,9 +107,9 @@ contract DebtEngine is Auth, CircuitBreaker {
 
     // kiss
     function decrease_auction_debt(uint256 rad) external {
-        require(rad <= total_debt_on_auction, "not enough debt on auction");
+        require(rad <= total_debt_on_debt_auction, "not enough debt on auction");
         require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
-        total_debt_on_auction -= rad;
+        total_debt_on_debt_auction -= rad;
         cdp_engine.burn(rad);
     }
 
@@ -119,11 +119,11 @@ contract DebtEngine is Auth, CircuitBreaker {
         require(
             debt_auction_bid_size
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_auction,
+                    - total_debt_on_debt_auction,
             "insufficient debt"
         );
         require(cdp_engine.coin(address(this)) == 0, "coin not zero");
-        total_debt_on_auction += debt_auction_bid_size;
+        total_debt_on_debt_auction += debt_auction_bid_size;
         id = debt_auction.start({
             highest_bidder: address(this),
             lot: debt_auction_lot_size,
@@ -142,7 +142,7 @@ contract DebtEngine is Auth, CircuitBreaker {
         );
         require(
             cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                - total_debt_on_auction == 0,
+                - total_debt_on_debt_auction == 0,
             "debt not zero"
         );
         id = surplus_auction.start(surplus_auction_lot_size, 0);
@@ -151,7 +151,7 @@ contract DebtEngine is Auth, CircuitBreaker {
     function stop() external auth {
         _stop();
         total_debt_on_queue = 0;
-        total_debt_on_auction = 0;
+        total_debt_on_debt_auction = 0;
         surplus_auction.stop(cdp_engine.coin(address(surplus_auction)));
         debt_auction.stop();
         cdp_engine.burn(

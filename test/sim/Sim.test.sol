@@ -106,6 +106,8 @@ contract Sim is Test {
         spotter.set(COL_TYPE, "price_feed", address(price_feed));
         spotter.set(COL_TYPE, "liquidation_ratio", 145 * RAY / 100);
 
+        debt_engine.set("pop_debt_delay", 156 * 3600);
+
         liquidation_engine.set("debt_engine", address(debt_engine));
         liquidation_engine.set("max_coin", 1e6 * RAD);
         liquidation_engine.set(COL_TYPE, "max_coin", 1e5 * RAD);
@@ -301,6 +303,7 @@ contract Sim is Test {
         spotter.poke(COL_TYPE);
         collateral_auction.update_min_coin();
 
+        uint256 t = block.timestamp;
         uint256 sale_id =
             liquidation_engine.liquidate(COL_TYPE, users[0], keeper);
 
@@ -319,7 +322,19 @@ contract Sim is Test {
             sale.collateral_amount,
             "keeper collateral"
         );
-        console.log("HERE", cdp_engine.coin(address(debt_engine)));
+
+        skip(debt_engine.pop_debt_delay());
+        debt_engine.pop_debt_from_queue(t);
+        uint256 debt_engine_coin_bal = cdp_engine.coin(address(debt_engine));
+        debt_engine.settle_debt(debt_engine_coin_bal);
+
+        assertEq(
+            cdp_engine.coin(address(debt_engine)), 0, "debt engine coin balance"
+        );
+        // unbacked debt > 0 from liquidation incentive
+        assertGt(
+            cdp_engine.unbacked_debts(address(debt_engine)), 0, "unbacked debt"
+        );
     }
 
     // TODO: test repay partial
