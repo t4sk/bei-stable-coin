@@ -94,6 +94,7 @@ contract Sim is Test {
         liquidation_engine.add_auth(address(collateral_auction));
         collateral_auction.add_auth(address(liquidation_engine));
         debt_auction.add_auth(address(debt_engine));
+        surplus_auction.add_auth(address(debt_engine));
         coin.add_auth(address(coin_join));
 
         cdp_engine.init(COL_TYPE);
@@ -112,6 +113,10 @@ contract Sim is Test {
         debt_engine.set("pop_debt_delay", 156 * 3600);
         debt_engine.set("debt_auction_lot_size", 250 * WAD);
         debt_engine.set("debt_auction_bid_size", 5000 * RAD);
+        debt_engine.set("surplus_auction_lot_size", 3000 * RAD);
+        debt_engine.set("min_surplus", 10 * RAD);
+
+        surplus_auction.set("max_coin_in_auction", 3000 * RAD);
 
         liquidation_engine.set("debt_engine", address(debt_engine));
         liquidation_engine.set("max_coin", 1e6 * RAD);
@@ -358,7 +363,6 @@ contract Sim is Test {
         );
     }
 
-    // TODO: test repay partial
     function test_debt_auction() public {
         uint256 coin_debt = 5000 * RAD;
         uint256 mkr_lot = 250 * WAD;
@@ -382,7 +386,27 @@ contract Sim is Test {
     }
 
     function test_surplus_auction() public {
-        //
+        uint256 lot = 3000 * RAD;
+        uint256 min_surplus = 10 * RAD;
+        cdp_engine.mint(address(0), address(debt_engine), 5000 * RAD);
+
+        uint256 id = debt_engine.start_surplus_auction();
+
+        uint256 mkr_amount = 10 * WAD;
+        mkr.mint(users[0], mkr_amount);
+        vm.prank(users[0]);
+        mkr.approve(address(surplus_auction), type(uint256).max);
+
+        vm.prank(users[0]);
+        surplus_auction.bid(id, lot, mkr_amount);
+
+        ISurplusAuction.Bid memory bid = get_surplus_auction_bid(id);
+        vm.warp(bid.bid_expiry_time + 1);
+
+        surplus_auction.claim(id);
+        assertEq(cdp_engine.coin(users[0]), lot, "coin balance");
     }
+
+    // TODO: test repay partial
     // TODO: test Rates module
 }
