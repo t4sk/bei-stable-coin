@@ -22,6 +22,7 @@ import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
 import {CollateralAuction} from "../../src/stable-coin/CollateralAuction.sol";
 import {StairstepExponentialDecrease} from
     "../../src/stable-coin/AuctionPriceCalculator.sol";
+import {Pot} from "../../src/stable-coin/Pot.sol";
 
 bytes32 constant COL_TYPE = bytes32(uint256(1));
 
@@ -53,6 +54,7 @@ contract Sim is Test {
     LiquidationEngine private liquidation_engine;
     CollateralAuction private collateral_auction;
     StairstepExponentialDecrease private stairstep_exp_dec;
+    Pot private pot;
     PriceFeed private price_feed;
     address private constant keeper = address(111);
     address private constant liquidator = address(222);
@@ -82,6 +84,7 @@ contract Sim is Test {
             COL_TYPE
         );
         stairstep_exp_dec = new StairstepExponentialDecrease();
+        pot = new Pot(address(cdp_engine));
 
         price_feed = new PriceFeed();
 
@@ -90,6 +93,7 @@ contract Sim is Test {
         cdp_engine.add_auth(address(spotter));
         cdp_engine.add_auth(address(liquidation_engine));
         cdp_engine.add_auth(address(collateral_auction));
+        cdp_engine.add_auth(address(pot));
         debt_engine.add_auth(address(liquidation_engine));
         liquidation_engine.add_auth(address(collateral_auction));
         collateral_auction.add_auth(address(liquidation_engine));
@@ -132,6 +136,8 @@ contract Sim is Test {
         collateral_auction.set("min_delta_price_ratio", 0.45 * 1e27);
         collateral_auction.set("fee_rate", 0.001 * 1e18);
         collateral_auction.set("flat_fee", 250 * RAD);
+
+        pot.set("savings_rate", 1000000001547125957863212448);
 
         stairstep_exp_dec.set("cut", 0.99 * 1e27);
         stairstep_exp_dec.set("step", 90);
@@ -408,5 +414,21 @@ contract Sim is Test {
     }
 
     // TODO: test repay partial
-    // TODO: test Rates module
+
+    function test_savings_rate() public {
+        cdp_engine.mint(address(0), users[0], 100 * RAD);
+        vm.prank(users[0]);
+        cdp_engine.allow_account_modification(address(pot));
+
+        vm.prank(users[0]);
+        pot.join(100 * WAD);
+
+        skip(365 * 24 * 3600);
+        pot.collect_stability_fee();
+
+        vm.prank(users[0]);
+        pot.exit(100 * WAD);
+
+        assertGt(cdp_engine.coin(users[0]), 100 * RAD);
+    }
 }
