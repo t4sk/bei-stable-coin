@@ -14,7 +14,7 @@ interface IDebtEngine {
     // Sin
     function total_debt_on_queue() external view returns (uint256);
     // Ash
-    function total_debt_on_auction() external view returns (uint256);
+    function total_debt_on_debt_auction() external view returns (uint256);
     // wait
     function pop_debt_delay() external view returns (uint256);
     // dump

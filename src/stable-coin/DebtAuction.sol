@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
+import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -18,20 +19,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     event Start(uint256 id, uint256 lot, uint256 bid, address indexed gal);
 
     // --- Data ---
-    struct Bid {
-        // bid [rad] - BEI paid
-        uint256 amount;
-        // lot [wad] - gems in return for bid
-        uint256 lot;
-        // guy - high bidder
-        address highest_bidder;
-        // tic [timestamp] - bid expiry time
-        uint48 bid_expiry_time;
-        // end [timestamp] - auction expiry time
-        uint48 auction_end_time;
-    }
-
-    mapping(uint256 => Bid) public bids;
+    mapping(uint256 => IDebtAuction.Bid) public bids;
 
     // vat
     ICDPEngine public immutable cdp_engine;
@@ -82,7 +70,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     {
         id = ++last_auction_id;
 
-        bids[id] = Bid({
+        bids[id] = IDebtAuction.Bid({
             amount: bid_amount,
             lot: lot,
             highest_bidder: highest_bidder,
@@ -96,7 +84,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     // tick
     // restarts an auction
     function restart(uint256 id) external {
-        Bid storage b = bids[id];
+        IDebtAuction.Bid storage b = bids[id];
         require(b.auction_end_time < block.timestamp, "not finished");
         require(b.bid_expiry_time == 0, "bid already placed");
         b.lot = lot_increase * b.lot / WAD;
@@ -106,7 +94,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     // dent
     // make a bid, decreasing the lot size (Submit a fixed BEI bid with decreasing lot size)
     function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
-        Bid storage b = bids[id];
+        IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or no one has bid yet
         require(
@@ -129,7 +117,7 @@ contract DebtAuction is Auth, CircuitBreaker {
             // on first dent, clear as much Ash as possible
             if (b.bid_expiry_time == 0) {
                 uint256 debt =
-                    IDebtEngine(b.highest_bidder).total_debt_on_auction();
+                    IDebtEngine(b.highest_bidder).total_debt_on_debt_auction();
                 IDebtEngine(b.highest_bidder).decrease_auction_debt(
                     Math.min(bid_amount, debt)
                 );
@@ -144,7 +132,7 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // deal - claim a winning bid / settles a completed auction
     function claim(uint256 id) external live {
-        Bid storage b = bids[id];
+        IDebtAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
                 && (
@@ -165,7 +153,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     }
 
     function yank(uint256 id) external live {
-        Bid storage b = bids[id];
+        IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
         delete bids[id];

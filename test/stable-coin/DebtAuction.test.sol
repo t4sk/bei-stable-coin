@@ -11,7 +11,7 @@ contract MockCDPEngine {
 }
 
 contract MockDebtEngine {
-    function total_debt_on_auction() external view returns (uint256) {
+    function total_debt_on_debt_auction() external view returns (uint256) {
         return 0;
     }
 

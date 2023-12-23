@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {ISurplusAuction} from "../interfaces/ISurplusAuction.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -24,20 +25,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     event Start(uint256 id, uint256 lot, uint256 bid);
 
     // --- Data ---
-    struct Bid {
-        // bid [wad] - MKR paid
-        uint256 amount;
-        // lot [rad] - BEI in return for bid
-        uint256 lot;
-        // guy - high bidder
-        address highest_bidder;
-        // tic - bid expiry time
-        uint48 bid_expiry_time;
-        // end - auction expiry time
-        uint48 auction_end_time;
-    }
-
-    mapping(uint256 => Bid) public bids;
+    mapping(uint256 => ISurplusAuction.Bid) public bids;
 
     // vat
     ICDPEngine public immutable cdp_engine;
@@ -89,7 +77,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
         require(total_coin_in_auction <= max_coin_in_auction, "total > max");
         id = ++last_auction_id;
 
-        bids[id] = Bid({
+        bids[id] = ISurplusAuction.Bid({
             amount: bid_amount,
             lot: lot,
             highest_bidder: msg.sender,
@@ -104,7 +92,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // tick
     function restart(uint256 id) external {
-        Bid storage b = bids[id];
+        ISurplusAuction.Bid storage b = bids[id];
         require(b.auction_end_time < block.timestamp, "not finished");
         require(b.bid_expiry_time == 0, "bid already placed");
         b.auction_end_time = uint48(block.timestamp) + auction_duration;
@@ -112,7 +100,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // tend
     function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
-        Bid storage b = bids[id];
+        ISurplusAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or first bid
         require(
@@ -146,7 +134,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
 
     // deal
     function claim(uint256 id) external live {
-        Bid storage b = bids[id];
+        ISurplusAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
                 && (
@@ -168,7 +156,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     }
 
     function yank(uint256 id) external live {
-        Bid storage b = bids[id];
+        ISurplusAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         gem.move(address(this), b.highest_bidder, b.amount);
         delete bids[id];

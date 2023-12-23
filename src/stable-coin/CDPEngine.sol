@@ -20,6 +20,8 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // dai - account => coin balance [rad]
     mapping(address => uint256) public coin;
     // sin - account => debt balance [rad]
+    // increases when grab or mint is called
+    // decreases when burn is called
     mapping(address => uint256) public unbacked_debts;
 
     // debt - total coin issued [rad]
