@@ -413,8 +413,6 @@ contract Sim is Test {
         assertEq(cdp_engine.coin(users[0]), lot, "coin balance");
     }
 
-    // TODO: test repay partial
-
     function test_savings_rate() public {
         cdp_engine.mint(address(0), users[0], 100 * RAD);
         vm.prank(users[0]);

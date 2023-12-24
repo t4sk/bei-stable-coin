@@ -8,7 +8,6 @@ interface IGem {
     function transferFrom(address src, address dst, uint256 amount)
         external
         returns (bool);
-    // TODO: split interface for MKR
     function mint(address dst, uint256 amount) external;
     function burn(address src, uint256 amount) external;
     function push(address dst, uint256 wad) external;

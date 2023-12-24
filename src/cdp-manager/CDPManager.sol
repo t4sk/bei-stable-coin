@@ -58,7 +58,6 @@ contract CDPManager {
         _;
     }
 
-    // TODO: wat dis?
     // urnAllowed
     modifier cdp_handler_allowed(address user) {
         require(

@@ -46,6 +46,5 @@ contract MathTest is Test {
 
         z = Math.mul(x, y);
         assertEq(z, int256(x) * y);
-        // TODO:
     }
 }

@@ -42,7 +42,6 @@ contract ProxyActions is Common {
             // Calculates the needed delta debt so together with the existing BEI
             // in the cdp_engine is enough to exit wad amount of BEI tokens
             delta_debt = Math.to_int((coin_wad * RAY - coin_bal) / rate);
-            // TODO: wat dis?
             // This is needed due lack of precision.
             // It might need to sum an extra delta debt wei (for the given BEI wad amount)
             delta_debt = uint256(delta_debt) * rate < coin_wad * RAY
@@ -425,7 +424,6 @@ contract ProxyActions is Common {
         bytes32 col_type = ICDPManager(cdp_manager).collaterals(cdp_id);
 
         address owner = ICDPManager(cdp_manager).owner_of(cdp_id);
-        // TODO: why 2 ways to call modify_cdp -> from CDPManager and directly to CDPEngine
         if (
             owner == address(this)
                 || ICDPManager(cdp_manager).cdp_can(owner, cdp_id, address(this))
