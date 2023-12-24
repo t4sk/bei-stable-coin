@@ -271,6 +271,22 @@ contract Sim is Test {
         vm.stopPrank();
     }
 
+    function repay(bytes32 col_type, address user, uint256 coin_wad) internal {
+        vm.startPrank(user);
+        coin_join.join(user, coin_wad);
+        int256 delta_debt_wad =
+            get_repay_delta_debt(coin_wad * RAY, user, col_type);
+        cdp_engine.modify_cdp({
+            col_type: col_type,
+            cdp: user,
+            gem_src: user,
+            coin_dst: user,
+            delta_col: 0,
+            delta_debt: delta_debt_wad
+        });
+        vm.stopPrank();
+    }
+
     function repay_all(bytes32 col_type, address user) internal {
         uint256 repay_all_coin_wad =
             get_repay_all_coin_wad(user, user, col_type);
@@ -290,13 +306,30 @@ contract Sim is Test {
         vm.stopPrank();
     }
 
-    function test_repay_all() public {
+    function test_repay() public {
         uint256 col_wad = WAD;
         uint256 coin_wad = 100 * WAD;
         borrow(COL_TYPE, users[0], col_wad, coin_wad);
 
         uint256 coin_bal = coin.balanceOf(users[0]);
         assertEq(coin_bal, coin_wad, "coin balance");
+
+        // Increase stability fee
+        skip(7 * 24 * 3600);
+        jug.collect_stability_fee(COL_TYPE);
+
+        address user = users[0];
+
+        uint256 debt0 = get_position(COL_TYPE, user).debt;
+        repay(COL_TYPE, user, 60 * WAD);
+        uint256 debt1 = get_position(COL_TYPE, user).debt;
+        assertLt(debt1, debt0, "debt");
+    }
+
+    function test_repay_all() public {
+        uint256 col_wad = WAD;
+        uint256 coin_wad = 100 * WAD;
+        borrow(COL_TYPE, users[0], col_wad, coin_wad);
 
         // Increase stability fee
         skip(7 * 24 * 3600);
@@ -328,7 +361,7 @@ contract Sim is Test {
 
         vm.prank(liquidator);
         cdp_engine.allow_account_modification(address(collateral_auction));
-        // Liquidator has coin
+        // Give coins to liquidator
         cdp_engine.mint(liquidator, liquidator, 100 * RAD);
 
         price_feed.set(10 * WAD);
@@ -341,6 +374,7 @@ contract Sim is Test {
 
         skip(3600);
 
+        // Liquidate
         ICollateralAuction.Sale memory sale = get_sale(sale_id);
         (, uint256 price,,) = collateral_auction.get_status(sale_id);
 
@@ -355,6 +389,7 @@ contract Sim is Test {
             "keeper collateral"
         );
 
+        // Clear debt in debt engine
         skip(debt_engine.pop_debt_delay());
         debt_engine.pop_debt_from_queue(t);
         uint256 debt_engine_coin_bal = cdp_engine.coin(address(debt_engine));
@@ -393,7 +428,6 @@ contract Sim is Test {
 
     function test_surplus_auction() public {
         uint256 lot = 3000 * RAD;
-        uint256 min_surplus = 10 * RAD;
         cdp_engine.mint(address(0), address(debt_engine), 5000 * RAD);
 
         uint256 id = debt_engine.start_surplus_auction();

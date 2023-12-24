@@ -109,7 +109,9 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         address cdp,
         address gem_src,
         address coin_dst,
+        // wad
         int256 delta_col,
+        // wad
         int256 delta_debt
     ) external live {
         ICDPEngine.Position memory pos = positions[col_type][cdp];
