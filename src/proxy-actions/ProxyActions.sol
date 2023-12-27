@@ -41,7 +41,7 @@ contract ProxyActions is Common {
         if (coin_wad * RAY > coin_bal) {
             // Calculates the needed delta debt so together with the existing BEI
             // in the cdp_engine is enough to exit wad amount of BEI tokens
-            delta_debt = Math.to_int((coin_wad * RAY - coin_bal) / rate);
+            delta_debt = int256((coin_wad * RAY - coin_bal) / rate);
             // This is needed due lack of precision.
             // It might need to sum an extra delta debt wei (for the given BEI wad amount)
             delta_debt = uint256(delta_debt) * rate < coin_wad * RAY
@@ -65,12 +65,12 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
         // Uses the whole coin_rad balance in the cdp_engine to reduce the debt
-        delta_debt_wad = Math.to_int(coin_rad / c.rate_acc);
+        delta_debt_wad = int256(coin_rad / c.rate_acc);
         // Checks the calculated delta_debt_wad is not higher than cdp.debt (total debt),
         // otherwise uses its value
         delta_debt_wad = uint256(delta_debt_wad) <= pos.debt
             ? -delta_debt_wad
-            : -Math.to_int(pos.debt);
+            : -int256(pos.debt);
     }
 
     // _getWipeAllWad
@@ -252,7 +252,7 @@ contract ProxyActions is Common {
             cdp: ICDPManager(cdp_manager).positions(cdp_id),
             gem_src: address(this),
             coin_dst: address(this),
-            delta_col: Math.to_int(msg.value),
+            delta_col: int256(msg.value),
             delta_debt: 0
         });
     }
@@ -286,7 +286,7 @@ contract ProxyActions is Common {
             cdp: ICDPManager(cdp_manager).positions(cdp_id),
             gem_src: address(this),
             coin_dst: address(this),
-            delta_col: Math.to_int(to_wad(gem_join, gem_amount)),
+            delta_col: int256(to_wad(gem_join, gem_amount)),
             delta_debt: 0
         });
     }
@@ -317,7 +317,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: -Math.to_int(eth_amount),
+            delta_col: -int256(eth_amount),
             delta_debt: 0
         });
         // Moves the amount from the CDP cdp to proxy's address
@@ -339,7 +339,7 @@ contract ProxyActions is Common {
     ) public {
         uint256 wad = to_wad(gem_join, gem_amount);
         // Unlocks token amount from the CDP
-        modify_cdp(cdp_manager, cdp_id, -Math.to_int(wad), 0);
+        modify_cdp(cdp_manager, cdp_id, -int256(wad), 0);
         // Moves the amount from the CDP cdp to proxy's address
         transfer_collateral(cdp_manager, cdp_id, address(this), wad);
         // Exits token amount to the user's wallet as a token
@@ -554,7 +554,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: Math.to_int(msg.value),
+            delta_col: int256(msg.value),
             delta_debt: get_borrow_delta_debt({
                 cdp_engine: cdp_engine,
                 jug: jug,
@@ -613,7 +613,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: Math.to_int(to_wad(gem_join, col_amount)),
+            delta_col: int256(to_wad(gem_join, col_amount)),
             delta_debt: get_borrow_delta_debt({
                 cdp_engine: cdp_engine,
                 jug: jug,
@@ -701,7 +701,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: -Math.to_int(col_wad),
+            delta_col: -int256(col_wad),
             delta_debt: get_repay_delta_debt({
                 cdp_engine: cdp_engine,
                 coin_rad: ICDPEngine(cdp_engine).coin(cdp),
@@ -748,7 +748,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: -Math.to_int(col_wad),
+            delta_col: -int256(col_wad),
             delta_debt: -int256(pos.debt)
         });
         // Moves the amount from the CDP cdp to proxy's address
@@ -778,7 +778,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: -Math.to_int(col_wad),
+            delta_col: -int256(col_wad),
             delta_debt: get_repay_delta_debt({
                 cdp_engine: ICDPManager(cdp_manager).cdp_engine(),
                 coin_rad: ICDPEngine(ICDPManager(cdp_manager).cdp_engine()).coin(cdp),
@@ -817,7 +817,7 @@ contract ProxyActions is Common {
         modify_cdp({
             cdp_manager: cdp_manager,
             cdp_id: cdp_id,
-            delta_col: -Math.to_int(col_wad),
+            delta_col: -int256(col_wad),
             delta_debt: -int256(pos.debt)
         });
         // Moves the amount from the CDP cdp to proxy's address

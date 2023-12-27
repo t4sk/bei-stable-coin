@@ -163,7 +163,7 @@ contract Sim is Test {
         uint256 rate = jug.collect_stability_fee(col_type);
         uint256 coin_bal = cdp_engine.coin(cdp);
         if (coin_wad * RAY > coin_bal) {
-            delta_debt = Math.to_int((coin_wad * RAY - coin_bal) / rate);
+            delta_debt = int256((coin_wad * RAY - coin_bal) / rate);
             delta_debt = uint256(delta_debt) * rate < coin_wad * RAY
                 ? delta_debt - 1
                 : delta_debt;
@@ -178,10 +178,10 @@ contract Sim is Test {
         ICDPEngine.Collateral memory c = get_collateral(col_type);
         ICDPEngine.Position memory pos = get_position(col_type, cdp);
         // wad
-        delta_debt_wad = Math.to_int(coin_rad / c.rate_acc);
+        delta_debt_wad = int256(coin_rad / c.rate_acc);
         delta_debt_wad = uint256(delta_debt_wad) <= pos.debt
             ? -delta_debt_wad
-            : -Math.to_int(pos.debt);
+            : -int256(pos.debt);
     }
 
     function get_repay_all_coin_wad(address user, address cdp, bytes32 col_type)

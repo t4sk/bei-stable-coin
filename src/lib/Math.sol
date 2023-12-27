@@ -35,10 +35,6 @@ library Math {
         z = int256(x) - int256(y);
     }
 
-    function to_int(uint256 x) internal pure returns (int256 y) {
-        y = int256(x);
-    }
-
     function to_rad(uint256 wad) internal pure returns (uint256 rad) {
         rad = wad * RAY;
     }

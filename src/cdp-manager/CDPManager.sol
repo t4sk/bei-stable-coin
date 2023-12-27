@@ -222,8 +222,8 @@ contract CDPManager {
             col_type: col_type,
             cdp_src: cdp,
             cdp_dst: cdp_dst,
-            delta_col: Math.to_int(pos.collateral),
-            delta_debt: Math.to_int(pos.debt)
+            delta_col: int256(pos.collateral),
+            delta_debt: int256(pos.debt)
         });
     }
 
@@ -242,8 +242,8 @@ contract CDPManager {
             col_type: col_type,
             cdp_src: cdp_src,
             cdp_dst: positions[cdp_id],
-            delta_col: Math.to_int(pos.collateral),
-            delta_debt: Math.to_int(pos.debt)
+            delta_col: int256(pos.collateral),
+            delta_debt: int256(pos.debt)
         });
     }
 
@@ -264,8 +264,8 @@ contract CDPManager {
             col_type: collaterals[cdp_src],
             cdp_src: positions[cdp_src],
             cdp_dst: positions[cdp_dst],
-            delta_col: Math.to_int(pos.collateral),
-            delta_debt: Math.to_int(pos.debt)
+            delta_col: int256(pos.collateral),
+            delta_debt: int256(pos.debt)
         });
     }
 }
