@@ -22,7 +22,7 @@ contract CollateralAuction is Auth, Guard {
 
     // dog
     ILiquidationEngine public liquidation_engine;
-    // debt_engine - Recipient of BEI raised in auctions
+    // vow - Recipient of BEI raised in auctions
     address public debt_engine;
     // spotter - Collateral price module
     ISpotter public spotter;
