@@ -329,12 +329,11 @@ contract CollateralAuction is Auth, Guard {
 
             // BEI needed to buy a slice of this sale
             // rad = wad * ray
+            // owe = amount collateral * BEI / collateral
             owe = slice * price;
 
-            // owe > coin amount && slice = col amount
-            // owe > coin amount && slice < col amount
-            // owe <= coin amount && slice = col amoun
-            // owe <= coin amount && slice < col amoun
+            // owe > coin amount                         -> set own = coin amount and recalculate slice
+            // owe < coin amount && slice < col amount -> ?
             // Don't collect more than coin_amount of BEI
             if (owe > coin_amount) {
                 // Total debt will be paid
@@ -345,13 +344,13 @@ contract CollateralAuction is Auth, Guard {
                 // wad = rad / ray
                 slice = owe / price;
             } else if (owe < coin_amount && slice < collateral_amount) {
-                // If slice = collateral_amount -> auction completed -> dust doesn't matter
+                // If owe = coin amount or slice = collateral_amount -> auction completed -> dust doesn't matter
                 if (coin_amount - owe < min_coin) {
                     // safe as owe < coin_amount
                     // If coin_amount <= min_coin, buyers have to take the entire collateral_amount.
                     require(coin_amount > min_coin, "no partial purchase");
                     // Adjust amount to pay
-                    // owe' <= owe
+                    // coin amount - min coin < owe
                     owe = coin_amount - min_coin;
                     // Adjust slice
                     // slice' = owe' / price < owe / price == slice < collateral_amount
@@ -458,6 +457,7 @@ contract CollateralAuction is Auth, Guard {
         view
         returns (bool done, uint256 price)
     {
+        // price = BEI / collateral [ray]
         price = calc.price(starting_price, block.timestamp - start_time);
         done = (
             block.timestamp - start_time > max_duration

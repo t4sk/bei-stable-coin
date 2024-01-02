@@ -134,9 +134,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             uint256 room =
                 Math.min(max_coin - total_coin, col.max_coin - col.coin_amount);
 
-            // rad * wad / ray / wad = wad
-            // uint256.max()/(RAD*WAD) = 115,792,089,237,316
-            // TODO: wat dis / penalty?
+            // target coin for auction = debt * rate acc * penalty
             delta_debt =
                 Math.min(pos.debt, room * WAD / c.rate_acc / col.penalty);
 
@@ -180,6 +178,9 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         {
             // Avoid stack too deep
             // This calcuation will overflow if delta_debt*rate_acc exceeds ~10^14
+            // target coin amount = delta debt * rate acc * penalty / WAD
+            //         delta debt = min(pos.debt, room * WAD / rate acc / penalty)
+            //          delta col = pos.collateral * delta debt / pos.debt
             uint256 target_coin_amount = due * col.penalty / WAD;
             total_coin += target_coin_amount;
             collaterals[col_type].coin_amount += target_coin_amount;
