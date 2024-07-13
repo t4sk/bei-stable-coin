@@ -10,6 +10,7 @@ interface IDSValue {
 }
 
 // OSM - Oracle security module
+// Deployed contracts are called PIP_ETH, PIP_WBTC, etc...
 contract Oracle is Auth {
     bool public stopped;
 
