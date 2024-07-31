@@ -1,5 +1,9 @@
 # BEI Stable Coin
 
+TODO: clone and build
+
+TODO: excalidraw
+
 ```shell
 # Check this test for how the system works
 forge test --match-path test/sim/Sim.test.sol
