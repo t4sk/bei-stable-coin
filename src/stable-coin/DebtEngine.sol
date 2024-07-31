@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import {IDebtAuction} from "../interfaces/IDebtAuction.sol";

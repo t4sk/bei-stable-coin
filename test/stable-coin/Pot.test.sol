@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
 import {ICDPEngine} from "../../src/interfaces/ICDPEngine.sol";
