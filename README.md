@@ -28,3 +28,9 @@ liquidation ratio = mat / par
 
 liquidation price = spot = val * 1e9 * par / mat
 ```
+
+### Links
+
+-   [dss](https://github.com/makerdao/dss)
+-   [dss-cdp-manager](https://github.com/makerdao/dss-cdp-manager)
+-   [osm](https://github.com/makerdao/osm)
