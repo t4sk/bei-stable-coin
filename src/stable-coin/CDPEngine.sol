@@ -5,10 +5,9 @@ import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
-import {AccessControl} from "../lib/AccessControl.sol";
 
 // Vat - CDP Engine
-contract CDPEngine is Auth, CircuitBreaker, AccessControl {
+contract CDPEngine is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
     // urns - collateral type => account => position
@@ -29,6 +28,29 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
     // Line - total debt ceiling [rad]
     uint256 public sys_max_debt;
 
+    // can
+    // owner => user => can modify account
+    mapping(address => mapping(address => bool)) public can;
+
+    // hope
+    function allow_account_modification(address user) external {
+        can[msg.sender][user] = true;
+    }
+
+    // nope
+    function deny_account_modification(address user) external {
+        can[msg.sender][user] = false;
+    }
+
+    // wish
+    function can_modify_account(address owner, address user)
+        public
+        view
+        returns (bool)
+    {
+        return owner == user || can[owner][user];
+    }
+
     // --- Administration ---
     function init(bytes32 col_type) external auth {
         require(collaterals[col_type].rate_acc == 0, "already initialized");
@@ -44,6 +66,7 @@ contract CDPEngine is Auth, CircuitBreaker, AccessControl {
         }
     }
 
+    // file
     function set(bytes32 col_type, bytes32 key, uint256 val)
         external
         auth
