@@ -7,6 +7,7 @@ import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
+// DaiJoin
 contract CoinJoin is Auth, CircuitBreaker {
     event Join(address indexed user, uint256 wad);
     event Exit(address indexed user, uint256 wad);

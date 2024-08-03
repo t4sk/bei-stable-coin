@@ -15,31 +15,31 @@ contract AuthTest is Test {
         assertTrue(auth.authorized(address(this)));
     }
 
-    function test_add_auth_unauthorized() public {
+    function test_grant_auth_unauthorized() public {
         vm.expectRevert("not authorized");
         address user = address(1);
         vm.prank(user);
-        auth.add_auth(user);
+        auth.grant_auth(user);
     }
 
-    function test_add_auth() public {
+    function test_grant_auth() public {
         address user = address(1);
-        auth.add_auth(user);
+        auth.grant_auth(user);
         assertTrue(auth.authorized(user));
     }
 
-    function test_remove_auth_unauthorized() public {
+    function test_deny_auth_unauthorized() public {
         vm.expectRevert("not authorized");
         address user = address(1);
         vm.prank(user);
-        auth.remove_auth(user);
+        auth.deny_auth(user);
     }
 
-    function test_remove_auth() public {
+    function test_deny_auth() public {
         address user = address(1);
-        auth.add_auth(user);
+        auth.grant_auth(user);
 
-        auth.remove_auth(user);
+        auth.deny_auth(user);
         assertTrue(!auth.authorized(user));
     }
 }

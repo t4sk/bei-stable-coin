@@ -88,18 +88,18 @@ contract Sim is Test {
 
         price_feed = new PriceFeed();
 
-        cdp_engine.add_auth(address(gem_join));
-        cdp_engine.add_auth(address(jug));
-        cdp_engine.add_auth(address(spotter));
-        cdp_engine.add_auth(address(liquidation_engine));
-        cdp_engine.add_auth(address(collateral_auction));
-        cdp_engine.add_auth(address(pot));
-        debt_engine.add_auth(address(liquidation_engine));
-        liquidation_engine.add_auth(address(collateral_auction));
-        collateral_auction.add_auth(address(liquidation_engine));
-        debt_auction.add_auth(address(debt_engine));
-        surplus_auction.add_auth(address(debt_engine));
-        coin.add_auth(address(coin_join));
+        cdp_engine.grant_auth(address(gem_join));
+        cdp_engine.grant_auth(address(jug));
+        cdp_engine.grant_auth(address(spotter));
+        cdp_engine.grant_auth(address(liquidation_engine));
+        cdp_engine.grant_auth(address(collateral_auction));
+        cdp_engine.grant_auth(address(pot));
+        debt_engine.grant_auth(address(liquidation_engine));
+        liquidation_engine.grant_auth(address(collateral_auction));
+        collateral_auction.grant_auth(address(liquidation_engine));
+        debt_auction.grant_auth(address(debt_engine));
+        surplus_auction.grant_auth(address(debt_engine));
+        coin.grant_auth(address(coin_join));
 
         cdp_engine.init(COL_TYPE);
         cdp_engine.set("sys_max_debt", 1e9 * RAD);

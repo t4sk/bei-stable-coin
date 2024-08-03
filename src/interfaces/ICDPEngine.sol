@@ -28,9 +28,9 @@ interface ICDPEngine {
     // wards
     function authorized(address user) external view returns (bool);
     // rely
-    function add_auth(address user) external;
+    function grant_auth(address user) external;
     // deny
-    function remove_auth(address user) external;
+    function deny_auth(address user) external;
     // can
     function can(address owner, address user) external view returns (bool);
     // hope
