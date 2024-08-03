@@ -39,7 +39,7 @@ contract Pot is Auth, CircuitBreaker {
 
     // --- Administration ---
     // file
-    function set(bytes32 key, uint256 val) external auth live {
+    function set(bytes32 key, uint256 val) external auth not_stopped {
         require(block.timestamp == updated_at, "updated_at != now");
         if (key == "savings_rate") {
             savings_rate = val;

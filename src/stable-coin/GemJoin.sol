@@ -31,7 +31,7 @@ contract GemJoin is Auth, CircuitBreaker {
         _stop();
     }
 
-    function join(address user, uint256 wad) external live {
+    function join(address user, uint256 wad) external not_stopped {
         // wad <= 2**255 - 1
         require(int256(wad) >= 0, "overflow");
         cdp_engine.modify_collateral_balance(collateral_type, user, int256(wad));

@@ -62,7 +62,7 @@ contract CDPEngineTest is Test {
 
     function test_constructor() public {
         assertTrue(cdp_engine.authorized(address(this)));
-        assertTrue(cdp_engine.is_live());
+        assertTrue(cdp_engine.live());
     }
 
     function test_init() public {
@@ -129,9 +129,9 @@ contract CDPEngineTest is Test {
         vm.prank(address(1));
         cdp_engine.stop();
 
-        assertEq(cdp_engine.is_live(), true);
+        assertEq(cdp_engine.live(), true);
         cdp_engine.stop();
-        assertEq(cdp_engine.is_live(), false);
+        assertEq(cdp_engine.live(), false);
     }
 
     function test_modify_collateral_balance() public {

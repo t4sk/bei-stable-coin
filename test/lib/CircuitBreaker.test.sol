@@ -9,7 +9,7 @@ contract TestCircuitBreaker is CircuitBreaker {
         _stop();
     }
 
-    function call() public live {}
+    function call() public not_stopped {}
 }
 
 contract CircuitBreakerTest is Test {
@@ -20,11 +20,11 @@ contract CircuitBreakerTest is Test {
     }
 
     function test_live() public {
-        assertEq(cb.is_live(), true);
+        assertEq(cb.live(), true);
         cb.call();
 
         cb.stop();
-        assertEq(cb.is_live(), false);
+        assertEq(cb.live(), false);
 
         vm.expectRevert("stopped");
         cb.call();

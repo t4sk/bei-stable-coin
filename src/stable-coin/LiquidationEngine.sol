@@ -110,7 +110,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // in which case the function reverts.
     function liquidate(bytes32 col_type, address cdp, address keeper)
         external
-        live
+        not_stopped
         returns (uint256 id)
     {
         ICDPEngine.Position memory pos = cdp_engine.positions(col_type, cdp);

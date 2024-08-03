@@ -58,7 +58,7 @@ contract CDPEngine is Auth, CircuitBreaker {
     }
 
     // file
-    function set(bytes32 key, uint256 val) external auth live {
+    function set(bytes32 key, uint256 val) external auth not_stopped {
         if (key == "sys_max_debt") {
             sys_max_debt = val;
         } else {
@@ -70,7 +70,7 @@ contract CDPEngine is Auth, CircuitBreaker {
     function set(bytes32 col_type, bytes32 key, uint256 val)
         external
         auth
-        live
+        not_stopped
     {
         if (key == "spot") {
             collaterals[col_type].spot = val;
@@ -134,7 +134,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         int256 delta_col,
         // wad
         int256 delta_debt
-    ) external live {
+    ) external not_stopped {
         ICDPEngine.Position memory pos = positions[col_type][cdp];
         ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate_acc != 0, "collateral not initialized");
@@ -287,7 +287,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         bytes32 col_type,
         address coin_dst,
         int256 delta_rate_acc
-    ) external auth live {
+    ) external auth not_stopped {
         ICDPEngine.Collateral storage col = collaterals[col_type];
         // old total debt = col.debt * col.rate_acc
         // new total debt = col.debt * (col.rate_acc + delta_rate_acc)

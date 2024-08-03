@@ -70,7 +70,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     function start(uint256 lot, uint256 bid_amount)
         external
         auth
-        live
+        not_stopped
         returns (uint256 id)
     {
         total_coin_in_auction += lot;
@@ -99,7 +99,10 @@ contract SurplusAuction is Auth, CircuitBreaker {
     }
 
     // tend
-    function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
+    function bid(uint256 id, uint256 lot, uint256 bid_amount)
+        external
+        not_stopped
+    {
         ISurplusAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or first bid
@@ -133,7 +136,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
     }
 
     // deal
-    function claim(uint256 id) external live {
+    function claim(uint256 id) external not_stopped {
         ISurplusAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
@@ -155,7 +158,7 @@ contract SurplusAuction is Auth, CircuitBreaker {
         cdp_engine.transfer_coin(address(this), msg.sender, rad);
     }
 
-    function yank(uint256 id) external live {
+    function yank(uint256 id) external not_stopped {
         ISurplusAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         gem.move(address(this), b.highest_bidder, b.amount);

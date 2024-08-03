@@ -32,7 +32,7 @@ contract CoinJoin is Auth, CircuitBreaker {
         emit Join(user, wad);
     }
 
-    function exit(address user, uint256 wad) external live {
+    function exit(address user, uint256 wad) external not_stopped {
         cdp_engine.transfer_coin(msg.sender, address(this), wad * RAY);
         coin.mint(user, wad);
         emit Exit(user, wad);

@@ -43,7 +43,7 @@ contract SpotterTest is Test {
 
     function test_constructor() public {
         assertEq(spotter.authorized(address(this)), true);
-        assertEq(spotter.is_live(), true);
+        assertEq(spotter.live(), true);
         assertEq(address(spotter.cdp_engine()), address(cdp_engine));
         assertEq(spotter.par(), RAY);
     }
@@ -104,6 +104,6 @@ contract SpotterTest is Test {
         spotter.stop();
 
         spotter.stop();
-        assertEq(spotter.is_live(), false);
+        assertEq(spotter.live(), false);
     }
 }

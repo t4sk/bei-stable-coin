@@ -24,7 +24,7 @@ contract Spotter is Auth, CircuitBreaker {
     }
 
     // file
-    function set(bytes32 key, uint256 val) external auth live {
+    function set(bytes32 key, uint256 val) external auth not_stopped {
         if (key == "par") {
             par = val;
         } else {
@@ -35,7 +35,7 @@ contract Spotter is Auth, CircuitBreaker {
     function set(bytes32 col_type, bytes32 key, address addr)
         external
         auth
-        live
+        not_stopped
     {
         if (key == "price_feed") {
             collaterals[col_type].price_feed = addr;
@@ -47,7 +47,7 @@ contract Spotter is Auth, CircuitBreaker {
     function set(bytes32 col_type, bytes32 key, uint256 val)
         external
         auth
-        live
+        not_stopped
     {
         if (key == "liquidation_ratio") {
             collaterals[col_type].liquidation_ratio = val;

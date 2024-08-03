@@ -4,21 +4,22 @@ pragma solidity 0.8.24;
 abstract contract CircuitBreaker {
     event Stop();
 
-    bool public is_live;
+    // live
+    bool public live;
 
-    modifier live() {
-        require(is_live, "stopped");
+    modifier not_stopped() {
+        require(live, "stopped");
         _;
     }
 
     constructor() {
-        is_live = true;
+        live = true;
     }
 
     // cage
     function _stop() internal {
-        require(is_live, "stopped");
-        is_live = false;
+        require(live, "stopped");
+        live = false;
         emit Stop();
     }
 }

@@ -65,7 +65,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     function start(address highest_bidder, uint256 lot, uint256 bid_amount)
         external
         auth
-        live
+        not_stopped
         returns (uint256 id)
     {
         id = ++last_auction_id;
@@ -93,7 +93,10 @@ contract DebtAuction is Auth, CircuitBreaker {
 
     // dent
     // make a bid, decreasing the lot size (Submit a fixed BEI bid with decreasing lot size)
-    function bid(uint256 id, uint256 lot, uint256 bid_amount) external live {
+    function bid(uint256 id, uint256 lot, uint256 bid_amount)
+        external
+        not_stopped
+    {
         IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         // bid not expired or no one has bid yet
@@ -131,7 +134,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     }
 
     // deal - claim a winning bid / settles a completed auction
-    function claim(uint256 id) external live {
+    function claim(uint256 id) external not_stopped {
         IDebtAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
@@ -152,7 +155,7 @@ contract DebtAuction is Auth, CircuitBreaker {
         debt_engine = msg.sender;
     }
 
-    function yank(uint256 id) external live {
+    function yank(uint256 id) external not_stopped {
         IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
