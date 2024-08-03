@@ -2,9 +2,10 @@
 pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
+import {Gem} from "../Gem.sol";
+import "../../src/lib/Math.sol";
 import {CDPEngine} from "../../src/stable-coin/CDPEngine.sol";
 import {GemJoin} from "../../src/stable-coin/GemJoin.sol";
-import {Gem} from "../Gem.sol";
 
 contract GemJoinTest is Test {
     CDPEngine private cdp_engine;
@@ -25,8 +26,22 @@ contract GemJoinTest is Test {
     }
 
     function test_join() public {
-        gem_join.join(address(this), 1e18);
+        uint256 wad = 1e18;
+        gem_join.join(address(this), wad);
+
+        assertEq(gem.balanceOf(address(gem_join)), wad);
+        assertEq(cdp_engine.gem(COL_TYPE, address(this)), wad);
     }
 
-    function test_exit() public {}
+    function test_exit() public {
+        uint256 wad = 1e18;
+        gem_join.join(address(this), wad);
+
+        address gem_dst = address(1);
+        gem_join.exit(gem_dst, wad);
+
+        assertEq(gem.balanceOf(address(gem_join)), 0);
+        assertEq(gem.balanceOf(gem_dst), wad);
+        assertEq(cdp_engine.gem(COL_TYPE, address(this)), 0);
+    }
 }
