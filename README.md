@@ -1,8 +1,9 @@
 # BEI Stable Coin
 
-TODO: clone and build
-
-TODO: excalidraw
+```shell
+forge build
+forge test
+```
 
 ```shell
 # Check this test for how the system works
