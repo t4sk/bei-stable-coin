@@ -3,7 +3,6 @@ pragma solidity 0.8.24;
 
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
-import {AccessControl} from "../lib/AccessControl.sol";
 
 // TODO:
-contract EmergencyShutdown is Auth, AccessControl {}
+contract EmergencyShutdown is Auth {}
