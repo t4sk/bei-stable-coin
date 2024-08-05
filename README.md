@@ -11,6 +11,18 @@ forge test --match-path test/sim/Sim.test.sol
 ```
 
 TODO: ESM
+test
+
+-   spot
+-   jug
+-   pot
+-   vat
+-   vow
+-   Clipper
+-   Dog
+-   Flopper
+-   Flapper
+-   cdp manager
 
 ### Memo
 
@@ -32,6 +44,7 @@ liquidation price = spot = val * 1e9 * par / mat
 
 ### Links
 
+-   [docs](https://docs.makerdao.com/)
 -   [dss](https://github.com/makerdao/dss)
 -   [dss-proxy](https://github.com/makerdao/dss-proxy)
 -   [dss-proxy-actions](https://github.com/makerdao/dss-proxy-actions)

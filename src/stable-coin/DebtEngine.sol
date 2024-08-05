@@ -8,7 +8,7 @@ import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// Vow - Debt engine
+// Vow - Debt engine (receiver of surplus and debt)
 contract DebtEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
     // flapper
@@ -140,6 +140,7 @@ contract DebtEngine is Auth, CircuitBreaker {
                     + surplus_auction_lot_size + min_surplus,
             "insufficient coin"
         );
+        // unbacked debt = total debt on queue + total debt on auction
         require(
             cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
                 - total_debt_on_debt_auction == 0,
