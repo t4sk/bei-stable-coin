@@ -10,18 +10,19 @@ forge test
 forge test --match-path test/sim/Sim.test.sol
 ```
 
-TODO: ESM
+TODO: ESM?
+TODO: OSM?
+TODO: gov?
+
 test
 
--   spot
--   jug
 -   pot
 -   vat
 -   vow
--   Clipper
--   Dog
--   Flopper
--   Flapper
+-   clipper
+-   dog
+-   flopper
+-   flapper
 -   cdp manager
 
 ### Memo
