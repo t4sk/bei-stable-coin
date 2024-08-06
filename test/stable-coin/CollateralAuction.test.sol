@@ -87,7 +87,7 @@ contract CollateralAuctionTest is Test {
     MockLiquidationEngine private liquidation_engine;
     MockCalc private calc;
     CollateralAuction private auction;
-    address private constant debt_engine = address(111);
+    address private constant ds_engine = address(111);
     address private constant user = address(11);
     address private constant keeper = address(12);
 
@@ -117,7 +117,7 @@ contract CollateralAuctionTest is Test {
         auction.set("fee_rate", 1e15);
         auction.set("flat_fee", RAD);
         auction.set("calc", address(calc));
-        auction.set("debt_engine", debt_engine);
+        auction.set("ds_engine", ds_engine);
     }
 
     function test_auction() public {

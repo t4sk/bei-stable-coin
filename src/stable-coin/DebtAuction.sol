@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
-import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
+import {IDSEngine} from "../interfaces/IDSEngine.sol";
 import {IDebtAuction} from "../interfaces/IDebtAuction.sol";
 import {IGem} from "../interfaces/IGem.sol";
 import "../lib/Math.sol";
@@ -37,7 +37,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     // kicks - Total auction count, used to track auction ids
     uint256 public last_auction_id = 0;
     // vow
-    address public debt_engine; // not used until shutdown TODO: why?
+    address public ds_engine; // not used until shutdown TODO: why?
 
     constructor(address _cdp_engine, address _gem) {
         cdp_engine = ICDPEngine(_cdp_engine);
@@ -120,8 +120,8 @@ contract DebtAuction is Auth, CircuitBreaker {
             // on first dent, clear as much Ash as possible
             if (b.bid_expiry_time == 0) {
                 uint256 debt =
-                    IDebtEngine(b.highest_bidder).total_debt_on_debt_auction();
-                IDebtEngine(b.highest_bidder).decrease_auction_debt(
+                    IDSEngine(b.highest_bidder).total_debt_on_debt_auction();
+                IDSEngine(b.highest_bidder).decrease_auction_debt(
                     Math.min(bid_amount, debt)
                 );
             }
@@ -152,13 +152,13 @@ contract DebtAuction is Auth, CircuitBreaker {
     function stop() external auth {
         _stop();
         // TODO: why?
-        debt_engine = msg.sender;
+        ds_engine = msg.sender;
     }
 
     function yank(uint256 id) external not_stopped {
         IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
-        cdp_engine.mint(debt_engine, b.highest_bidder, b.amount);
+        cdp_engine.mint(ds_engine, b.highest_bidder, b.amount);
         delete bids[id];
     }
 }

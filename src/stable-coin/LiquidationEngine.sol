@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
-import {IDebtEngine} from "../interfaces/IDebtEngine.sol";
+import {IDSEngine} from "../interfaces/IDSEngine.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -36,7 +36,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
     mapping(bytes32 => Collateral) public collaterals;
     // vow
-    IDebtEngine public debt_engine;
+    IDSEngine public ds_engine;
     // Hole [rad] - Max BEI needed to cover debt + fees of active auctions
     uint256 public max_coin;
     // Dirt [rad] - Amount BEI needed to cover debt + fees of active auctions
@@ -49,8 +49,8 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     // --- Administration ---
     // file
     function set(bytes32 key, address addr) external auth {
-        if (key == "debt_engine") {
-            debt_engine = IDebtEngine(addr);
+        if (key == "ds_engine") {
+            ds_engine = IDSEngine(addr);
         } else {
             revert("unrecognized param");
         }
@@ -167,13 +167,13 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             col_type: col_type,
             cdp: cdp,
             gem_dst: col.auction,
-            debt_dst: address(debt_engine),
+            debt_dst: address(ds_engine),
             delta_col: -int256(delta_col),
             delta_debt: -int256(delta_debt)
         });
 
         uint256 due = delta_debt * c.rate_acc;
-        debt_engine.push_debt_to_queue(due);
+        ds_engine.push_debt_to_queue(due);
 
         {
             // Avoid stack too deep

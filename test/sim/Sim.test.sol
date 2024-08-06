@@ -15,7 +15,7 @@ import {CoinJoin} from "../../src/stable-coin/CoinJoin.sol";
 import {GemJoin} from "../../src/stable-coin/GemJoin.sol";
 import {Spotter} from "../../src/stable-coin/Spotter.sol";
 import {Jug} from "../../src/stable-coin/Jug.sol";
-import {DebtEngine} from "../../src/stable-coin/DebtEngine.sol";
+import {DSEngine} from "../../src/stable-coin/DSEngine.sol";
 import {SurplusAuction} from "../../src/stable-coin/SurplusAuction.sol";
 import {DebtAuction} from "../../src/stable-coin/DebtAuction.sol";
 import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
@@ -48,7 +48,7 @@ contract Sim is Test {
     CDPEngine private cdp_engine;
     Spotter private spotter;
     Jug private jug;
-    DebtEngine private debt_engine;
+    DSEngine private ds_engine;
     SurplusAuction private surplus_auction;
     DebtAuction private debt_auction;
     LiquidationEngine private liquidation_engine;
@@ -73,7 +73,7 @@ contract Sim is Test {
 
         debt_auction = new DebtAuction(address(cdp_engine), address(mkr));
         surplus_auction = new SurplusAuction(address(cdp_engine), address(mkr));
-        debt_engine = new DebtEngine(
+        ds_engine = new DSEngine(
             address(cdp_engine), address(surplus_auction), address(debt_auction)
         );
         liquidation_engine = new LiquidationEngine(address(cdp_engine));
@@ -94,11 +94,11 @@ contract Sim is Test {
         cdp_engine.grant_auth(address(liquidation_engine));
         cdp_engine.grant_auth(address(collateral_auction));
         cdp_engine.grant_auth(address(pot));
-        debt_engine.grant_auth(address(liquidation_engine));
+        ds_engine.grant_auth(address(liquidation_engine));
         liquidation_engine.grant_auth(address(collateral_auction));
         collateral_auction.grant_auth(address(liquidation_engine));
-        debt_auction.grant_auth(address(debt_engine));
-        surplus_auction.grant_auth(address(debt_engine));
+        debt_auction.grant_auth(address(ds_engine));
+        surplus_auction.grant_auth(address(ds_engine));
         coin.grant_auth(address(coin_join));
 
         cdp_engine.init(COL_TYPE);
@@ -107,29 +107,29 @@ contract Sim is Test {
         cdp_engine.set(COL_TYPE, "min_debt", 10 * RAD);
         cdp_engine.set(COL_TYPE, "spot", 1000 * RAY);
 
-        jug.set("debt_engine", address(debt_engine));
+        jug.set("ds_engine", address(ds_engine));
         jug.init(COL_TYPE);
         jug.set(COL_TYPE, "fee", 1000000001622535724756171269);
 
         spotter.set(COL_TYPE, "price_feed", address(price_feed));
         spotter.set(COL_TYPE, "liquidation_ratio", 145 * RAY / 100);
 
-        debt_engine.set("pop_debt_delay", 156 * 3600);
-        debt_engine.set("debt_auction_lot_size", 250 * WAD);
-        debt_engine.set("debt_auction_bid_size", 5000 * RAD);
-        debt_engine.set("surplus_auction_lot_size", 3000 * RAD);
-        debt_engine.set("min_surplus", 10 * RAD);
+        ds_engine.set("pop_debt_delay", 156 * 3600);
+        ds_engine.set("debt_auction_lot_size", 250 * WAD);
+        ds_engine.set("debt_auction_bid_size", 5000 * RAD);
+        ds_engine.set("surplus_auction_lot_size", 3000 * RAD);
+        ds_engine.set("min_surplus", 10 * RAD);
 
         surplus_auction.set("max_coin_in_auction", 3000 * RAD);
 
-        liquidation_engine.set("debt_engine", address(debt_engine));
+        liquidation_engine.set("ds_engine", address(ds_engine));
         liquidation_engine.set("max_coin", 1e6 * RAD);
         liquidation_engine.set(COL_TYPE, "max_coin", 1e5 * RAD);
         // TODO: what is liquidation penalty
         liquidation_engine.set(COL_TYPE, "penalty", 1.13 * 1e18);
         liquidation_engine.set(COL_TYPE, "auction", address(collateral_auction));
 
-        collateral_auction.set("debt_engine", address(debt_engine));
+        collateral_auction.set("ds_engine", address(ds_engine));
         collateral_auction.set("calc", address(stairstep_exp_dec));
         collateral_auction.set("boost", 1.1 * 1e27);
         collateral_auction.set("max_duration", 7200);
@@ -390,17 +390,17 @@ contract Sim is Test {
         );
 
         // Clear debt in debt engine
-        skip(debt_engine.pop_debt_delay());
-        debt_engine.pop_debt_from_queue(t);
-        uint256 debt_engine_coin_bal = cdp_engine.coin(address(debt_engine));
-        debt_engine.settle_debt(debt_engine_coin_bal);
+        skip(ds_engine.pop_debt_delay());
+        ds_engine.pop_debt_from_queue(t);
+        uint256 ds_engine_coin_bal = cdp_engine.coin(address(ds_engine));
+        ds_engine.settle_debt(ds_engine_coin_bal);
 
         assertEq(
-            cdp_engine.coin(address(debt_engine)), 0, "debt engine coin balance"
+            cdp_engine.coin(address(ds_engine)), 0, "debt engine coin balance"
         );
         // unbacked debt > 0 from liquidation incentive
         assertGt(
-            cdp_engine.unbacked_debts(address(debt_engine)), 0, "unbacked debt"
+            cdp_engine.unbacked_debts(address(ds_engine)), 0, "unbacked debt"
         );
     }
 
@@ -408,8 +408,8 @@ contract Sim is Test {
         uint256 coin_debt = 5000 * RAD;
         uint256 mkr_lot = 250 * WAD;
 
-        cdp_engine.mint(address(debt_engine), address(0), coin_debt);
-        uint256 id = debt_engine.start_debt_auction();
+        cdp_engine.mint(address(ds_engine), address(0), coin_debt);
+        uint256 id = ds_engine.start_debt_auction();
 
         // User has coin to buy MKR
         cdp_engine.mint(users[0], users[0], 5000 * RAD);
@@ -428,9 +428,9 @@ contract Sim is Test {
 
     function test_surplus_auction() public {
         uint256 lot = 3000 * RAD;
-        cdp_engine.mint(address(0), address(debt_engine), 5000 * RAD);
+        cdp_engine.mint(address(0), address(ds_engine), 5000 * RAD);
 
-        uint256 id = debt_engine.start_surplus_auction();
+        uint256 id = ds_engine.start_surplus_auction();
 
         uint256 mkr_amount = 10 * WAD;
         mkr.mint(users[0], mkr_amount);

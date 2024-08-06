@@ -9,7 +9,7 @@ import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Vow - Debt engine (receiver of surplus and debt)
-contract DebtEngine is Auth, CircuitBreaker {
+contract DSEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
     // flapper
     ISurplusAuction public surplus_auction;

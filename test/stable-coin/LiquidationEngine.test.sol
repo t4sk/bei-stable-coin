@@ -47,7 +47,7 @@ contract MockCdpEngine {
     ) external {}
 }
 
-contract MockDebtEngine {
+contract MockDSEngine {
     function push_debt_to_queue(uint256 debt) external {}
 }
 
@@ -64,7 +64,7 @@ contract MockCollateralAuction {
 
 contract LiquidationEngineTest is Test {
     MockCdpEngine private cdp_engine;
-    MockDebtEngine private debt_engine;
+    MockDSEngine private ds_engine;
     MockCollateralAuction private auction;
     LiquidationEngine private liquidation_engine;
 
@@ -80,11 +80,11 @@ contract LiquidationEngineTest is Test {
 
     function setUp() public {
         cdp_engine = new MockCdpEngine();
-        debt_engine = new MockDebtEngine();
+        ds_engine = new MockDSEngine();
         liquidation_engine = new LiquidationEngine(address(cdp_engine));
         auction = new MockCollateralAuction();
 
-        liquidation_engine.set("debt_engine", address(debt_engine));
+        liquidation_engine.set("ds_engine", address(ds_engine));
         liquidation_engine.set("max", 1000 * RAD);
         liquidation_engine.set(COL_TYPE, "max", 1000 * RAD);
         liquidation_engine.set(COL_TYPE, "penalty", WAD);

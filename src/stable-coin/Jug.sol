@@ -24,7 +24,7 @@ contract Jug is Auth {
     // vat
     ICDPEngine public immutable cdp_engine;
     // vow
-    address public debt_engine;
+    address public ds_engine;
     // base [ray] - Global per-second stability fee
     uint256 public base_fee;
 
@@ -62,8 +62,8 @@ contract Jug is Auth {
     }
 
     function set(bytes32 key, address val) external auth {
-        if (key == "debt_engine") {
-            debt_engine = val;
+        if (key == "ds_engine") {
+            ds_engine = val;
         } else {
             revert("unrecognized param");
         }
@@ -83,7 +83,7 @@ contract Jug is Auth {
             c.rate_acc
         );
         cdp_engine.update_rate_acc(
-            col_type, debt_engine, Math.diff(rate, c.rate_acc)
+            col_type, ds_engine, Math.diff(rate, c.rate_acc)
         );
         col.updated_at = block.timestamp;
     }

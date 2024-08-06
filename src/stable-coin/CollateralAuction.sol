@@ -23,7 +23,7 @@ contract CollateralAuction is Auth, Guard {
     // dog
     ILiquidationEngine public liquidation_engine;
     // vow - Recipient of BEI raised in auctions
-    address public debt_engine;
+    address public ds_engine;
     // spotter - Collateral price module
     ISpotter public spotter;
     // calc - Current price calculator
@@ -35,10 +35,10 @@ contract CollateralAuction is Auth, Guard {
     uint256 public max_duration;
     // cusp [ray] - Percentage drop before auction reset
     uint256 public min_delta_price_ratio;
-    // chip [wad] - Percentage of coin to raise, to mint from debt_engine to
+    // chip [wad] - Percentage of coin to raise, to mint from ds_engine to
     //              incentivize keepers
     uint64 public fee_rate;
-    // tip [rad] - Flat fee to mint from debt_engine to incentivize keepers
+    // tip [rad] - Flat fee to mint from ds_engine to incentivize keepers
     uint192 public flat_fee;
     // chost [rad] - Cache the collateral_type dust times the collateral_type
     //               chop to prevent excessive SLOADs
@@ -141,8 +141,8 @@ contract CollateralAuction is Auth, Guard {
             spotter = ISpotter(addr);
         } else if (key == "liquidation_engine") {
             liquidation_engine = ILiquidationEngine(addr);
-        } else if (key == "debt_engine") {
-            debt_engine = addr;
+        } else if (key == "ds_engine") {
+            ds_engine = addr;
         } else if (key == "calc") {
             calc = IAuctionPriceCalculator(addr);
         } else {
@@ -204,7 +204,7 @@ contract CollateralAuction is Auth, Guard {
         if (flat_fee > 0 || fee_rate > 0) {
             // rad + rad * wad / wad
             fee = flat_fee + Math.wmul(coin_amount, fee_rate);
-            cdp_engine.mint({debt_dst: debt_engine, coin_dst: keeper, rad: fee});
+            cdp_engine.mint({debt_dst: ds_engine, coin_dst: keeper, rad: fee});
         }
 
         emit Start(
@@ -254,7 +254,7 @@ contract CollateralAuction is Auth, Guard {
             ) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
                 cdp_engine.mint({
-                    debt_dst: debt_engine,
+                    debt_dst: ds_engine,
                     coin_dst: keeper,
                     rad: fee
                 });
@@ -382,7 +382,7 @@ contract CollateralAuction is Auth, Guard {
             }
 
             // Get BEI from caller
-            cdp_engine.transfer_coin(msg.sender, debt_engine, owe);
+            cdp_engine.transfer_coin(msg.sender, ds_engine, owe);
 
             // Removes BEI out for liquidation from accumulator
             liquidation_engine.remove_coin_from_auction(

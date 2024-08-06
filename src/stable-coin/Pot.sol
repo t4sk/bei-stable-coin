@@ -26,7 +26,7 @@ contract Pot is Auth, CircuitBreaker {
     // vat
     ICDPEngine public cdp_engine;
     // vow
-    address public debt_engine;
+    address public ds_engine;
     // rho [unix timestamp] - Time of last collect_stability_fee
     uint256 public updated_at;
 
@@ -50,8 +50,8 @@ contract Pot is Auth, CircuitBreaker {
 
     // file
     function set(bytes32 key, address addr) external auth {
-        if (key == "debt_engine") {
-            debt_engine = addr;
+        if (key == "ds_engine") {
+            ds_engine = addr;
         } else {
             revert("unrecognized param");
         }
@@ -76,7 +76,7 @@ contract Pot is Auth, CircuitBreaker {
         // prev total = rate_acc * total
         // new  total = new rate_acc * total
         // mint = new total - prev total = (new rate_acc - rate_acc) * total
-        cdp_engine.mint(debt_engine, address(this), total_pie * delta_rate_acc);
+        cdp_engine.mint(ds_engine, address(this), total_pie * delta_rate_acc);
         return acc;
     }
 

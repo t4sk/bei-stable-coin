@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 // vow
-interface IDebtEngine {
+interface IDSEngine {
     // vat
     function cdp_engine() external view returns (address);
     // flapper

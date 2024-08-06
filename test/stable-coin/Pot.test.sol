@@ -23,7 +23,7 @@ contract MockCDPEngine {
 
 contract PotTest is Test {
     MockCDPEngine private cdp_engine;
-    address private constant debt_engine = address(1);
+    address private constant ds_engine = address(1);
     Pot private pot;
     address[] private users = [address(11), address(12)];
 
@@ -31,7 +31,7 @@ contract PotTest is Test {
         cdp_engine = new MockCDPEngine();
         pot = new Pot(address(cdp_engine));
         // about 5% per year
-        pot.set("debt_engine", debt_engine);
+        pot.set("ds_engine", ds_engine);
         pot.set("savings_rate", 1000000001547125957863212448);
 
         for (uint256 i = 0; i < users.length; i++) {
