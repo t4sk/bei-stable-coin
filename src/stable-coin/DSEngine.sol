@@ -8,7 +8,15 @@ import {Math} from "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
-// Vow - Debt engine (receiver of surplus and debt)
+// Vow - Debt and surplus engine (receiver of surplus and debt)
+/*
+System Debt: In the case where Vaults are bitten (liquidated), their debt is 
+taken on by the Vow contract as a Sin (the system debt unit). The Sin amount 
+is then placed in the Sin queue. Note: When the Sin is not covered by a flip 
+auction (within the dedicated wait time, the Sin is considered to have bad
+debt to the Vow. This bad debt is then covered through a debt auction (flop)
+when it exceeds a minimum value (the lot size).
+*/
 contract DSEngine is Auth, CircuitBreaker {
     ICDPEngine public immutable cdp_engine;
     // flapper
@@ -24,20 +32,25 @@ contract DSEngine is Auth, CircuitBreaker {
     uint256 public total_debt_on_debt_auction;
 
     // wait [seconds]
+    // 561600
     uint256 public pop_debt_delay;
     // dump [wad]
     // Amount of protocol tokens to be minted post-auction
+    // 250000000000000000000
     uint256 public debt_auction_lot_size;
     // sump [rad]
     // Amount of debt sold in one debt auction
+    // 50000000000000000000000000000000000000000000000000
     uint256 public debt_auction_bid_size;
 
     // bump [rad]
     // Amount of surplus stability fees sold in one surplus auction
+    // 65000000000000000000000000000000000000000000000000
     uint256 public surplus_auction_lot_size;
     // hump [rad]
     // Amount of stability fees that need to accrue in this contract before any
     // surplus auction can start
+    // 55000000000000000000000000000000000000000000000000000
     uint256 public min_surplus;
 
     constructor(
@@ -96,6 +109,7 @@ contract DSEngine is Auth, CircuitBreaker {
     // heal - Debt settlement
     function settle_debt(uint256 rad) external {
         require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
+        // rad + total debt on queue + auction <= unbacked debt
         require(
             rad
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
@@ -116,6 +130,7 @@ contract DSEngine is Auth, CircuitBreaker {
     // flop
     // Debt auction
     function start_debt_auction() external returns (uint256 id) {
+        // bid size + total debt on queue + auction <= unbacked debts
         require(
             debt_auction_bid_size
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue

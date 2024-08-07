@@ -3,28 +3,29 @@ pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
 import "../../src/lib/Math.sol";
+import {Gem} from "../Gem.sol";
 import {CDPEngine} from "../../src/stable-coin/CDPEngine.sol";
-import {CoinJoin} from "../../src/stable-coin/CoinJoin.sol";
-import {Coin} from "../../src/stable-coin/Coin.sol";
+import {DebtAuction} from "../../src/stable-coin/DebtAuction.sol";
+import {SurplusAuction} from "../../src/stable-coin/SurplusAuction.sol";
+import {DSEngine} from "../../src/stable-coin/DSEngine.sol";
 
-contract DebtEngineTest is Test {
+contract DSEngineTest is Test {
+    Gem private gem;
+    Gem private gov;
     CDPEngine private cdp_engine;
-    CoinJoin private coin_join;
-    Coin private coin;
+    DebtAuction private debt_auction;
+    SurplusAuction private surplus_auction;
+    DSEngine private ds_engine;
 
     function setUp() public {
+        gem = new Gem("gem", "GEM", 18);
+        gov = new Gem("gov", "GOV", 18);
         cdp_engine = new CDPEngine();
-        coin = new Coin();
-        coin_join = new CoinJoin(address(cdp_engine), address(coin));
+        debt_auction = new DebtAuction(address(cdp_engine), address(gem));
+        surplus_auction = new SurplusAuction(address(cdp_engine), address(gov));
 
-        coin.grant_auth(address(coin_join));
-
-        cdp_engine.mint({
-            debt_dst: address(0),
-            coin_dst: address(this),
-            rad: 1e45
-        });
-
-        cdp_engine.allow_account_modification(address(coin_join));
+        ds_engine = new DSEngine(
+            address(cdp_engine), address(surplus_auction), address(debt_auction)
+        );
     }
 }
