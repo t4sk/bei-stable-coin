@@ -85,8 +85,8 @@ contract LiquidationEngineTest is Test {
         auction = new MockCollateralAuction();
 
         liquidation_engine.set("ds_engine", address(ds_engine));
-        liquidation_engine.set("max", 1000 * RAD);
-        liquidation_engine.set(COL_TYPE, "max", 1000 * RAD);
+        liquidation_engine.set("max_coin", 1000 * RAD);
+        liquidation_engine.set(COL_TYPE, "max_coin", 1000 * RAD);
         liquidation_engine.set(COL_TYPE, "penalty", WAD);
         liquidation_engine.set(COL_TYPE, "auction", address(auction));
 

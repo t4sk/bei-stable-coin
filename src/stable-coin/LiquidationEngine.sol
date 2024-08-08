@@ -21,6 +21,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
     );
     event Remove(bytes32 col_type, uint256 rad);
 
+    // Ilk
     struct Collateral {
         // clip - Address of collateral auction
         address auction;
@@ -34,6 +35,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
 
     // vat
     ICDPEngine public immutable cdp_engine;
+    // ilks
     mapping(bytes32 => Collateral) public collaterals;
     // vow
     IDSEngine public ds_engine;
@@ -95,19 +97,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         return collaterals[col_type].penalty;
     }
 
-    // --- CDP Liquidation: all bark and no bite ---
-    //
-    // Liquidate a Vault and start a Dutch auction to sell its collateral for BEI.
-    //
-    // The third argument is the address that will receive the liquidation reward, if any.
-    //
-    // The entire Vault will be liquidated except when the target amount of BEI to be raised in
-    // the resulting auction (debt of Vault + liquidation penalty) causes either Dirt to exceed
-    // Hole or ilk.dirt to exceed ilk.hole by an economically significant amount. In that
-    // case, a partial liquidation is performed to respect the global and per-ilk limits on
-    // outstanding BEI target. The one exception is if the resulting auction would likely
-    // have too little collateral to be interesting to Keepers (debt taken from Vault < ilk.dust),
-    // in which case the function reverts.
+    // bark
     function liquidate(bytes32 col_type, address cdp, address keeper)
         external
         not_stopped
@@ -141,7 +131,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             // Partial liquidation edge case logic
             if (pos.debt > delta_debt) {
                 if ((pos.debt - delta_debt) * c.rate_acc < c.min_debt) {
-                    // If the leftover s would be dusty, just liquidate it entirely.
+                    // If the leftovers would be dusty, just liquidate it entirely.
                     // This will result in at least one of dirt_i > hole_i or Dirt > Hole becoming true.
                     // The amount of excess will be bounded above by ceiling(dust_i * chop_i / WAD).
                     // This deviation is assumed to be small compared to both hole_i and Hole, so that
@@ -162,7 +152,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         require(delta_col > 0, "null auction");
         require(delta_debt <= 2 ** 255 && delta_col <= 2 ** 255, "overflow");
 
-        // collateral sent to aution, debt sent to debt engine
+        // collateral sent to aution, debt sent to debt/surplus engine
         cdp_engine.grab({
             col_type: col_type,
             cdp: cdp,
