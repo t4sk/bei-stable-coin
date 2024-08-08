@@ -100,6 +100,12 @@ contract DSEngine is Auth, CircuitBreaker {
     }
 
     // flog - Pop from debt-queue
+    // liquidation ok -> pop debt from queue
+    //                -> total debt on queue is approx = unbacked debt
+    //                -> cannot start debt auction
+    // liquidation x  -> pop debt from queue
+    //                -> total debt on queue < unbacked debt
+    //                -> can start debt auction
     function pop_debt_from_queue(uint256 t) external {
         require(t + pop_debt_delay <= block.timestamp, "delay not finished");
         total_debt_on_queue -= debt_queue[t];
