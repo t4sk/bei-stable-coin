@@ -65,6 +65,18 @@ contract CDPEngineTest is Test {
         assertTrue(cdp_engine.live());
     }
 
+    function test_account_modification() public {
+        cdp_engine.allow_account_modification(address(1));
+        assertTrue(cdp_engine.can(address(this), address(1)));
+        assertTrue(cdp_engine.can_modify_account(address(this), address(1)));
+
+        cdp_engine.deny_account_modification(address(1));
+        assertTrue(!cdp_engine.can(address(this), address(1)));
+        assertTrue(!cdp_engine.can_modify_account(address(this), address(1)));
+
+        assertTrue(cdp_engine.can_modify_account(address(this), address(this)));
+    }
+
     function test_init() public {
         vm.expectRevert("not authorized");
         vm.prank(address(1));
@@ -115,7 +127,7 @@ contract CDPEngineTest is Test {
         assertEq(col.min_debt, 300);
     }
 
-    function test_set_stopped() public {
+    function test_stopped() public {
         cdp_engine.stop();
         vm.expectRevert("stopped");
         cdp_engine.set("sys_max_debt", 0);
