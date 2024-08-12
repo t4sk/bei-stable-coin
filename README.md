@@ -26,7 +26,6 @@ TODO: gov?
 TODO: test
 
 -   pot
--   vat
 -   vow
 -   clipper
 -   dog
