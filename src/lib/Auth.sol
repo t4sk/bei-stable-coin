@@ -2,8 +2,8 @@
 pragma solidity 0.8.24;
 
 contract Auth {
-    event AddAuthorization(address indexed user);
-    event RemoveAuthorization(address indexed user);
+    event GrantAuthorization(address indexed user);
+    event DenyAuthorization(address indexed user);
 
     // wards
     mapping(address => bool) public authorized;
@@ -15,18 +15,18 @@ contract Auth {
 
     constructor() {
         authorized[msg.sender] = true;
-        emit AddAuthorization(msg.sender);
+        emit GrantAuthorization(msg.sender);
     }
 
     // rely
     function grant_auth(address user) external auth {
         authorized[user] = true;
-        emit AddAuthorization(user);
+        emit GrantAuthorization(user);
     }
 
     // deny
     function deny_auth(address user) external auth {
         authorized[user] = false;
-        emit RemoveAuthorization(user);
+        emit DenyAuthorization(user);
     }
 }
