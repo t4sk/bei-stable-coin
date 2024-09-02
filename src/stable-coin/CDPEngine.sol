@@ -131,8 +131,12 @@ contract CDPEngine is Auth, CircuitBreaker {
         address gem_src,
         address coin_dst,
         // wad
+        // delta_col >= 0 -> lock collateral
+        //           <  0 -> free collateral
         int256 delta_col,
         // wad
+        // delta_debt >= 0 -> borrow coin
+        //            <  0 -> repay
         int256 delta_debt
     ) external not_stopped {
         ICDPEngine.Position memory pos = positions[col_type][cdp];
