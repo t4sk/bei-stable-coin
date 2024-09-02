@@ -42,7 +42,7 @@ contract ProxyActions is Common {
             // Calculates the needed delta debt so together with the existing BEI
             // in the cdp_engine is enough to exit wad amount of BEI tokens
             delta_debt = int256((coin_wad * RAY - coin_bal) / rate);
-            // This is needed due lack of precision.
+            // This is needed due to lack of precision.
             // It might need to sum an extra delta debt wei (for the given BEI wad amount)
             delta_debt = uint256(delta_debt) * rate < coin_wad * RAY
                 ? delta_debt - 1
