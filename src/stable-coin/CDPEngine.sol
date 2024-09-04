@@ -137,6 +137,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         // wad
         // delta_debt >= 0 -> borrow coin
         //            <  0 -> repay
+        // delta_debt = borrow or repay coin amount * RAY / rate_acc
         int256 delta_debt
     ) external not_stopped {
         ICDPEngine.Position memory pos = positions[col_type][cdp];
@@ -144,6 +145,9 @@ contract CDPEngine is Auth, CircuitBreaker {
         require(col.rate_acc != 0, "collateral not initialized");
 
         pos.collateral = Math.add(pos.collateral, delta_col);
+        // ci = coin amount at time i
+        // ri = rate_acc at time i
+        // c0 / r0 + c1 / r1 + c2 / r2 + ...
         pos.debt = Math.add(pos.debt, delta_debt);
         col.debt = Math.add(col.debt, delta_debt);
 
@@ -190,6 +194,9 @@ contract CDPEngine is Auth, CircuitBreaker {
         // cdp has no debt, or a non-dusty amount
         require(pos.debt == 0 || coin_debt >= col.min_debt, "debt < dust");
 
+        // Moving col from gem to pos, hence opposite sign
+        // lock collateral -> - gem, + pos
+        // free collateral -> + gem, - pos
         gem[col_type][gem_src] = Math.sub(gem[col_type][gem_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
