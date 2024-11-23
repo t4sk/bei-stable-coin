@@ -12,12 +12,13 @@ forge test --match-path test/sim/Sim.test.sol
 
 ### Links
 
--   [docs](https://docs.makerdao.com/)
--   [dss](https://github.com/makerdao/dss)
--   [dss-proxy](https://github.com/makerdao/dss-proxy)
--   [dss-proxy-actions](https://github.com/makerdao/dss-proxy-actions)
--   [dss-cdp-manager](https://github.com/makerdao/dss-cdp-manager)
--   [osm](https://github.com/makerdao/osm)
+- [docs](https://docs.makerdao.com/)
+- [dss](https://github.com/makerdao/dss)
+- [dss-proxy](https://github.com/makerdao/dss-proxy)
+- [dss-proxy-actions](https://github.com/makerdao/dss-proxy-actions)
+- [dss-cdp-manager](https://github.com/makerdao/dss-cdp-manager)
+- [osm](https://github.com/makerdao/osm)
+- [contract addresses](https://chainlog.sky.money/api/mainnet/active.json)
 
 TODO: ESM?
 TODO: OSM?
@@ -25,13 +26,13 @@ TODO: gov?
 
 TODO: test
 
--   pot
--   vow
--   clipper
--   dog
--   flopper
--   flapper
--   cdp manager
+- pot
+- vow
+- clipper
+- dog
+- flopper
+- flapper
+- cdp manager
 
 ### Memo
 
