@@ -11,7 +11,7 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Flopper
 /*
-Debt Auctions are used to recapitalize the system by auctioning off MKR 
+Debt Auctions are used to recapitalize the system by auctioning off MKR
 for a fixed amount of BEI
 */
 contract DebtAuction is Auth, CircuitBreaker {
@@ -62,6 +62,7 @@ contract DebtAuction is Auth, CircuitBreaker {
     // --- Auction ---
     // kick
     // start an auction / Put up a new MKR bid for auction
+    // Called by DSEngine (vow)
     function start(address highest_bidder, uint256 lot, uint256 bid_amount)
         external
         auth
@@ -73,6 +74,7 @@ contract DebtAuction is Auth, CircuitBreaker {
         bids[id] = IDebtAuction.Bid({
             amount: bid_amount,
             lot: lot,
+            // highest_bidder = vow
             highest_bidder: highest_bidder,
             bid_expiry_time: 0,
             auction_end_time: uint48(block.timestamp) + auction_duration
@@ -121,6 +123,7 @@ contract DebtAuction is Auth, CircuitBreaker {
             if (b.bid_expiry_time == 0) {
                 uint256 debt =
                     IDSEngine(b.highest_bidder).total_debt_on_debt_auction();
+                // On first dent, bid_expiry_time = 0 and highest_bidder = vow
                 IDSEngine(b.highest_bidder).decrease_auction_debt(
                     Math.min(bid_amount, debt)
                 );

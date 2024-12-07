@@ -10,9 +10,9 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Vow - Debt and surplus engine (receiver of surplus and debt)
 /*
-System Debt: In the case where Vaults are bitten (liquidated), their debt is 
-taken on by the Vow contract as a Sin (the system debt unit). The Sin amount 
-is then placed in the Sin queue. Note: When the Sin is not covered by a flip 
+System Debt: In the case where Vaults are bitten (liquidated), their debt is
+taken on by the Vow contract as a Sin (the system debt unit). The Sin amount
+is then placed in the Sin queue. Note: When the Sin is not covered by a flip
 auction (within the dedicated wait time, the Sin is considered to have bad
 debt to the Vow. This bad debt is then covered through a debt auction (flop)
 when it exceeds a minimum value (the lot size).
@@ -94,6 +94,7 @@ contract DSEngine is Auth, CircuitBreaker {
     }
 
     // fess
+    // Called by LiquidationEngine
     function push_debt_to_queue(uint256 debt) external auth {
         debt_queue[block.timestamp] += debt;
         total_debt_on_queue += debt;
@@ -137,10 +138,11 @@ contract DSEngine is Auth, CircuitBreaker {
     // Debt auction
     function start_debt_auction() external returns (uint256 id) {
         // bid size + total debt on queue + auction <= unbacked debts
+        // Unbacked debt must be >= debt in auctions + debt to be auctioned
         require(
-            debt_auction_bid_size
-                <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_debt_auction,
+            debt_auction_bid_size + total_debt_on_queue
+                + total_debt_on_debt_auction
+                <= cdp_engine.unbacked_debts(address(this)),
             "insufficient debt"
         );
         require(cdp_engine.coin(address(this)) == 0, "coin not zero");
@@ -162,9 +164,10 @@ contract DSEngine is Auth, CircuitBreaker {
             "insufficient coin"
         );
         // unbacked debt = total debt on queue + total debt on auction
+        // All unbacked debt must currently be in auctions
         require(
-            cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                - total_debt_on_debt_auction == 0,
+            cdp_engine.unbacked_debts(address(this))
+                == total_debt_on_queue + total_debt_on_debt_auction,
             "debt not zero"
         );
         id = surplus_auction.start(surplus_auction_lot_size, 0);
