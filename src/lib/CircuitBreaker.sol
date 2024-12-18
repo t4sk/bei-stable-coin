@@ -7,6 +7,11 @@ abstract contract CircuitBreaker {
     // live
     bool public live;
 
+    modifier stopped() {
+        require(!live, "live");
+        _;
+    }
+
     modifier not_stopped() {
         require(live, "stopped");
         _;

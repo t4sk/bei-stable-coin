@@ -116,7 +116,7 @@ contract DSEngine is Auth, CircuitBreaker {
     // heal - Debt settlement
     function settle_debt(uint256 rad) external {
         require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
-        // rad + total debt on queue + auction <= unbacked debt
+        // rad + total debt on queue + total debt on debt auction <= unbacked debt
         require(
             rad
                 <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
@@ -127,18 +127,22 @@ contract DSEngine is Auth, CircuitBreaker {
     }
 
     // kiss
+    // Called by DebtAuction.bid
     function decrease_auction_debt(uint256 rad) external {
         require(rad <= total_debt_on_debt_auction, "not enough debt on auction");
         require(rad <= cdp_engine.coin(address(this)), "insufficient coin");
         total_debt_on_debt_auction -= rad;
+        // Decrease unbacked debt
         cdp_engine.burn(rad);
     }
 
     // flop
     // Debt auction
     function start_debt_auction() external returns (uint256 id) {
-        // bid size + total debt on queue + auction <= unbacked debts
-        // Unbacked debt must be >= debt in auctions + debt to be auctioned
+        //   bid size (amount to go into debt auction)
+        // + total debt on queue (collateral auction)
+        // + total debt on debt auction
+        // <= unbacked debts
         require(
             debt_auction_bid_size + total_debt_on_queue
                 + total_debt_on_debt_auction

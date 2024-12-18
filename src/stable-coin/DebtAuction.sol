@@ -158,7 +158,7 @@ contract DebtAuction is Auth, CircuitBreaker {
         ds_engine = msg.sender;
     }
 
-    function yank(uint256 id) external not_stopped {
+    function yank(uint256 id) external stopped {
         IDebtAuction.Bid storage b = bids[id];
         require(b.highest_bidder != address(0), "bidder not set");
         cdp_engine.mint(ds_engine, b.highest_bidder, b.amount);
