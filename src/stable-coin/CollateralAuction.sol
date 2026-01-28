@@ -6,10 +6,12 @@ import {ILiquidationEngine} from "../interfaces/ILiquidationEngine.sol";
 import {ISpotter} from "../interfaces/ISpotter.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import {ICollateralAuction} from "../interfaces/ICollateralAuction.sol";
-import {IAuctionPriceCalculator} from
-    "../interfaces/IAuctionPriceCalculator.sol";
-import {ICollateralAuctionCallee} from
-    "../interfaces/ICollateralAuctionCallee.sol";
+import {
+    IAuctionPriceCalculator
+} from "../interfaces/IAuctionPriceCalculator.sol";
+import {
+    ICollateralAuctionCallee
+} from "../interfaces/ICollateralAuctionCallee.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 import "../lib/Math.sol";
 import {Auth} from "../lib/Auth.sol";
@@ -223,7 +225,11 @@ contract CollateralAuction is Auth, Guard {
     function redo(
         uint256 id, // id of the auction to reset
         address keeper // Address that will receive incentives
-    ) external lock not_stopped(2) {
+    )
+        external
+        lock
+        not_stopped(2)
+    {
         // Read auction data
         ICollateralAuction.Sale storage sale = sales[id];
         address user = sale.user;
@@ -254,9 +260,7 @@ contract CollateralAuction is Auth, Guard {
             ) {
                 fee = flat_fee + Math.wmul(coin_amount, fee_rate);
                 cdp_engine.mint({
-                    debt_dst: ds_engine,
-                    coin_dst: keeper,
-                    rad: fee
+                    debt_dst: ds_engine, coin_dst: keeper, rad: fee
                 });
             }
         }
@@ -376,9 +380,8 @@ contract CollateralAuction is Auth, Guard {
                 data.length > 0 && receiver != address(cdp_engine)
                     && receiver != address(liquidation_engine)
             ) {
-                ICollateralAuctionCallee(receiver).callback(
-                    msg.sender, owe, slice, data
-                );
+                ICollateralAuctionCallee(receiver)
+                    .callback(msg.sender, owe, slice, data);
             }
 
             // Get BEI from caller
@@ -459,10 +462,9 @@ contract CollateralAuction is Auth, Guard {
     {
         // price = BEI / collateral [ray]
         price = calc.price(starting_price, block.timestamp - start_time);
-        done = (
-            block.timestamp - start_time > max_duration
-                || Math.rdiv(price, starting_price) < min_delta_price_ratio
-        );
+        done =
+        (block.timestamp - start_time > max_duration
+                || Math.rdiv(price, starting_price) < min_delta_price_ratio);
     }
 
     // Public function to update the cached dust*chop value.
@@ -470,8 +472,9 @@ contract CollateralAuction is Auth, Guard {
     function update_min_coin() external {
         ICDPEngine.Collateral memory col =
             ICDPEngine(cdp_engine).collaterals(collateral_type);
-        min_coin =
-            Math.wmul(col.min_debt, liquidation_engine.penalty(collateral_type));
+        min_coin = Math.wmul(
+            col.min_debt, liquidation_engine.penalty(collateral_type)
+        );
     }
 
     // Cancel an auction during ES or via governance action.

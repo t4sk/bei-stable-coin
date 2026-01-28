@@ -77,10 +77,7 @@ contract LiquidationEngine is Auth, CircuitBreaker {
         }
     }
 
-    function set(bytes32 col_type, bytes32 key, address auction)
-        external
-        auth
-    {
+    function set(bytes32 col_type, bytes32 key, address auction) external auth {
         if (key == "auction") {
             require(
                 col_type == ICollateralAuction(auction).collateral_type(),
@@ -175,14 +172,15 @@ contract LiquidationEngine is Auth, CircuitBreaker {
             total_coin += target_coin_amount;
             collaterals[col_type].coin_amount += target_coin_amount;
 
-            id = ICollateralAuction(col.auction).start({
-                // tab - the target BEI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
-                coin_amount: target_coin_amount,
-                // lot - the amount of collateral available for purchase [wad]
-                collateral_amount: delta_col,
-                user: cdp,
-                keeper: keeper
-            });
+            id = ICollateralAuction(col.auction)
+                .start({
+                    // tab - the target BEI to raise from the auction (debt + stability fees + liquidation penalty) [rad]
+                    coin_amount: target_coin_amount,
+                    // lot - the amount of collateral available for purchase [wad]
+                    collateral_amount: delta_col,
+                    user: cdp,
+                    keeper: keeper
+                });
         }
 
         emit Liquidate(

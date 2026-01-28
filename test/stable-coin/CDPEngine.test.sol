@@ -218,7 +218,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("collateral not initialized");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -231,7 +231,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("delta debt > max");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -242,7 +242,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("undercollateralized");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -253,7 +253,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("not allowed to modify cdp");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -267,7 +267,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("not allowed to modify gem src");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -281,7 +281,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_collateral_balance(COL_TYPE, gem_src, int256(WAD));
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: int256(WAD),
@@ -291,7 +291,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("not allowed to modify coin dst");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -305,7 +305,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("debt < dust");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -317,7 +317,7 @@ contract CDPEngineTest is Test {
         vm.expectRevert("stopped");
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: gem_src,
             coin_dst: coin_dst,
             delta_col: 0,
@@ -360,7 +360,7 @@ contract CDPEngineTest is Test {
 
             cdp_engine.modify_cdp({
                 col_type: COL_TYPE,
-                cdp: cdp,
+                cdp_owner: cdp,
                 gem_src: gem_src,
                 coin_dst: coin_dst,
                 delta_col: delta_col,
@@ -425,7 +425,7 @@ contract CDPEngineTest is Test {
         );
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp_src,
+            cdp_owner: cdp_src,
             gem_src: cdp_src,
             coin_dst: cdp_src,
             delta_col: int256(10 * WAD),
@@ -437,7 +437,7 @@ contract CDPEngineTest is Test {
         );
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp_dst,
+            cdp_owner: cdp_dst,
             gem_src: cdp_dst,
             coin_dst: cdp_dst,
             delta_col: int256(10 * WAD),
@@ -497,7 +497,7 @@ contract CDPEngineTest is Test {
         );
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp_src,
+            cdp_owner: cdp_src,
             gem_src: cdp_src,
             coin_dst: cdp_src,
             delta_col: int256(10 * WAD),
@@ -509,7 +509,7 @@ contract CDPEngineTest is Test {
         );
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp_dst,
+            cdp_owner: cdp_dst,
             gem_src: cdp_dst,
             coin_dst: cdp_dst,
             delta_col: int256(10 * WAD),
@@ -561,7 +561,7 @@ contract CDPEngineTest is Test {
         cdp_engine.modify_collateral_balance(COL_TYPE, cdp, int256(10 * WAD));
         cdp_engine.modify_cdp({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_src: cdp,
             coin_dst: cdp,
             delta_col: int256(WAD),
@@ -572,7 +572,7 @@ contract CDPEngineTest is Test {
         vm.prank(address(1));
         cdp_engine.grab({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_dst: gem_dst,
             debt_dst: debt_dst,
             delta_col: 0,
@@ -588,7 +588,7 @@ contract CDPEngineTest is Test {
         uint256 s0 = cdp_engine.sys_unbacked_debt();
         cdp_engine.grab({
             col_type: COL_TYPE,
-            cdp: cdp,
+            cdp_owner: cdp,
             gem_dst: gem_dst,
             debt_dst: debt_dst,
             delta_col: -int256(WAD),

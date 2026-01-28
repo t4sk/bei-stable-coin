@@ -20,9 +20,7 @@ contract CoinJoinTest is Test {
         coin.grant_auth(address(coin_join));
 
         cdp_engine.mint({
-            debt_dst: address(0),
-            coin_dst: address(this),
-            rad: 1e45
+            debt_dst: address(0), coin_dst: address(this), rad: 1e45
         });
 
         cdp_engine.allow_account_modification(address(coin_join));

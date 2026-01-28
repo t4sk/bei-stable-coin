@@ -79,7 +79,9 @@ contract Jug is Auth {
         require(col.updated_at <= block.timestamp, "now < last update");
         ICDPEngine.Collateral memory c = cdp_engine.collaterals(col_type);
         rate = Math.rmul(
-            Math.rpow(base_fee + col.fee, block.timestamp - col.updated_at, RAY),
+            Math.rpow(
+                base_fee + col.fee, block.timestamp - col.updated_at, RAY
+            ),
             c.rate_acc
         );
         cdp_engine.update_rate_acc(

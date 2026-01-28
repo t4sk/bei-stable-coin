@@ -20,8 +20,9 @@ import {SurplusAuction} from "../../src/stable-coin/SurplusAuction.sol";
 import {DebtAuction} from "../../src/stable-coin/DebtAuction.sol";
 import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
 import {CollateralAuction} from "../../src/stable-coin/CollateralAuction.sol";
-import {StairstepExponentialDecrease} from
-    "../../src/stable-coin/AuctionPriceCalculator.sol";
+import {
+    StairstepExponentialDecrease
+} from "../../src/stable-coin/AuctionPriceCalculator.sol";
 import {Pot} from "../../src/stable-coin/Pot.sol";
 
 bytes32 constant COL_TYPE = bytes32(uint256(1));
@@ -249,7 +250,7 @@ contract Sim is Test {
 
         cdp_engine.modify_cdp({
             col_type: col_type,
-            cdp: user,
+            cdp_owner: user,
             gem_src: user,
             coin_dst: user,
             delta_col: int256(col_wad),
@@ -260,7 +261,7 @@ contract Sim is Test {
         int256 delta_debt = get_borrow_delta_debt(user, col_type, coin_wad);
         cdp_engine.modify_cdp({
             col_type: col_type,
-            cdp: user,
+            cdp_owner: user,
             gem_src: user,
             coin_dst: user,
             delta_col: 0,
@@ -278,7 +279,7 @@ contract Sim is Test {
             get_repay_delta_debt(coin_wad * RAY, user, col_type);
         cdp_engine.modify_cdp({
             col_type: col_type,
-            cdp: user,
+            cdp_owner: user,
             gem_src: user,
             coin_dst: user,
             delta_col: 0,
@@ -297,7 +298,7 @@ contract Sim is Test {
         coin_join.join(user, repay_all_coin_wad);
         cdp_engine.modify_cdp({
             col_type: col_type,
-            cdp: user,
+            cdp_owner: user,
             gem_src: user,
             coin_dst: user,
             delta_col: 0,

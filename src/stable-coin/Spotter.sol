@@ -63,7 +63,8 @@ contract Spotter is Auth, CircuitBreaker {
         //            = val * 1e9 * par / liquidation_ratio
         uint256 spot = ok
             ? Math.rdiv(
-                Math.rdiv(val * 1e9, par), collaterals[col_type].liquidation_ratio
+                Math.rdiv(val * 1e9, par),
+                collaterals[col_type].liquidation_ratio
             )
             : 0;
         cdp_engine.set(col_type, "spot", spot);

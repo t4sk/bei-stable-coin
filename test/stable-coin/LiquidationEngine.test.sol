@@ -8,7 +8,8 @@ import {LiquidationEngine} from "../../src/stable-coin/LiquidationEngine.sol";
 
 contract MockCdpEngine {
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
-    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public positions;
+    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public
+        positions;
 
     function set_col(
         bytes32 col_type,
@@ -33,8 +34,9 @@ contract MockCdpEngine {
         uint256 col_amount,
         uint256 debt
     ) external {
-        positions[col_type][cdp] =
-            ICDPEngine.Position({collateral: col_amount, debt: debt});
+        positions[col_type][cdp] = ICDPEngine.Position({
+            collateral: col_amount, debt: debt
+        });
     }
 
     function grab(
@@ -100,10 +102,7 @@ contract LiquidationEngineTest is Test {
         });
 
         cdp_engine.set_pos({
-            col_type: COL_TYPE,
-            cdp: CDP,
-            col_amount: COL_AMOUNT,
-            debt: DEBT
+            col_type: COL_TYPE, cdp: CDP, col_amount: COL_AMOUNT, debt: DEBT
         });
     }
 

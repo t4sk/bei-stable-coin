@@ -11,7 +11,8 @@ contract CDPEngine is Auth, CircuitBreaker {
     // ilks
     mapping(bytes32 => ICDPEngine.Collateral) public collaterals;
     // urns - collateral type => account => position
-    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public positions;
+    mapping(bytes32 => mapping(address => ICDPEngine.Position)) public
+        positions;
     // gem - collateral type => account => balance [wad]
     mapping(bytes32 => mapping(address => uint256)) public gem;
     // dai - account => coin balance [rad]
@@ -33,22 +34,22 @@ contract CDPEngine is Auth, CircuitBreaker {
     mapping(address => mapping(address => bool)) public can;
 
     // hope
-    function allow_account_modification(address user) external {
-        can[msg.sender][user] = true;
+    function allow_account_modification(address spender) external {
+        can[msg.sender][spender] = true;
     }
 
     // nope
-    function deny_account_modification(address user) external {
-        can[msg.sender][user] = false;
+    function deny_account_modification(address spender) external {
+        can[msg.sender][spender] = false;
     }
 
     // wish
-    function can_modify_account(address owner, address user)
+    function can_modify_account(address owner, address spender)
         public
         view
         returns (bool)
     {
-        return owner == user || can[owner][user];
+        return owner == spender || can[owner][spender];
     }
 
     // --- Administration ---
@@ -127,7 +128,7 @@ contract CDPEngine is Auth, CircuitBreaker {
     // dart: change in amount of debt
     function modify_cdp(
         bytes32 col_type,
-        address cdp,
+        address cdp_owner,
         address gem_src,
         address coin_dst,
         // wad
@@ -140,7 +141,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         // delta_debt = borrow or repay coin amount * RAY / rate_acc
         int256 delta_debt
     ) external not_stopped {
-        ICDPEngine.Position memory pos = positions[col_type][cdp];
+        ICDPEngine.Position memory pos = positions[col_type][cdp_owner];
         ICDPEngine.Collateral memory col = collaterals[col_type];
         require(col.rate_acc != 0, "collateral not initialized");
 
@@ -162,10 +163,8 @@ contract CDPEngine is Auth, CircuitBreaker {
         // either debt has decreased, or debt ceilings are not exceeded
         require(
             delta_debt <= 0
-                || (
-                    col.debt * col.rate_acc <= col.max_debt
-                        && sys_debt <= sys_max_debt
-                ),
+                || (col.debt * col.rate_acc <= col.max_debt
+                    && sys_debt <= sys_max_debt),
             "delta debt > max"
         );
         // cdp is either less risky than before, or it is safe
@@ -177,7 +176,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         // cdp is either more safe, or the owner consent
         require(
             (delta_debt <= 0 && delta_col >= 0)
-                || can_modify_account(cdp, msg.sender),
+                || can_modify_account(cdp_owner, msg.sender),
             "not allowed to modify cdp"
         );
         // collateral src consent
@@ -200,7 +199,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         gem[col_type][gem_src] = Math.sub(gem[col_type][gem_src], delta_col);
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
 
-        positions[col_type][cdp] = pos;
+        positions[col_type][cdp_owner] = pos;
         collaterals[col_type] = col;
     }
 
@@ -251,13 +250,13 @@ contract CDPEngine is Auth, CircuitBreaker {
     // - create sin for user w
     function grab(
         bytes32 col_type,
-        address cdp,
+        address cdp_owner,
         address gem_dst,
         address debt_dst,
         int256 delta_col,
         int256 delta_debt
     ) external auth {
-        ICDPEngine.Position storage pos = positions[col_type][cdp];
+        ICDPEngine.Position storage pos = positions[col_type][cdp_owner];
         ICDPEngine.Collateral storage col = collaterals[col_type];
 
         pos.collateral = Math.add(pos.collateral, delta_col);

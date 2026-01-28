@@ -7,10 +7,10 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 import "../lib/Math.sol";
 
 /*
-Pot is the core of the BEI Savings Rate. 
-It allows users to deposit BEI and activate the BEI Savings Rate and 
-earning savings on their BEI. The DSR is set by Maker Governance, and will 
-typically be less than the base stability fee to remain sustainable. 
+Pot is the core of the BEI Savings Rate.
+It allows users to deposit BEI and activate the BEI Savings Rate and
+earning savings on their BEI. The DSR is set by Maker Governance, and will
+typically be less than the base stability fee to remain sustainable.
 The purpose of Pot is to offer another incentive for holding BEI.
 */
 contract Pot is Auth, CircuitBreaker {

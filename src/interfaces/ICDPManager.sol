@@ -43,9 +43,7 @@ interface ICDPManager {
     function allow_cdp_handler(address user, bool ok) external;
 
     // open
-    function open(bytes32 col_type, address user)
-        external
-        returns (uint256 id);
+    function open(bytes32 col_type, address user) external returns (uint256 id);
     // give
     function give(uint256 cdp_id, address dst) external;
     // frob

@@ -56,8 +56,7 @@ contract MockSpotter {
         uint256 liquidation_ratio
     ) external {
         cols[col_type] = ISpotter.Collateral({
-            price_feed: price_feed,
-            liquidation_ratio: liquidation_ratio
+            price_feed: price_feed, liquidation_ratio: liquidation_ratio
         });
     }
 

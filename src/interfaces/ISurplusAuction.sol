@@ -16,8 +16,6 @@ interface ISurplusAuction {
     }
 
     function bids(uint256 id) external view returns (Bid memory);
-    function start(uint256 lot, uint256 bid_amount)
-        external
-        returns (uint256);
+    function start(uint256 lot, uint256 bid_amount) external returns (uint256);
     function stop(uint256) external;
 }

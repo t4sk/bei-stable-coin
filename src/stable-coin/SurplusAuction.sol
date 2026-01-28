@@ -10,13 +10,13 @@ import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // Flapper
 /*
-Flapper is a Surplus Auction. 
+Flapper is a Surplus Auction.
 - sell BEI, buy MKR
-These auctions are used to auction off a fixed amount of the surplus BEI 
-in the system for MKR. This surplus BEI will come from the Stability Fees 
-that are accumulated from Vaults. In this auction type, bidders compete 
-with increasing amounts of MKR. Once the auction has ended, 
-the BEI auctioned off is sent to the winning bidder. 
+These auctions are used to auction off a fixed amount of the surplus BEI
+in the system for MKR. This surplus BEI will come from the Stability Fees
+that are accumulated from Vaults. In this auction type, bidders compete
+with increasing amounts of MKR. Once the auction has ended,
+the BEI auctioned off is sent to the winning bidder.
 The system then burns the MKR received from the winning bid.
 */
 
@@ -140,10 +140,8 @@ contract SurplusAuction is Auth, CircuitBreaker {
         ISurplusAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
-                && (
-                    b.bid_expiry_time < block.timestamp
-                        || b.auction_end_time < block.timestamp
-                ),
+                && (b.bid_expiry_time < block.timestamp
+                    || b.auction_end_time < block.timestamp),
             "not finished"
         );
         cdp_engine.transfer_coin(address(this), b.highest_bidder, b.lot);

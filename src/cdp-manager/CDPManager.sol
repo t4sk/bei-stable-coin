@@ -162,14 +162,15 @@ contract CDPManager {
         cdp_allowed(cdp_id)
     {
         address cdp = positions[cdp_id];
-        ICDPEngine(cdp_engine).modify_cdp({
-            col_type: collaterals[cdp_id],
-            cdp: cdp,
-            gem_src: cdp,
-            coin_dst: cdp,
-            delta_col: delta_col,
-            delta_debt: delta_debt
-        });
+        ICDPEngine(cdp_engine)
+            .modify_cdp({
+                col_type: collaterals[cdp_id],
+                cdp: cdp,
+                gem_src: cdp,
+                coin_dst: cdp,
+                delta_col: delta_col,
+                delta_debt: delta_debt
+            });
     }
 
     // flux
@@ -178,9 +179,10 @@ contract CDPManager {
         public
         cdp_allowed(cdp_id)
     {
-        ICDPEngine(cdp_engine).transfer_collateral(
-            collaterals[cdp_id], positions[cdp_id], dst, wad
-        );
+        ICDPEngine(cdp_engine)
+            .transfer_collateral(
+                collaterals[cdp_id], positions[cdp_id], dst, wad
+            );
     }
 
     // flux
@@ -192,9 +194,8 @@ contract CDPManager {
         address dst,
         uint256 wad
     ) public cdp_allowed(cdp_id) {
-        ICDPEngine(cdp_engine).transfer_collateral(
-            col_type, positions[cdp_id], dst, wad
-        );
+        ICDPEngine(cdp_engine)
+            .transfer_collateral(col_type, positions[cdp_id], dst, wad);
     }
 
     // move
@@ -218,13 +219,14 @@ contract CDPManager {
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp);
 
-        ICDPEngine(cdp_engine).fork({
-            col_type: col_type,
-            cdp_src: cdp,
-            cdp_dst: cdp_dst,
-            delta_col: int256(pos.collateral),
-            delta_debt: int256(pos.debt)
-        });
+        ICDPEngine(cdp_engine)
+            .fork({
+                col_type: col_type,
+                cdp_src: cdp,
+                cdp_dst: cdp_dst,
+                delta_col: int256(pos.collateral),
+                delta_debt: int256(pos.debt)
+            });
     }
 
     // Import a position from cdp_src cdp handler to the cdp handler owned by cdp_id
@@ -238,13 +240,14 @@ contract CDPManager {
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp_src);
 
-        ICDPEngine(cdp_engine).fork({
-            col_type: col_type,
-            cdp_src: cdp_src,
-            cdp_dst: positions[cdp_id],
-            delta_col: int256(pos.collateral),
-            delta_debt: int256(pos.debt)
-        });
+        ICDPEngine(cdp_engine)
+            .fork({
+                col_type: col_type,
+                cdp_src: cdp_src,
+                cdp_dst: positions[cdp_id],
+                delta_col: int256(pos.collateral),
+                delta_debt: int256(pos.debt)
+            });
     }
 
     // Move a position from cdp_src cdp handler to the cdp_dst cdp handler
@@ -257,15 +260,15 @@ contract CDPManager {
             collaterals[cdp_src] == collaterals[cdp_dst],
             "not matching collaterals"
         );
-        ICDPEngine.Position memory pos = ICDPEngine(cdp_engine).positions(
-            collaterals[cdp_src], positions[cdp_src]
-        );
-        ICDPEngine(cdp_engine).fork({
-            col_type: collaterals[cdp_src],
-            cdp_src: positions[cdp_src],
-            cdp_dst: positions[cdp_dst],
-            delta_col: int256(pos.collateral),
-            delta_debt: int256(pos.debt)
-        });
+        ICDPEngine.Position memory pos = ICDPEngine(cdp_engine)
+            .positions(collaterals[cdp_src], positions[cdp_src]);
+        ICDPEngine(cdp_engine)
+            .fork({
+                col_type: collaterals[cdp_src],
+                cdp_src: positions[cdp_src],
+                cdp_dst: positions[cdp_dst],
+                delta_col: int256(pos.collateral),
+                delta_debt: int256(pos.debt)
+            });
     }
 }

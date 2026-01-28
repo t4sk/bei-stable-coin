@@ -119,8 +119,8 @@ contract DSEngine is Auth, CircuitBreaker {
         // rad + total debt on queue + total debt on debt auction <= unbacked debt
         require(
             rad
-                <= cdp_engine.unbacked_debts(address(this)) - total_debt_on_queue
-                    - total_debt_on_debt_auction,
+                <= cdp_engine.unbacked_debts(address(this))
+                    - total_debt_on_queue - total_debt_on_debt_auction,
             "insufficient debt"
         );
         cdp_engine.burn(rad);
@@ -145,7 +145,7 @@ contract DSEngine is Auth, CircuitBreaker {
         // <= unbacked debts
         require(
             debt_auction_bid_size + total_debt_on_queue
-                + total_debt_on_debt_auction
+                    + total_debt_on_debt_auction
                 <= cdp_engine.unbacked_debts(address(this)),
             "insufficient debt"
         );

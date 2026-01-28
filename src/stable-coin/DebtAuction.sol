@@ -124,9 +124,8 @@ contract DebtAuction is Auth, CircuitBreaker {
                 uint256 debt =
                     IDSEngine(b.highest_bidder).total_debt_on_debt_auction();
                 // On first dent, bid_expiry_time = 0 and highest_bidder = vow
-                IDSEngine(b.highest_bidder).decrease_auction_debt(
-                    Math.min(bid_amount, debt)
-                );
+                IDSEngine(b.highest_bidder)
+                    .decrease_auction_debt(Math.min(bid_amount, debt));
             }
 
             b.highest_bidder = msg.sender;
@@ -141,10 +140,8 @@ contract DebtAuction is Auth, CircuitBreaker {
         IDebtAuction.Bid storage b = bids[id];
         require(
             b.bid_expiry_time != 0
-                && (
-                    b.bid_expiry_time < block.timestamp
-                        || b.auction_end_time < block.timestamp
-                ),
+                && (b.bid_expiry_time < block.timestamp
+                    || b.auction_end_time < block.timestamp),
             "not finished"
         );
         gem.mint(b.highest_bidder, b.lot);
