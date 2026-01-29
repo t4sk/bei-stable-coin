@@ -99,7 +99,7 @@ interface ICDPEngine {
     // frob
     function modify_cdp(
         bytes32 col_type,
-        address cdp,
+        address cdp_owner,
         address gem_src,
         address coin_dst,
         // wad

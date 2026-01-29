@@ -26,15 +26,16 @@ contract ProxyActions is Common {
     function get_borrow_delta_debt(
         address cdp_engine,
         address jug,
-        address cdp,
+        // Destination of where DAI is sent
+        address dst,
         bytes32 col_type,
         uint256 coin_wad
     ) internal returns (int256 delta_debt) {
         // Updates stability fee rate
         uint256 rate = IJug(jug).collect_stability_fee(col_type);
 
-        // Gets BEI balance of the cdp in the cdp_engine
-        uint256 coin_bal = ICDPEngine(cdp_engine).coin(cdp);
+        // Gets BEI balance of the dst in the cdp_engine
+        uint256 coin_bal = ICDPEngine(cdp_engine).coin(dst);
 
         // If there was already enough BEI in the cdp_engine balance,
         // just exits it without adding more debt
@@ -54,7 +55,7 @@ contract ProxyActions is Common {
     function get_repay_delta_debt(
         address cdp_engine,
         uint256 coin_rad,
-        address cdp,
+        address cdp_owner,
         bytes32 col_type
     ) internal view returns (int256 delta_debt_wad) {
         // Gets actual rate from the cdp_engine
@@ -62,7 +63,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).collaterals(col_type);
         // Gets actual debt value of the cdp
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).positions(col_type, cdp);
+            ICDPEngine(cdp_engine).positions(col_type, cdp_owner);
 
         // Uses the whole coin_rad balance in the cdp_engine to reduce the debt
         delta_debt_wad = int256(coin_rad / c.rate_acc);
@@ -77,7 +78,7 @@ contract ProxyActions is Common {
     function get_repay_all_coin_wad(
         address cdp_engine,
         address user,
-        address cdp,
+        address cdp_owner,
         bytes32 col_type
     ) internal view returns (uint256 coin_wad) {
         // Gets actual rate from the cdp_engine
@@ -85,7 +86,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine).collaterals(col_type);
         // Gets actual debt value of the cdp
         ICDPEngine.Position memory pos =
-            ICDPEngine(cdp_engine).positions(col_type, cdp);
+            ICDPEngine(cdp_engine).positions(col_type, cdp_owner);
         // Gets actual coin amount in the cdp
         uint256 coin_bal = ICDPEngine(cdp_engine).coin(user);
 
@@ -101,20 +102,20 @@ contract ProxyActions is Common {
     }
 
     // ethJoin_join
-    function eth_join_join(address gem_join, address cdp) public payable {
+    function eth_join_join(address gem_join, address cdp_owner) public payable {
         IWETH weth = IWETH(address(IGemJoin(gem_join).gem()));
         // Wraps ETH in WETH
         weth.deposit{value: msg.value}();
         // Approves adapter to take the WETH amount
         weth.approve(address(gem_join), msg.value);
         // Joins WETH collateral into the cdp_engine
-        IGemJoin(gem_join).join(cdp, msg.value);
+        IGemJoin(gem_join).join(cdp_owner, msg.value);
     }
 
     // gemJoin_join
     function gem_join_join(
         address gem_join,
-        address cdp,
+        address cdp_owner,
         uint256 gem_amount,
         bool is_transfer_from
     ) public {
@@ -123,7 +124,7 @@ contract ProxyActions is Common {
             gem.transferFrom(msg.sender, address(this), gem_amount);
             gem.approve(gem_join, gem_amount);
         }
-        IGemJoin(gem_join).join(cdp, gem_amount);
+        IGemJoin(gem_join).join(cdp_owner, gem_amount);
     }
 
     // hope
@@ -250,7 +251,7 @@ contract ProxyActions is Common {
         ICDPEngine(ICDPManager(cdp_manager).cdp_engine())
             .modify_cdp({
                 col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
-                cdp: ICDPManager(cdp_manager).positions(cdp_id),
+                cdp_owner: ICDPManager(cdp_manager).positions(cdp_id),
                 gem_src: address(this),
                 coin_dst: address(this),
                 delta_col: int256(msg.value),
@@ -285,7 +286,7 @@ contract ProxyActions is Common {
         ICDPEngine(ICDPManager(cdp_manager).cdp_engine())
             .modify_cdp({
                 col_type: ICDPManager(cdp_manager).collaterals(cdp_id),
-                cdp: ICDPManager(cdp_manager).positions(cdp_id),
+                cdp_owner: ICDPManager(cdp_manager).positions(cdp_id),
                 gem_src: address(this),
                 coin_dst: address(this),
                 delta_col: int256(to_wad(gem_join, gem_amount)),
@@ -399,7 +400,7 @@ contract ProxyActions is Common {
             delta_debt: get_borrow_delta_debt({
                 cdp_engine: cdp_engine,
                 jug: jug,
-                cdp: cdp,
+                dst: cdp,
                 col_type: col_type,
                 coin_wad: coin_wad
             })
@@ -441,7 +442,7 @@ contract ProxyActions is Common {
                 delta_debt: get_repay_delta_debt({
                     cdp_engine: cdp_engine,
                     coin_rad: ICDPEngine(cdp_engine).coin(cdp),
-                    cdp: cdp,
+                    cdp_owner: cdp,
                     col_type: col_type
                 })
             });
@@ -452,14 +453,14 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine)
                 .modify_cdp({
                     col_type: col_type,
-                    cdp: cdp,
+                    cdp_owner: cdp,
                     gem_src: address(this),
                     coin_dst: address(this),
                     delta_col: 0,
                     delta_debt: get_repay_delta_debt({
                         cdp_engine: cdp_engine,
                         coin_rad: coin_wad * RAY,
-                        cdp: cdp,
+                        cdp_owner: cdp,
                         col_type: col_type
                     })
                 });
@@ -520,7 +521,7 @@ contract ProxyActions is Common {
             ICDPEngine(cdp_engine)
                 .modify_cdp({
                     col_type: col_type,
-                    cdp: cdp,
+                    cdp_owner: cdp,
                     gem_src: address(this),
                     coin_dst: address(this),
                     delta_col: 0,
@@ -564,7 +565,7 @@ contract ProxyActions is Common {
             delta_debt: get_borrow_delta_debt({
                 cdp_engine: cdp_engine,
                 jug: jug,
-                cdp: cdp,
+                dst: cdp,
                 col_type: col_type,
                 coin_wad: coin_wad
             })
@@ -623,7 +624,7 @@ contract ProxyActions is Common {
             delta_debt: get_borrow_delta_debt({
                     cdp_engine: cdp_engine,
                     jug: jug,
-                    cdp: cdp,
+                    dst: cdp,
                     col_type: col_type,
                     coin_wad: coin_wad
                 })
@@ -711,7 +712,7 @@ contract ProxyActions is Common {
             delta_debt: get_repay_delta_debt({
                 cdp_engine: cdp_engine,
                 coin_rad: ICDPEngine(cdp_engine).coin(cdp),
-                cdp: cdp,
+                cdp_owner: cdp,
                 col_type: ICDPManager(cdp_manager).collaterals(cdp_id)
             })
         });
@@ -789,7 +790,7 @@ contract ProxyActions is Common {
                 cdp_engine: ICDPManager(cdp_manager).cdp_engine(),
                 coin_rad: ICDPEngine(ICDPManager(cdp_manager).cdp_engine())
                     .coin(cdp),
-                cdp: cdp,
+                cdp_owner: cdp,
                 col_type: ICDPManager(cdp_manager).collaterals(cdp_id)
             })
         });
