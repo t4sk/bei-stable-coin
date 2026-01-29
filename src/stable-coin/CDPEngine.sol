@@ -124,8 +124,8 @@ contract CDPEngine is Auth, CircuitBreaker {
     // - modify position of user u
     // - using gem from user v
     // - and creating coin for user w
-    // dink: change in amount of collateral
-    // dart: change in amount of debt
+    // dink: change in amount of collateral [wad]
+    // dart: change in amount of debt [wad]
     function modify_cdp(
         bytes32 col_type,
         address cdp_owner,
