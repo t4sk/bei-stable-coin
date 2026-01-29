@@ -59,8 +59,7 @@ contract Spotter is Auth, CircuitBreaker {
     function poke(bytes32 col_type) external {
         (uint256 val, bool ok) =
             IPriceFeed(collaterals[col_type].price_feed).peek();
-        // NOTE: spot = liquidation price
-        //            = val * 1e9 * par / liquidation_ratio
+        // spot = liquidation price [ray] = (((val * 1e9) * 1e27 / par) * 1e27) / liquidation_ratio
         uint256 spot = ok
             ? Math.rdiv(
                 Math.rdiv(val * 1e9, par),
