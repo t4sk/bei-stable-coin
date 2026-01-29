@@ -77,7 +77,8 @@ contract ProxyActions is Common {
     // _getWipeAllWad
     function get_repay_all_coin_wad(
         address cdp_engine,
-        address user,
+        // DAI source to repay from
+        address src,
         address cdp_owner,
         bytes32 col_type
     ) internal view returns (uint256 coin_wad) {
@@ -87,8 +88,8 @@ contract ProxyActions is Common {
         // Gets actual debt value of the cdp
         ICDPEngine.Position memory pos =
             ICDPEngine(cdp_engine).positions(col_type, cdp_owner);
-        // Gets actual coin amount in the cdp
-        uint256 coin_bal = ICDPEngine(cdp_engine).coin(user);
+        // Gets actual coin amount in src
+        uint256 coin_bal = ICDPEngine(cdp_engine).coin(src);
 
         uint256 rad = pos.debt * c.rate_acc - coin_bal;
         coin_wad = rad / RAY;
